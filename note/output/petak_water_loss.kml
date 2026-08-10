@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Total water loss — 4.563 ha</name>
+    <Style id="s_P01">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9edee8fe</color></PolyStyle>
+    </Style>
+    <Style id="s_P02">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9ec1d3fd</color></PolyStyle>
+    </Style>
+    <Style id="s_P03">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9eadc4fc</color></PolyStyle>
+    </Style>
+    <Style id="s_P04">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9ef0f5ff</color></PolyStyle>
+    </Style>
+    <Style id="s_P05">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9e0d0067</color></PolyStyle>
+    </Style>
+    <Style id="s_P06">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9e201fd2</color></PolyStyle>
+    </Style>
+    <Style id="s_P07">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9e2428db</color></PolyStyle>
+    </Style>
+    <Style id="s_P08">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9e0e016b</color></PolyStyle>
+    </Style>
+    <Style id="s_P09">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9eeef4ff</color></PolyStyle>
+    </Style>
+    <Style id="s_P10">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9ec7d8fe</color></PolyStyle>
+    </Style>
+    <Style id="s_P11">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9ed4e1fe</color></PolyStyle>
+    </Style>
+    <Style id="s_P12">
+      <LineStyle><color>ffffffff</color><width>1.6</width></LineStyle>
+      <PolyStyle><color>9eeef4ff</color></PolyStyle>
+    </Style>
+    <Placemark>
+      <name>P01</name>
+      <description><![CDATA[<b>Total water loss: 618.8 mm/musim</b><br/><hr/>Luas: 1,043 m² = 0.1043 ha<br/>Cara ambil air: chokubun<br/>Koef. perkolasi: 4.62e-07 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 388 mm = 405 m³<br/>&nbsp;SRI: 337 mm = 352 m³<br/>&nbsp;Debit: 0.07 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 70 mm<br/>&nbsp;Mengalir: 38 mm]]></description>
+      <styleUrl>#s_P01</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.90783389,-7.18033078,0 107.90782850,-7.18032588,0 107.90764154,-7.18013810,0 107.90811226,-7.18024671,0 107.90837125,-7.18026030,0 107.90857048,-7.18029869,0 107.90865718,-7.18031465,0 107.90877401,-7.18029186,0 107.90883973,-7.18030283,0 107.90891028,-7.18033078,0 107.90783389,-7.18033078,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P02</name>
+      <description><![CDATA[<b>Total water loss: 634.0 mm/musim</b><br/><hr/>Luas: 3,605 m² = 0.3605 ha<br/>Cara ambil air: chokubun<br/>Koef. perkolasi: 5.59e-07 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 403 mm = 1,453 m³<br/>&nbsp;SRI: 350 mm = 1,262 m³<br/>&nbsp;Debit: 0.24 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 84 mm<br/>&nbsp;Mengalir: 39 mm]]></description>
+      <styleUrl>#s_P02</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.90804622,-7.18052345,0 107.90783389,-7.18033078,0 107.90891028,-7.18033078,0 107.90891910,-7.18033427,0 107.90912955,-7.18038506,0 107.90927279,-7.18045509,0 107.90933503,-7.18049959,0 107.90938870,-7.18052345,0 107.90942099,-7.18052345,0 107.90949276,-7.18051330,0 107.90950991,-7.18052345,0 107.90986637,-7.18052345,0 107.90987541,-7.18049551,0 107.90987462,-7.18045835,0 107.90988186,-7.18042119,0 107.90988517,-7.18040987,0 107.90991231,-7.18040797,0 107.91001567,-7.18041160,0 107.91008242,-7.18041431,0 107.91013937,-7.18042267,0 107.91018417,-7.18042838,0 107.91026433,-7.18043936,0 107.91035245,-7.18045406,0 107.91041650,-7.18046701,0 107.91043962,-7.18047946,0 107.91046133,-7.18052345,0 107.90804622,-7.18052345,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P03</name>
+      <description><![CDATA[<b>Total water loss: 641.6 mm/musim</b><br/><hr/>Luas: 6,032 m² = 0.6032 ha<br/>Cara ambil air: chokubun<br/>Koef. perkolasi: 6.27e-07 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 403 mm = 2,433 m³<br/>&nbsp;SRI: 370 mm = 2,232 m³<br/>&nbsp;Debit: 0.39 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 93 mm<br/>&nbsp;Mengalir: 37 mm]]></description>
+      <styleUrl>#s_P03</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.90824663,-7.18071613,0 107.90807959,-7.18055374,0 107.90804622,-7.18052345,0 107.90938870,-7.18052345,0 107.90939650,-7.18052692,0 107.90942099,-7.18052345,0 107.90950991,-7.18052345,0 107.90960608,-7.18058040,0 107.90966598,-7.18055695,0 107.90976011,-7.18060957,0 107.90977683,-7.18060043,0 107.90980546,-7.18058094,0 107.90981857,-7.18057177,0 107.90983531,-7.18055123,0 107.90984685,-7.18054212,0 107.90986567,-7.18052564,0 107.90986637,-7.18052345,0 107.91046133,-7.18052345,0 107.91046406,-7.18052898,0 107.91049185,-7.18054665,0 107.91054465,-7.18055736,0 107.91059579,-7.18056628,0 107.91069695,-7.18058113,0 107.91073085,-7.18059196,0 107.91079048,-7.18062014,0 107.91086493,-7.18065274,0 107.91105968,-7.18068624,0 107.91112977,-7.18070165,0 107.91115732,-7.18071613,0 107.90824663,-7.18071613,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P04</name>
+      <description><![CDATA[<b>Total water loss: 607.3 mm/musim</b><br/><hr/>Luas: 6,912 m² = 0.6912 ha<br/>Cara ambil air: chokubun<br/>Koef. perkolasi: 3.57e-07 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 376 mm = 2,602 m³<br/>&nbsp;SRI: 322 mm = 2,226 m³<br/>&nbsp;Debit: 0.42 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 56 mm<br/>&nbsp;Mengalir: 41 mm]]></description>
+      <styleUrl>#s_P04</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.90843799,-7.18090881,0 107.90833649,-7.18080349,0 107.90824663,-7.18071613,0 107.91115732,-7.18071613,0 107.91116901,-7.18072227,0 107.91125810,-7.18073227,0 107.91130175,-7.18073352,0 107.91127540,-7.18090881,0 107.90843799,-7.18090881,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P05</name>
+      <description><![CDATA[<b>Total water loss: 762.6 mm/musim</b><br/><hr/>Luas: 6,317 m² = 0.6317 ha<br/>Cara ambil air: shusui<br/>Koef. perkolasi: 1.59e-06 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 523 mm = 3,307 m³<br/>&nbsp;SRI: 500 mm = 3,156 m³<br/>&nbsp;Debit: 0.54 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 228 mm<br/>&nbsp;Mengalir: 23 mm]]></description>
+      <styleUrl>#s_P05</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.90873457,-7.18110149,0 107.90878709,-7.18106073,0 107.90854078,-7.18101546,0 107.90843799,-7.18090881,0 107.91127540,-7.18090881,0 107.91125155,-7.18106740,0 107.91135982,-7.18109781,0 107.91136385,-7.18110149,0 107.90873457,-7.18110149,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P06</name>
+      <description><![CDATA[<b>Total water loss: 720.1 mm/musim</b><br/><hr/>Luas: 6,063 m² = 0.6063 ha<br/>Cara ambil air: shusui<br/>Koef. perkolasi: 1.23e-06 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 481 mm = 2,918 m³<br/>&nbsp;SRI: 472 mm = 2,860 m³<br/>&nbsp;Debit: 0.47 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 180 mm<br/>&nbsp;Mengalir: 30 mm]]></description>
+      <styleUrl>#s_P06</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.90889662,-7.18129416,0 107.90889951,-7.18127560,0 107.90893306,-7.18123933,0 107.90884163,-7.18115252,0 107.90875706,-7.18123569,0 107.90868042,-7.18114351,0 107.90873457,-7.18110149,0 107.91136385,-7.18110149,0 107.91139585,-7.18113071,0 107.91139037,-7.18123700,0 107.91137531,-7.18129416,0 107.90889662,-7.18129416,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P07</name>
+      <description><![CDATA[<b>Total water loss: 715.1 mm/musim</b><br/><hr/>Luas: 5,376 m² = 0.5376 ha<br/>Cara ambil air: shusui<br/>Koef. perkolasi: 1.18e-06 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 476 mm = 2,561 m³<br/>&nbsp;SRI: 443 mm = 2,383 m³<br/>&nbsp;Debit: 0.41 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 174 mm<br/>&nbsp;Mengalir: 31 mm]]></description>
+      <styleUrl>#s_P07</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.90906185,-7.18148684,0 107.90907089,-7.18142319,0 107.90906521,-7.18141134,0 107.90888396,-7.18137539,0 107.90889662,-7.18129416,0 107.91137531,-7.18129416,0 107.91136744,-7.18132402,0 107.91125446,-7.18140462,0 107.91120074,-7.18142620,0 107.91117369,-7.18145445,0 107.91112079,-7.18146458,0 107.91107075,-7.18148684,0 107.90906185,-7.18148684,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P08</name>
+      <description><![CDATA[<b>Total water loss: 761.3 mm/musim</b><br/><hr/>Luas: 4,139 m² = 0.4139 ha<br/>Cara ambil air: shusui<br/>Koef. perkolasi: 1.58e-06 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 522 mm = 2,162 m³<br/>&nbsp;SRI: 498 mm = 2,062 m³<br/>&nbsp;Debit: 0.35 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 227 mm<br/>&nbsp;Mengalir: 24 mm]]></description>
+      <styleUrl>#s_P08</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.90914754,-7.18167952,0 107.90909037,-7.18161695,0 107.90905044,-7.18156715,0 107.90906185,-7.18148684,0 107.91107075,-7.18148684,0 107.91105922,-7.18149197,0 107.91103832,-7.18152989,0 107.91102299,-7.18157550,0 107.91097019,-7.18159728,0 107.91092952,-7.18159825,0 107.91091346,-7.18162912,0 107.91085763,-7.18167952,0 107.91083903,-7.18167952,0 107.91071829,-7.18165884,0 107.91051712,-7.18162480,0 107.91031729,-7.18157883,0 107.91027872,-7.18167952,0 107.90914754,-7.18167952,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P09</name>
+      <description><![CDATA[<b>Total water loss: 608.8 mm/musim</b><br/><hr/>Luas: 2,369 m² = 0.2369 ha<br/>Cara ambil air: tagoshi<br/>Koef. perkolasi: 3.71e-07 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 378 mm = 895 m³<br/>&nbsp;SRI: 324 mm = 767 m³<br/>&nbsp;Debit: 0.14 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 58 mm<br/>&nbsp;Mengalir: 40 mm]]></description>
+      <styleUrl>#s_P09</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.90932361,-7.18187220,0 107.90914754,-7.18167952,0 107.91085763,-7.18167952,0 107.91085466,-7.18168220,0 107.91083903,-7.18167952,0 107.91027872,-7.18167952,0 107.91020490,-7.18187220,0 107.90932361,-7.18187220,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P10</name>
+      <description><![CDATA[<b>Total water loss: 631.1 mm/musim</b><br/><hr/>Luas: 1,816 m² = 0.1816 ha<br/>Cara ambil air: tagoshi<br/>Koef. perkolasi: 5.32e-07 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 400 mm = 727 m³<br/>&nbsp;SRI: 347 mm = 630 m³<br/>&nbsp;Debit: 0.12 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 80 mm<br/>&nbsp;Mengalir: 40 mm]]></description>
+      <styleUrl>#s_P10</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.90949823,-7.18206487,0 107.90942553,-7.18198374,0 107.90932361,-7.18187220,0 107.91020490,-7.18187220,0 107.91020209,-7.18187953,0 107.91016250,-7.18206487,0 107.90949823,-7.18206487,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P11</name>
+      <description><![CDATA[<b>Total water loss: 625.6 mm/musim</b><br/><hr/>Luas: 1,446 m² = 0.1446 ha<br/>Cara ambil air: tagoshi<br/>Koef. perkolasi: 4.83e-07 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 395 mm = 571 m³<br/>&nbsp;SRI: 340 mm = 491 m³<br/>&nbsp;Debit: 0.09 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 73 mm<br/>&nbsp;Mengalir: 42 mm]]></description>
+      <styleUrl>#s_P11</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.91029694,-7.18211435,0 107.91010363,-7.18225755,0 107.90967087,-7.18225755,0 107.90949823,-7.18206487,0 107.91016250,-7.18206487,0 107.91015851,-7.18208356,0 107.91029542,-7.18211965,0 107.91029694,-7.18211435,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>P12</name>
+      <description><![CDATA[<b>Total water loss: 608.9 mm/musim</b><br/><hr/>Luas: 509 m² = 0.0509 ha<br/>Cara ambil air: tagoshi<br/>Koef. perkolasi: 3.72e-07 /detik<br/><hr/><b>Kebutuhan air</b><br/>&nbsp;FL : 378 mm = 193 m³<br/>&nbsp;SRI: 324 mm = 165 m³<br/>&nbsp;Debit: 0.03 l/detik<br/><hr/><b>Water loss (FL)</b><br/>&nbsp;Menguap : 511 mm<br/>&nbsp;Meresap : 58 mm<br/>&nbsp;Mengalir: 40 mm]]></description>
+      <styleUrl>#s_P12</styleUrl>
+      <Polygon><outerBoundaryIs><LinearRing>
+        <coordinates>107.91010363,-7.18225755,0 107.90984352,-7.18245023,0 107.90967087,-7.18225755,0 107.91010363,-7.18225755,0</coordinates>
+      </LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+  </Document>
+</kml>
