@@ -1,0 +1,8 @@
+Tujuan WMS Agriculture and Irigation
+- berapa kebutuhan air di petak sawah
+- berapa debit yang diperlukan untuk irigasi satu bagian sawah
+- bagaimana varietas padi memengaruhi kebutuhan irigasi dan pupuk
+- prediksi kapan panen bisa di lakukan 
+- pada irigasi dan genangan air di petak sawah berapa air yang hilang/ menguap (water loss)
+
+lalu apakah kau ada ide lain ?
