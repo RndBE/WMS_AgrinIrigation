@@ -1,0 +1,2 @@
+n_kecamatan,n_musim_per_kecamatan,tahun_cuaca,sumber_cuaca,metode_eto,sumber_sawah,sumber_batas,bulan_tanam,hari_musim,perkolasi_mm_hari,efisiensi_jaringan,wlr_mm,lama_siap_lahan_hari,luas_sawah_total_ha,debit_total_l_detik_FL,volume_total_m3_FL
+21,10,2015-2025,Open-Meteo ERA5-Land,FAO-56 Penman-Monteith,BIG RBI 25K lapisan Agrikultur Sawah (612),SISDA batas_kec_cimancis,Jan,140,2.0,0.65,50.0,30,21705.015817161697,6341.440412164587,49858941.096602835

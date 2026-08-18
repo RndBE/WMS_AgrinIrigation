@@ -1,0 +1,7 @@
+Flask>=3.0
+pandas>=2.0
+# Irisan poligon sungguhan (sawah x batas kecamatan). Penetapan lewat titik pusat sudah
+# dicoba dan salah besar - satu blok BIG bisa menjulur jauh keluar wilayah, dan 25% luas
+# jatuh ke kecamatan yang keliru. Operasi boolean poligon terlalu berbahaya ditulis sendiri.
+shapely>=2.0
+numpy>=1.24

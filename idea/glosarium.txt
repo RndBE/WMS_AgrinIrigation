@@ -1,0 +1,16 @@
+
+
+| Istilah    | Kepanjangan                  | Arti sederhana                                          | Umum dalam       |
+| ---------- | ---------------------------- | ------------------------------------------------------- | ---------------- |
+| **ETo**    | Reference Evapotranspiration | “Seberapa kuat cuaca menarik air”                       | mm/hari          |
+| **Kc**     | Crop Coefficient             | Faktor kebutuhan air sesuai tanaman/fase                | tanpa satuan     |
+| **ETc**    | Crop Evapotranspiration      | Air yang hilang karena tanaman + penguapan              | mm/hari          |
+| **P**      | Percolation                  | Air meresap vertikal ke bawah tanah                     | mm/hari          |
+| **S**      | Seepage                      | Air bocor/rembes secara lateral                         | mm/hari / volume |
+| **WLR**    | Water Layer Replacement      | Air untuk mengganti lapisan/genangan sawah              | mm/hari          |
+| **Re**     | Effective Rainfall           | Bagian hujan yang benar-benar berguna bagi tanaman      | mm/hari          |
+| **NFR**    | Net Field Requirement        | Kebutuhan air bersih di petak sawah                     | mm/hari          |
+| **e / IE** | Irrigation Efficiency        | Efisiensi perjalanan air dari sumber ke sawah           | %                |
+| **DR**     | Diversion Requirement        | Air yang perlu diambil dari sungai/bendung              | L/s atau m³/s    |
+| **IR**     | Irrigation Requirement       | Kebutuhan air irigasi; konteks rumus perlu diperhatikan | mm/hari          |
+| **Q**      | Discharge                    | Debit air yang harus dialirkan                          | L/s atau m³/s    |

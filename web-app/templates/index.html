@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beacon SWH — Peta Sawah &amp; Pengairan</title>
+  <link rel="icon" href="/logo_beacon.png">
+  <link rel="stylesheet" href="/static/vendor/leaflet.css">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+
+<header class="bar">
+  <img class="bar__logo" src="/logo_beacon.png" alt="Beacon">
+  <div class="bar__judul">
+    <h1>Peta Sawah &amp; Pengairan</h1>
+    <p id="bar-sub">memuat…</p>
+  </div>
+  <div class="bar__kendali">
+    <label class="pilih">
+      <span>Lokasi</span>
+      <select id="pilih-lokasi">
+        {% for l in lokasi %}
+        <option value="{{ l.id }}">{{ l.nama }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="pilih" id="wadah-rezim" hidden>
+      <span>Rezim</span>
+      <select id="pilih-rezim"></select>
+    </label>
+    <label class="pilih" id="wadah-metrik">
+      <span>Warna peta</span>
+      <select id="pilih-metrik"></select>
+    </label>
+    <div class="pilih" id="wadah-ekspor">
+      <span>Ekspor</span>
+      <a class="unduh" id="unduh-kml" href="#"
+         title="Unduh sebagai KML untuk dibuka di Google Earth atau QGIS">Unduh KML</a>
+    </div>
+  </div>
+</header>
+
+<main class="isi">
+
+  <!-- ============ kolom 8: peta ============ -->
+  <section class="peta-kotak">
+    <div id="peta"></div>
+
+    <!-- card ringkasan yang menempel di dalam peta -->
+    <div class="kartu-peta" id="kartu-ringkas">
+      <div class="kartu-peta__kepala">
+        <span class="titik"></span>
+        <span id="ringkas-nama">—</span>
+        <button type="button" class="kartu-peta__tutup" id="ringkas-tutup"
+                title="Sembunyikan kartu ringkasan"
+                aria-label="Sembunyikan kartu ringkasan">×</button>
+      </div>
+      <div class="statistik">
+        <div class="stat" id="stat-kotak-luas">
+          <span class="stat__label" id="stat-luas-label">Luas</span>
+          <span class="stat__nilai" id="stat-luas">—</span>
+          <span class="stat__satuan">ha</span>
+        </div>
+        <div class="stat stat--air">
+          <span class="stat__label">Kebutuhan air</span>
+          <span class="stat__nilai" id="stat-air">—</span>
+          <span class="stat__satuan" id="stat-air-satuan">m³</span>
+        </div>
+        <div class="stat stat--loss">
+          <span class="stat__label">Water loss</span>
+          <span class="stat__nilai" id="stat-loss">—</span>
+          <span class="stat__satuan" id="stat-loss-satuan">m³</span>
+        </div>
+      </div>
+
+      <!-- Waktu tempuh ke ujung jaringan. Ketiganya ditulis berdampingan dengan
+           sengaja: selisih air lawan respons sampai 1,4x, dan jadwal pintu yang
+           disusun memakai waktu AIR akan selalu terlambat sebesar selisih itu. -->
+      <div class="waktu" id="waktu-tempuh" hidden>
+        <div class="waktu__kepala">
+          <span>Waktu ke ujung jaringan</span>
+          <b id="waktu-ujung"></b>
+        </div>
+        <ul class="waktu__nilai" id="waktu-nilai"></ul>
+        <p class="waktu__catatan" id="waktu-catatan"></p>
+      </div>
+
+      <!-- persen water loss: susunan tiga jalan keluar + nisbah terhadap air masuk -->
+      <div class="persen" id="persen-loss" hidden>
+        <div class="persen__kepala">
+          <span>Ke mana air pergi</span>
+          <b id="persen-masuk"></b>
+        </div>
+        <div class="bilah" id="bilah-ringkas"></div>
+        <ul class="kunci kunci--rapat" id="kunci-ringkas"></ul>
+      </div>
+
+      <p class="kartu-peta__catatan" id="ringkas-catatan"></p>
+
+      <!-- Peringatan cakupan: angka air tidak mencakup semua objek yang digambar.
+           Dibedakan dari catatan di atas karena wataknya beda - yang di atas
+           menerangkan angkanya, yang ini memperingatkan cara membacanya. -->
+      <p class="kartu-peta__cakupan" id="ringkas-cakupan" hidden></p>
+    </div>
+
+    <!-- Pengganti kartu ringkas saat ia disembunyikan. Bukan tombol tanpa nama: kalau
+         isinya cuma ikon, satu-satunya cara tahu apa yang akan muncul adalah menekannya. -->
+    <button type="button" class="kartu-buka" id="ringkas-buka" hidden
+            title="Tampilkan kembali kartu ringkasan">
+      <span class="titik"></span><span id="buka-nama">Ringkasan</span>
+    </button>
+
+    <!-- sudut kiri-bawah: koordinat titik yang diklik, lalu skala warna di bawahnya -->
+    <div class="sudut-kiri-bawah">
+      <div class="koordinat" id="koordinat" hidden>
+        <div class="koordinat__kepala">
+          <span>Titik yang diklik</span>
+          <button type="button" class="koordinat__tutup" id="koordinat-tutup"
+                  title="Hapus penanda (Esc)" aria-label="Hapus penanda">×</button>
+        </div>
+        <output class="koordinat__nilai" id="koordinat-nilai">—</output>
+        <div class="koordinat__kaki">
+          <span class="koordinat__dms" id="koordinat-dms">—</span>
+          <button type="button" class="koordinat__salin" id="koordinat-salin">Salin</button>
+        </div>
+        <span class="koordinat__ket">Lintang, Bujur · WGS 84 (EPSG:4326)</span>
+      </div>
+
+      <!-- skala warna -->
+      <div class="legenda" id="legenda" hidden>
+        <span class="legenda__judul" id="legenda-judul">—</span>
+        <div class="legenda__pita" id="legenda-pita"></div>
+        <div class="legenda__batas">
+          <span id="legenda-min">—</span><span id="legenda-maks">—</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ kolom 2: detail per petak ============ -->
+  <aside class="samping">
+    <div class="kartu" id="kartu-detail">
+      <div class="kartu__kepala">
+        <h2 id="detail-judul">Detail petak</h2>
+        <span class="lencana" id="detail-lencana" hidden></span>
+      </div>
+
+      <p class="kosong" id="detail-kosong">
+        Klik salah satu <span class="objek">petak</span> di peta untuk melihat rinciannya.
+      </p>
+
+      <div id="detail-isi" hidden>
+        <dl class="baris" id="detail-baris"></dl>
+        <div class="pecahan" id="detail-pecahan" hidden>
+          <span class="pecahan__judul">Ke mana air pergi</span>
+          <div class="bilah" id="bilah-loss"></div>
+          <ul class="kunci" id="kunci-loss"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="kartu kartu--kecil" id="kartu-daftar">
+      <h2 id="judul-daftar">Daftar <span class="objek">petak</span></h2>
+      <ul class="daftar" id="daftar-petak"></ul>
+    </div>
+
+    <p class="sumber" id="sumber">—</p>
+  </aside>
+
+</main>
+
+<script src="/static/vendor/leaflet.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

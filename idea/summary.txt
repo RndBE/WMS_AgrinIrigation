@@ -1,0 +1,9 @@
+RANGKUMAN WEBSITE BEACON SWH
+
+Beacon SWH adalah aplikasi web satu halaman untuk menampilkan hasil analisis sawah dan pengairan secara visual. Pengguna dapat memilih lokasi SWH-011 atau SWH-JB-GRT, mengganti rezim irigasi FL/SRI, serta mewarnai petak berdasarkan kebutuhan air, debit, water loss, luas, dan—untuk lokasi tertentu—kondisi terrain.
+
+Antarmuka utamanya berupa peta satelit interaktif Leaflet yang dilengkapi batas lahan, popup dan detail tiap petak, kartu ringkasan luas/kebutuhan air/water loss, legenda warna, daftar petak, serta tombol untuk menampilkan atau menyembunyikan masking poligon. Tata letaknya responsif sehingga dapat digunakan dari komputer maupun perangkat seluler di jaringan lokal.
+
+Backend dibangun dengan Flask dan pandas. Data KML diubah menjadi GeoJSON lalu digabungkan dengan hasil CSV/JSON dari notebook analisis; website tidak menghitung ulang data hidrologi. Tile satelit memakai cache lokal dan hanya diunduh dari Esri saat belum tersedia, sehingga data dan poligon tetap dapat dibuka saat internet terputus meskipun citra dasar mungkin kosong.
+
+Secara umum, aplikasi ini ringan, informatif, dan sesuai untuk pemantauan atau presentasi hasil analisis di kantor/lapangan. Batasannya: masih memakai server pengembangan tanpa autentikasi, bergantung pada kelengkapan output notebook, dan belum ditujukan untuk dipublikasikan langsung ke internet atau melakukan input/perubahan data.

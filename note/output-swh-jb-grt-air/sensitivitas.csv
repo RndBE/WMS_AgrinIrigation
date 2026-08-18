@@ -1,0 +1,18 @@
+masukan,nilai,irigasi_mm,keluar_mm,pengambilan_mm
+perkolasi,1 mm/hari,211.563,1375.293,
+perkolasi,2 mm/hari,230.384,1420.548,
+perkolasi,3 mm/hari,276.93,1485.84,
+perkolasi,4 mm/hari,323.32,1541.437,
+efisiensi jaringan,0.50,230.384,1403.994,460.768
+efisiensi jaringan,0.65,230.384,1403.994,354.437
+efisiensi jaringan,0.80,230.384,1403.994,287.98
+efisiensi jaringan,1.00,230.384,1403.994,230.384
+tahun (hujan nyata),2016,227.3,2180.562,
+tahun (hujan nyata),2017,230.384,1420.548,
+tahun (hujan nyata),2018,390.243,1195.234,
+tahun (hujan nyata),2019,252.274,1591.942,
+tahun (hujan nyata),2020,214.475,1791.636,
+tahun (hujan nyata),2021,204.138,1403.994,
+tahun (hujan nyata),2022,240.312,1280.929,
+tahun (hujan nyata),2023,206.727,1259.624,
+tahun (hujan nyata),2024,330.827,1233.7,

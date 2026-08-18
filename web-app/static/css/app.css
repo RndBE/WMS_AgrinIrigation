@@ -1,0 +1,1000 @@
+/* Beacon SWH — putih + biru muda pastel.
+   Hue-nya digeser ke arah pertanian: biru air (irigasi) sebagai warna utama, dengan
+   aksen hijau daun teredam untuk hal yang bertumbuh, dan tanah/gandum untuk peringatan.
+   Semua warna sengaja bernilai terang tinggi & saturasi rendah supaya citra satelit di
+   bawahnya tetap terbaca dan halaman terasa lapang, bukan berisik. */
+:root {
+  --putih:        #ffffff;
+  --kertas:       #f6fbfd;   /* putih kebiruan - latar halaman */
+  --kabut:        #eaf4fa;   /* biru muda pastel - latar kartu sekunder */
+  --pastel:       #d7eaf6;   /* biru muda pastel - garis & pita */
+  --pastel-tua:   #b3d5e9;
+  --biru:         #5b9ec4;   /* biru air - warna utama */
+  --biru-tua:     #2f6d90;
+  --daun:         #7faa78;   /* hijau daun teredam - aksen pertanian */
+  --daun-muda:    #cfe3c8;
+  --gandum:       #d9b26a;   /* aksen tanah/gandum - untuk yang perlu perhatian */
+  --tinta:        #1f3f4f;   /* teks utama, biru kehijauan gelap */
+  --tinta-lembut: #5d7d8c;
+  --garis:        #dcebf3;
+  --bayang:       0 2px 10px rgba(31, 63, 79, .08);
+  --bayang-kartu: 0 6px 22px rgba(31, 63, 79, .14);
+  --lengkung:     14px;
+}
+
+* { box-sizing: border-box; }
+
+/* `hidden` bawaan peramban cuma `display: none` tanpa penanda apa pun, jadi SETIAP
+   aturan yang memasang `display` sendiri mengalahkannya - dan unsur yang disembunyikan
+   dari JS diam-diam tetap tampak. Sudah kejadian sekali di `.kartu--kecil`; aturan ini
+   menutup seluruh kelasnya, bukan satu kasusnya. */
+[hidden] { display: none !important; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--kertas);
+  color: var(--tinta);
+  font: 14px/1.5 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { display: flex; flex-direction: column; }
+
+/* ------------------------------------------------------------------ bilah atas */
+.bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 20px;
+  background: var(--putih);
+  border-bottom: 1px solid var(--garis);
+  box-shadow: var(--bayang);
+  z-index: 500;
+}
+
+.bar__logo { height: 38px; width: auto; display: block; }
+
+.bar__judul { flex: 1 1 auto; min-width: 0; }
+.bar__judul h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+.bar__judul p {
+  margin: 1px 0 0;
+  font-size: 12px;
+  color: var(--tinta-lembut);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar__kendali { display: flex; gap: 10px; flex: 0 0 auto; }
+
+.pilih { display: flex; flex-direction: column; gap: 3px; }
+.pilih > span {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--tinta-lembut);
+}
+.pilih select {
+  appearance: none;
+  border: 1px solid var(--pastel);
+  background: var(--kabut) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%235d7d8c'/></svg>") no-repeat right 9px center;
+  color: var(--tinta);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 28px 6px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  min-width: 138px;
+}
+.pilih select:hover { border-color: var(--pastel-tua); }
+.pilih select:focus-visible { outline: 2px solid var(--biru); outline-offset: 1px; }
+
+/* tautan unduh, dibuat setinggi dan sebentuk select di sebelahnya */
+.unduh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--pastel);
+  background: var(--kabut);
+  color: var(--biru-tua);
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.unduh::before {
+  content: "";
+  width: 9px; height: 9px;
+  border-left: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: translateY(-2px) rotate(-45deg);
+}
+.unduh:hover { border-color: var(--pastel-tua); background: var(--pastel); }
+.unduh:focus-visible { outline: 2px solid var(--biru); outline-offset: 1px; }
+
+/* --------------------------------------------------- tata letak isi (8 : 2) */
+.isi {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 8fr 2fr;   /* peta : detail = 8 : 2 */
+  gap: 14px;
+  padding: 14px;
+  min-height: 0;
+}
+
+/* -------------------------------------------------------------------- peta */
+.peta-kotak {
+  position: relative;
+  border-radius: var(--lengkung);
+  overflow: hidden;
+  background: var(--kabut);
+  border: 1px solid var(--garis);
+  box-shadow: var(--bayang);
+  min-height: 0;
+}
+
+#peta { position: absolute; inset: 0; background: var(--kabut); }
+
+/* card ringkasan di dalam peta */
+.kartu-peta {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 450;
+  width: 288px;
+  /* Lebarnya tetap, petanya tidak. Tanpa batas ini kartu 288 px menutup hampir seluruh
+     lebar peta begitu jendelanya sempit - 28 px = jarak 14 px di kiri dan kanan. */
+  max-width: calc(100% - 28px);
+  /* Sama untuk tingginya. Isi kartu ini bertambah tiap kali halaman menjawab satu
+     pertanyaan baru - stat, susunan water loss, waktu tempuh, peringatan cakupan - dan
+     sudah menyentuh 606 px. Tanpa batas ini ia menjulur keluar peta di layar pendek,
+     dan bagian bawahnya tidak bisa dibaca maupun ditutup karena tombolnya di atas. */
+  max-height: calc(100% - 28px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 16px 12px;
+  background: rgba(255, 255, 255, .93);
+  backdrop-filter: blur(7px);
+  border: 1px solid var(--pastel);
+  border-radius: var(--lengkung);
+  box-shadow: var(--bayang-kartu);
+}
+
+.kartu-peta__kepala {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--biru-tua);
+}
+
+.titik {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--daun);
+  box-shadow: 0 0 0 3px var(--daun-muda);
+  flex: 0 0 auto;
+}
+
+/* Tombol tutup kartu ringkas. Ditaruh di ujung kanan kepala kartu, sebentuk dengan
+   tombol tutup pada kotak koordinat - dua tombol yang mengerjakan hal yang sama di
+   halaman yang sama sebaiknya tidak terlihat seperti dua jenis tombol. */
+.kartu-peta__tutup {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--tinta-lembut);
+  font-size: 17px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.kartu-peta__tutup:hover { color: var(--biru-tua); }
+
+/* Pengganti kartu ringkas saat disembunyikan - menempati sudut yang sama supaya
+   jelas apa yang akan dipulihkannya. */
+.kartu-buka {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 450;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 28px);
+  padding: 7px 13px 7px 11px;
+  background: rgba(255, 255, 255, .93);
+  backdrop-filter: blur(7px);
+  border: 1px solid var(--pastel);
+  border-radius: 99px;
+  box-shadow: var(--bayang-kartu);
+  color: var(--biru-tua);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kartu-buka:hover { border-color: var(--pastel-tua); background: var(--putih); }
+
+.statistik { display: grid; gap: 8px; }
+
+.stat {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--kabut);
+  border-left: 3px solid var(--pastel-tua);
+}
+.stat--air  { border-left-color: var(--biru); }
+.stat--loss { border-left-color: var(--gandum); }
+
+.stat__label  { font-size: 12px; color: var(--tinta-lembut); }
+.stat__nilai  { font-size: 19px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.stat__satuan { font-size: 11px; color: var(--tinta-lembut); }
+.stat__nilai.kosong { font-size: 12.5px; font-weight: 500; color: var(--tinta-lembut); }
+
+/* Waktu tempuh di dalam kartu peta. Tiga angka sejajar, bukan bertumpuk: yang
+   diterangkannya justru SELISIH ketiganya, dan selisih tidak terbaca dari angka yang
+   harus digulir satu per satu. */
+.waktu {
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid var(--garis);
+}
+.waktu__kepala {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--tinta-lembut);
+  margin-bottom: 6px;
+}
+.waktu__kepala b {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  color: var(--tinta);
+}
+.waktu__nilai {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.waktu__nilai li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: var(--kabut);
+  border-left: 2px solid var(--pastel-tua);
+  min-width: 0;
+}
+/* Yang dipakai menyusun jadwal pintu diberi warna utama; dua lainnya teredam.
+   Kalau ketiganya sama menonjol, yang paling gampang disalahpakai justru yang
+   paling besar angkanya. */
+.waktu__nilai li.waktu--kunci { border-left-color: var(--biru); }
+.waktu__nilai span {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--tinta-lembut);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.waktu__nilai b {
+  font-size: 14px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.waktu__nilai b em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--tinta-lembut);
+}
+.waktu__catatan {
+  margin: 7px 0 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--tinta-lembut);
+}
+.waktu__catatan:empty { display: none; }
+
+/* Waktu tempuh di kartu ruas pada daftar samping. Satu baris rapat - kartunya sudah
+   memuat dua kotak angka, dan kotak ketiga akan menggencet ketiganya jadi tidak
+   terbaca di panel selebar 236 px. */
+.lahan__waktu {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--garis);
+  font-size: 10.5px;
+  color: var(--tinta-lembut);
+  font-variant-numeric: tabular-nums;
+}
+.lahan__waktu b { font-weight: 600; color: var(--tinta); }
+
+/* persen water loss di dalam kartu peta */
+.persen {
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid var(--garis);
+}
+.persen__kepala {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--tinta-lembut);
+}
+.persen__kepala b {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+.kunci--rapat { grid-template-columns: 1fr; gap: 3px; }
+.kunci--rapat li { font-size: 11px; }
+
+.kartu-peta__catatan {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--tinta-lembut);
+}
+.kartu-peta__catatan:empty { display: none; }
+
+/* Peringatan cakupan. Warnanya gandum - warna yang di halaman ini selalu berarti
+   "perlu perhatian", sama dengan lencana hati-hati dan kotak water loss. Sengaja
+   tidak merah: angkanya tidak salah, cuma belum lengkap. */
+.kartu-peta__cakupan {
+  margin: 9px 0 0;
+  padding: 7px 9px;
+  border-left: 3px solid var(--gandum);
+  border-radius: 0 8px 8px 0;
+  background: #fdf6e7;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #7a5a1c;
+}
+.kartu-peta__cakupan b { font-weight: 650; }
+
+/* Sudut kiri-bawah peta ditumpuk: koordinat di atas, legenda di bawah. Keduanya bisa
+   muncul-hilang sendiri-sendiri, jadi yang memegang posisi wadahnya - kalau masing-masing
+   dipatok `bottom` sendiri, salah satunya akan menimpa yang lain begitu keduanya tampil. */
+.sudut-kiri-bawah {
+  position: absolute;
+  bottom: 16px;
+  left: 14px;
+  z-index: 450;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+/* koordinat titik yang diklik - untuk dicocokkan dengan sumber lain */
+.koordinat {
+  width: 210px;
+  padding: 9px 12px 8px;
+  background: rgba(255, 255, 255, .95);
+  backdrop-filter: blur(7px);
+  border: 1px solid var(--pastel);
+  border-radius: 11px;
+  box-shadow: var(--bayang);
+}
+.koordinat__kepala {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--tinta-lembut);
+  margin-bottom: 3px;
+}
+.koordinat__tutup {
+  border: 0;
+  background: none;
+  color: var(--tinta-lembut);
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.koordinat__tutup:hover { color: var(--biru-tua); }
+/* Angkanya dibuat monospasi dan bisa disorot: dipakai untuk ditempel ke aplikasi lain,
+   jadi salin-manual harus tetap gampang kalau tombol Salin tidak tersedia. */
+.koordinat__nilai {
+  display: block;
+  font-family: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  font-size: 12.5px;
+  color: var(--tinta);
+  user-select: all;
+  word-break: break-all;
+}
+.koordinat__kaki {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+.koordinat__dms { font-size: 10.5px; color: var(--tinta-lembut); }
+.koordinat__salin {
+  border: 1px solid var(--pastel);
+  background: var(--kabut);
+  color: var(--biru-tua);
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.koordinat__salin:hover { border-color: var(--pastel-tua); background: var(--pastel); }
+.koordinat__ket {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--tinta-lembut);
+}
+
+/* legenda skala warna */
+.legenda {
+  width: 210px;
+  padding: 9px 12px 8px;
+  background: rgba(255, 255, 255, .93);
+  backdrop-filter: blur(7px);
+  border: 1px solid var(--pastel);
+  border-radius: 11px;
+  box-shadow: var(--bayang);
+}
+.legenda__judul {
+  font-size: 11px;
+  color: var(--tinta-lembut);
+  display: block;
+  margin-bottom: 5px;
+}
+.legenda__pita { height: 9px; border-radius: 5px; }
+.legenda__batas {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--tinta-lembut);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------- kolom samping */
+.samping {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 236px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.kartu {
+  background: var(--putih);
+  border: 1px solid var(--garis);
+  border-radius: var(--lengkung);
+  box-shadow: var(--bayang);
+  padding: 14px 15px;
+  flex: 0 0 auto;
+}
+
+.kartu__kepala {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.kartu h2 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--biru-tua);
+}
+
+.lencana {
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--daun-muda);
+  color: #40613c;
+  white-space: nowrap;
+}
+.lencana--hati { background: #f6e6c4; color: #7a5a1c; }
+
+.kosong {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--tinta-lembut);
+  line-height: 1.55;
+}
+
+/* daftar pasangan nama-nilai */
+.baris { margin: 0; display: grid; gap: 1px; }
+.baris__item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--garis);
+}
+.baris__item:last-child { border-bottom: 0; }
+.baris__item dt { font-size: 12px; color: var(--tinta-lembut); }
+.baris__item dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.baris__item dd .satuan { font-size: 10.5px; font-weight: 400; color: var(--tinta-lembut); }
+.baris__judul {
+  margin: 12px 0 2px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--biru);
+  font-weight: 600;
+}
+.baris__judul:first-child { margin-top: 0; }
+
+/* bilah pecahan water loss */
+.pecahan { margin-top: 14px; }
+.pecahan__judul {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--biru);
+  font-weight: 600;
+}
+.bilah {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 7px 0 8px;
+  background: var(--kabut);
+}
+.bilah span { display: block; height: 100%; }
+.kunci { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.kunci li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--tinta-lembut);
+}
+.kunci i {
+  width: 9px; height: 9px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+.kunci b {
+  margin-left: auto;
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+/* daftar petak */
+.kartu--kecil { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 140px; }
+.daftar {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+.daftar li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.daftar li:hover { background: var(--kabut); }
+.daftar li.aktif { background: var(--pastel); font-weight: 600; }
+.daftar li i {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  border: 1px solid rgba(31, 63, 79, .25);
+  flex: 0 0 auto;
+}
+.daftar li b {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--tinta-lembut);
+  font-variant-numeric: tabular-nums;
+}
+.daftar li.blok em { font-style: normal; font-size: 10px; color: var(--gandum); }
+
+/* ---------------------------------------------------- kartu per lahan
+   Dipakai kalau objeknya punya angka air. Bentuknya kartu, bukan baris, karena yang
+   dibandingkan bukan lagi satu besaran melainkan empat - luas, kebutuhan air, water
+   loss, dan susunan kehilangannya - dan keempatnya harus terbaca berdampingan. */
+.daftar li.lahan {
+  display: block;
+  padding: 9px 10px 8px;
+  border: 1px solid var(--garis);
+  background: var(--putih);
+  margin-bottom: 7px;
+}
+.daftar li.lahan:hover { background: var(--kabut); border-color: var(--pastel-tua); }
+.daftar li.lahan.aktif {
+  background: var(--kabut);
+  border-color: var(--biru);
+  box-shadow: inset 3px 0 0 var(--biru);
+  font-weight: 400;
+}
+
+.lahan__kepala { display: flex; align-items: center; gap: 7px; }
+.lahan__nama {
+  font-weight: 600;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lahan__kepala b {
+  margin-left: auto;
+  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--tinta-lembut);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Dua kolom sama lebar, bukan `auto auto`: kebutuhan air dan water loss dibaca
+   sebagai pasangan yang dibandingkan, dan kolom yang lebarnya ikut isinya membuat
+   angka keduanya tidak pernah sejajar antar-kartu. */
+.lahan__angka {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 7px;
+}
+.lahan__pos {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: var(--kabut);
+  border-left: 2px solid var(--biru);
+  min-width: 0;
+}
+.lahan__pos--loss { border-left-color: var(--gandum); }
+/* Kotak lahan pada kartu ruas: hijau daun, warna yang di halaman ini selalu berarti
+   "yang bertumbuh" - bukan biru, yang di sini sudah dipakai untuk air. */
+.lahan__pos--lahan { border-left-color: var(--daun); }
+.lahan__pos > small em { font-style: normal; color: var(--gandum); font-weight: 600; }
+.lahan__pos > span {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--tinta-lembut);
+}
+.lahan__pos > b {
+  font-size: 14px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.lahan__pos > b em { font-style: normal; font-size: 10px; font-weight: 400;
+                     color: var(--tinta-lembut); }
+.lahan__pos > small {
+  font-size: 9.5px;
+  color: var(--tinta-lembut);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bilah--mini { height: 5px; border-radius: 3px; margin-top: 7px; }
+/* baris keterangan saat daftarnya memang kosong - bukan baris yang bisa diklik */
+.daftar li.daftar__kosong {
+  cursor: default;
+  color: var(--tinta-lembut);
+  font-style: italic;
+}
+.daftar li.daftar__kosong:hover { background: transparent; }
+
+.sumber {
+  margin: 0 0 2px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--tinta-lembut);
+  flex: 0 0 auto;
+}
+.sumber code {
+  background: var(--kabut);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+/* -------------------------------------------------------------- peta: petak */
+.petak { transition: fill-opacity .12s ease, stroke-width .12s ease; cursor: pointer; }
+
+/* popup Leaflet dibuat sewarna kartu */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: var(--bayang-kartu);
+  border: 1px solid var(--pastel);
+  background: rgba(255, 255, 255, .96);
+}
+.leaflet-popup-content { margin: 11px 13px; font: inherit; }
+.leaflet-popup-tip { background: rgba(255, 255, 255, .96); border: 1px solid var(--pastel); }
+
+.pop__nama {
+  font-weight: 650;
+  font-size: 13.5px;
+  color: var(--biru-tua);
+  margin-bottom: 7px;
+}
+.pop__baris {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2px 14px;
+  font-size: 12px;
+}
+.pop__baris span { color: var(--tinta-lembut); }
+.pop__baris b { text-align: right; font-variant-numeric: tabular-nums; }
+.pop__bilah {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0 4px;
+  background: var(--kabut);
+}
+.pop__bilah span { display: block; height: 100%; }
+.pop__catatan { margin-top: 5px; font-size: 11px; color: var(--tinta-lembut); }
+
+.leaflet-container { background: var(--kabut); font: inherit; }
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, .82) !important;
+  font-size: 10px !important;
+  color: var(--tinta-lembut) !important;
+}
+.leaflet-bar a {
+  color: var(--biru-tua) !important;
+  border-bottom-color: var(--garis) !important;
+}
+
+/* pemilih peta dasar & lapisan, merangkap legenda. Sudut kanan-atas sekarang miliknya
+   sendiri, jadi tidak perlu digeser turun seperti dulu. */
+.leaflet-top.leaflet-right .leaflet-control-layers {
+  margin-top: 14px;
+  margin-right: 14px;
+}
+.leaflet-control-layers {
+  border: 1px solid var(--pastel) !important;
+  border-radius: 11px !important;
+  box-shadow: var(--bayang-kartu) !important;
+  background: rgba(255, 255, 255, .93) !important;
+  backdrop-filter: blur(7px);
+  color: var(--tinta);
+}
+.leaflet-control-layers-expanded {
+  position: relative;
+  padding: 10px 13px 9px !important;
+  font: inherit;
+  font-size: 12px;
+}
+
+/* Tombol tutup panel lapisan. Panel ini dipaksa terbuka di layar lebar (lihat
+   `menetapTerbuka` di app.js), jadi tanpa tombol ini ia tidak punya jalan untuk
+   ditutup sama sekali di sana - satu-satunya cara melihat peta di baliknya adalah
+   menyempitkan jendela. Sesudah ditutup, panelnya kembali ke perangai bawaan
+   Leaflet: menyembul saat disentuh kursor, melipat lagi saat ditinggalkan. */
+.kendali__tutup {
+  display: none;
+  position: absolute;
+  top: 5px;
+  right: 7px;
+  border: 0;
+  background: none;
+  color: var(--tinta-lembut);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.kendali__tutup:hover { color: var(--biru-tua); }
+.leaflet-control-layers-expanded .kendali__tutup { display: block; }
+/* Ruang untuk tombol tutup di baris pertama, supaya tidak menimpa nama peta dasar. */
+.leaflet-control-layers-expanded .leaflet-control-layers-base { padding-right: 16px; }
+.leaflet-control-layers-list label {
+  display: block;
+  margin: 3px 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.leaflet-control-layers-list label:hover { color: var(--biru-tua); }
+.leaflet-control-layers-separator {
+  border-top: 1px solid var(--garis) !important;
+  margin: 8px -3px !important;
+}
+
+/* jumlah objek di tiap lapisan BIG - "tidak ada" ditulis apa adanya, bukan 0,
+   supaya tidak terbaca seperti hasil hitungan */
+.kendali__n {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--kabut);
+  color: var(--tinta-lembut);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.kendali__n--kosong {
+  background: transparent;
+  padding: 0;
+  font-style: italic;
+  opacity: .75;
+}
+
+/* Contoh warna di pemilih lapisan. Tanpa ini pemilihnya cuma daftar nama, dan tidak
+   ada cara tahu warna mana milik lapisan mana - pertanyaan pertama begitu dua lapisan
+   bertumpuk. Bentuknya mengikuti bentuk objeknya di peta: bidang, garis, atau titik. */
+.kendali__w {
+  display: inline-block;
+  width: 13px;
+  margin-right: 7px;
+  vertical-align: -1px;
+  flex: 0 0 13px;
+}
+.kendali__w--bidang { height: 11px; border: 1.5px solid; border-radius: 2px; }
+.kendali__w--garis  { height: 3px;  border-radius: 2px; }
+.kendali__w--titik  { height: 9px;  width: 9px; margin-left: 2px; margin-right: 9px;
+                      border-radius: 99px; flex-basis: 9px; }
+.kendali__w--pita   { height: 10px; border-radius: 2px; }
+
+.leaflet-control-layers-overlays label { display: flex; align-items: center; }
+.leaflet-control-layers-overlays label > input { flex: 0 0 auto; margin-right: 2px; }
+.kendali__nama { flex: 1 1 auto; }
+
+/* Judul kelompok - memisahkan lapisan menurut ASAL datanya, bukan menurut jenisnya.
+   Dua lapisan yang mirip di peta bisa datang dari dua lembaga yang berbeda, dan itu
+   yang menentukan seberapa jauh angkanya boleh dipercaya. */
+.kendali__grup {
+  margin: 8px 0 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--tinta-lembut);
+}
+.kendali__grup:first-child { margin-top: 1px; }
+/* Keterangan grup boleh melipat - kalau tidak, kalimat sepanjang ini yang menentukan
+   lebar seluruh panel, dan panelnya memakan sepertiga peta. */
+.kendali__grup small {
+  display: block;
+  max-width: 224px;
+  white-space: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10.5px;
+  line-height: 1.35;
+  opacity: .85;
+}
+
+/* Baris subjek: objek yang DIUKUR halaman ini. Dulu sengaja tanpa kotak centang, dengan
+   alasan "ia bukan lapisan tambahan, ia isi halamannya". Alasan itu benar soal
+   kedudukannya tetapi salah soal akibatnya: isian petak menutupi citra satelit dan
+   lapisan jaringan di bawahnya, dan tanpa saklar tidak ada cara melihat apa yang
+   ditutupinya. Kotak centangnya sekarang ada, dan yang menandai kedudukannya cukup
+   huruf tebal beserta letaknya di paling atas. */
+.kendali__subjek {
+  display: flex;
+  align-items: center;
+  margin: 4px 0 4px 1px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kendali__subjek > input { flex: 0 0 auto; margin: 0 2px 0 0; }
+.kendali__subjek:hover { color: var(--biru-tua); }
+/* Warnanya sengaja TIDAK dipatok di sini - app.js yang mengisinya dari skala yang
+   sedang berlaku, karena skalanya berganti antara subjek berbidang dan bergaris. */
+.kendali__subjek .kendali__w--pita { border: 1px solid var(--pastel-tua); }
+
+/* ------------------------------------------------------------------ sempit */
+/* Di bawah 1100 px, 8:2 membuat kolom detail terlalu kurus untuk dibaca, jadi peta
+   dan detail ditumpuk. Halaman ikut dilepas dari tinggi tetap - kalau tidak, baris
+   kedua grid tergencet sampai nol dan kartu detail hilang. */
+@media (max-width: 1100px) {
+  html, body { height: auto; min-height: 100%; }
+  .isi {
+    flex: 0 0 auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(340px, 62vh) auto;
+  }
+  .samping { min-width: 0; overflow: visible; }
+  .kartu--kecil { min-height: 220px; }
+  .daftar { max-height: 320px; }
+  .bar { flex-wrap: wrap; }
+  .bar__kendali { flex-wrap: wrap; }
+  .kartu-peta { width: 250px; }
+}
+
+/* ------------------------------------------------------------------- ponsel */
+/* Di 375 px bilah atas memakan 196 px - seperempat layar habis sebelum peta kelihatan.
+   Sebabnya ia melipat jadi TIGA baris: logo sendirian (lebarnya 128 px pada tinggi
+   38 px), judul, lalu kendali. Logo dikecilkan supaya muat sebaris dengan judul, dan
+   kendali diberi satu baris penuh untuk dirinya sendiri. */
+@media (max-width: 560px) {
+  .bar { gap: 10px; padding: 10px 14px; }
+  .bar__logo { height: 26px; }
+  .bar__judul { flex: 1 1 150px; }
+  .bar__judul h1 { font-size: 15px; }
+
+  /* Kendali mengisi baris penuh dan membagi diri sendiri. `minmax(0, …)` bukan
+     `minmax(130px, …)`: pada lokasi yang kendalinya empat, kolom berdasar lebar
+     minimum akan meluber keluar layar alih-alih turun baris. */
+  .bar__kendali { flex: 1 1 100%; display: grid; gap: 8px;
+                  grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr)); }
+  .pilih select { min-width: 0; width: 100%; }
+  .unduh { justify-content: center; }
+
+  /* Kartu ringkas jadi selebar peta tapi pendek: tiga angka berdampingan, bukan
+     bertumpuk. Di lebar peta 345 px kartu 250 px menutup 37% luasnya; yang melebar
+     tapi setinggi ~100 px cuma menutup ~20%, dan angkanya justru lebih besar. */
+  .kartu-peta { top: 10px; left: 10px; width: auto; right: 10px;
+                max-width: none; padding: 10px 12px; }
+  .kartu-peta__kepala { margin-bottom: 8px; }
+  /* `auto-fit`, bukan `repeat(3, …)`: kartu Luas disembunyikan pada lokasi tanpa petak
+     terukur, dan tiga kolom tetap menyisakan satu kolom kosong sambil menggencet dua
+     sisanya sampai labelnya terlipat dua baris. */
+  .statistik { grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+               gap: 6px; }
+  .stat { grid-template-columns: auto auto; align-content: start;
+          justify-content: start; column-gap: 4px; padding: 6px 8px; }
+  .stat__label { grid-column: 1 / -1; font-size: 10.5px; }
+  .stat__nilai { font-size: 16px; }
+}
