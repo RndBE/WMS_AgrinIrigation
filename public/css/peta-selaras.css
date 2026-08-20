@@ -1,0 +1,406 @@
+/* Peta Lokasi — penyelaras ke dasbor.
+ *
+ * Dimuat SESUDAH public/css/peta.css. Berkas itu dihasilkan dari
+ * web-app/static/css/app.css oleh tools/peta/salin-css.cjs dan tidak boleh
+ * disunting; semua penyesuaian yang khas Laravel dikumpulkan di sini.
+ *
+ * Dua hal yang dikerjakan berkas ini:
+ *
+ *   1. TATA LETAK. peta.css lahir sebagai halaman utuh: `.bar` dan `.isi`
+ *      di-flex terhadap <body> setinggi layar. Di sini keduanya jadi anak
+ *      `.view` yang display:block, jadi flex-nya tidak berlaku sama sekali —
+ *      akibatnya `.peta-kotak` (yang isinya #peta position:absolute) tidak
+ *      punya tinggi sendiri dan hanya setinggi kolom detail di sebelahnya.
+ *      Tingginya dipatok di sini, dan seluruh tabnya dibungkus jadi satu panel
+ *      seperti panel lain di dasbor.
+ *
+ *   2. RUPA. peta.css memakai bahasa rupa aplikasi Flask asalnya — sudut 14 px,
+ *      biru pastel, Segoe UI, kaca buram. wms.css memakai bahasa rupa dokumen
+ *      pemerintahan — sudut 4 px, navy/teal/emas, Source Sans 3, bidang rata.
+ *      Variabel peta.css ditimpa di sini supaya satu tab ini tidak terlihat
+ *      seperti aplikasi yang berbeda.
+ *
+ * `backdrop-filter` sengaja DIBUANG, bukan sekadar diganti warnanya. Empat
+ * panel melayang di atas peta yang bergerak berarti empat kali pengaburan
+ * ulang latar per bingkai selama peta digeser atau di-zoom — biaya yang tidak
+ * ada hubungannya dengan jumlah data, dan yang paling terasa justru di mesin
+ * paling lemah. Latarnya sekarang buram penuh.
+ */
+
+/* ------------------------------------------- chrome halaman yang tidak berlaku */
+/* Railbar berisi kendali SIMULASI hidrolika — chip cuaca, status, jam T-sim,
+   pencarian pos/pintu, kecepatan, Jalankan/Reset. Tidak satu pun menyentuh peta:
+   Peta Lokasi membaca berkas GeoJSON beku, bukan keadaan simulasi yang berjalan.
+   Judul halaman ikut dibuang karena kepala panel di bawahnya sudah menyebut isinya
+   ("Peta Sawah & Pengairan") lengkap dengan lokasi dan rezimnya, sedangkan tab yang
+   sedang aktif sudah bergaris emas di bilah nav.
+
+   Tinggi yang dibebaskan keduanya (~120 px) langsung jadi tinggi peta lewat
+   --peta-tinggi di bawah. */
+body[data-tab="peta"] .page-title,
+body[data-tab="peta"] .railbar { display: none; }
+/* .wrap kehilangan satu-satunya isi yang memberinya jarak atas. */
+body[data-tab="peta"] .shell { padding-top: 14px; }
+
+/* Kaki halaman ikut dibuang, alasannya sama persis: isinya "Catatan model" —
+   SkemaIrigasiDummySeeder, SkemaIrigasiController, rumus TMA, dan penjelasan tab
+   Isometrik/Skematik. Semuanya menerangkan SIMULASI hidroliknya, dan tidak satu
+   kalimat pun berlaku untuk Peta Lokasi, yang membaca GeoJSON beku hasil ekspor.
+   Atribusi data petanya sendiri sudah ada di kredit Leaflet sudut kanan-bawah. */
+body[data-tab="peta"] .footer { display: none; }
+/* `.app` menyisakan 50 px di bawah untuk memberi napas di atas kaki halaman. Tanpa
+   kaki halaman, 50 px itu jadi ruang kosong belaka di bawah kartu peta - dan tiap
+   piksel di sana bisa jadi tinggi peta (lihat --peta-tinggi). */
+body[data-tab="peta"] .app { padding-bottom: 0; }
+
+/* ------------------------------------------------------------------ token */
+#view-peta {
+  /* Dipetakan ke variabel wms.css, bukan ditulis ulang: kalau palet dasbor
+     berubah, tab ini ikut berubah tanpa disentuh. */
+  --putih:        #ffffff;
+  --kertas:       #ffffff;
+  --kabut:        #f4f7fa;
+  --pastel:       var(--line);
+  --pastel-tua:   #cbd5e1;
+  --biru:         var(--teal);
+  --biru-tua:     var(--teal-dim);
+  --daun:         var(--field);
+  --daun-muda:    var(--field-dim);
+  --gandum:       var(--brass);
+  --tinta:        var(--text-1);
+  --tinta-lembut: var(--text-2);
+  --garis:        var(--line);
+  --bayang:       none;
+  --bayang-kartu: 0 4px 14px rgba(31, 36, 48, .12);
+  --lengkung:     var(--radius);
+
+  /* Tinggi kerja peta. clamp, bukan tinggi tetap: di laptop 768 px peta setinggi
+     700 px mendorong kartu detail keluar layar, di monitor 1440 px peta setinggi
+     500 px menyisakan sepertiga halaman kosong.
+     214 px = tinggi terukur semua yang ada di atas DAN di bawahnya: kop instansi 76,
+     bilah nav 46, jarak atas 14, kepala panel 56, plus margin bawah panelnya sendiri.
+     Judul halaman, railbar, dan kaki halaman tidak ikut dihitung — ketiganya sudah
+     disembunyikan di tab ini (lihat blok paling atas).
+
+     Angkanya dipilih supaya halamannya PAS: tidak menggulir sama sekali, dan tidak
+     menyisakan ruang mati. Terukur pada 1600x1000 — 240 menyisakan gulir 24 px, 264
+     menyisakan 50 px kosong di bawah kartu, 214 pas 0 px keduanya. Menggulir halaman
+     yang isinya cuma satu kartu peta berarti kartunya ikut bergeser tiap kali roda
+     tikus tersenggol. Batas bawah 440 px dipasang supaya di layar pendek peta tetap
+     terpakai, biar pun halamannya ikut digulir di situ. */
+  --peta-tinggi: clamp(440px, calc(100vh - 214px), 880px);
+
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  background: transparent;
+}
+
+/* --------------------------------------------------- satu tab = satu panel */
+/* `.view.active` di wms.css memasang display:block; dijadikan flex supaya
+   `flex: 0 0 auto` pada `.bar` dan `flex: 1 1 auto` pada `.isi` — yang sudah
+   tertulis di peta.css tapi selama ini tak berlaku — akhirnya berfungsi. */
+#view-peta.view.active { display: flex; }
+#view-peta {
+  flex-direction: column;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--teal);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+/* ----------------------------------------------------- bilah kendali peta */
+/* Dijadikan kepala panel, sebentuk dengan `.panel-head` di dasbor. */
+#view-peta .bar {
+  gap: 14px;
+  padding: 10px 16px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+  flex-wrap: wrap;
+}
+
+/* Logo Beacon dibuang: halaman ini sudah berkop Kementerian PU lengkap dengan
+   lambangnya, dan judul tabnya sudah tertulis di `.page-title` tepat di atas
+   panel. Lambang kedua dari produk lain di baris ketiga hanya memakan tempat.
+   Hapus baris ini kalau lambang itu memang harus tampil. */
+#view-peta .bar__logo { display: none; }
+
+#view-peta .bar__judul h1 {
+  font-family: var(--font-display);
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--text-1);
+}
+#view-peta .bar__judul p { font-size: 11.5px; color: var(--text-3); }
+
+#view-peta .bar__kendali { gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+#view-peta .pilih > span {
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: var(--text-3);
+  font-weight: 600;
+}
+#view-peta .pilih select {
+  background-color: #fff;
+  border-color: #cbd5e1;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  padding: 6px 26px 6px 10px;
+  min-width: 150px;
+  height: 32px;
+}
+#view-peta .pilih select:hover { border-color: var(--teal); color: var(--teal); }
+
+/* Bilah sekarang cuma memuat pembacaan keadaan + dua tombol, jadi keduanya
+   disejajarkan tinggi 32 px seperti pemilih yang dulu ada di sini. */
+#view-peta .ringkas-atur {
+  font-size: 12.5px;
+  color: var(--text-2);
+  font-weight: 600;
+}
+/* Tombol di sudut kanan-atas peta — disamakan dengan tombol dasbor. */
+#view-peta .tombol-peta {
+  border-color: #cbd5e1;
+  border-radius: var(--radius);
+  color: var(--text-1);
+  font-size: 12.5px;
+  box-shadow: 0 2px 10px rgba(31, 36, 48, .16);
+}
+#view-peta .tombol-peta:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: #fff;
+}
+#view-peta .tombol-peta--aktif,
+#view-peta .tombol-peta--aktif:hover {
+  background: var(--teal-dim);
+  border-color: var(--teal-dim);
+  color: #fff;
+}
+
+/* Modal Pengaturan Peta - disamakan dengan panel dasbor: bidang rata, sudut 4 px. */
+#view-peta .modal__kotak {
+  background: var(--bg-panel);
+  border-color: var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 44px rgba(31, 36, 48, .26);
+}
+#view-peta .modal__kepala,
+#view-peta .modal__kaki,
+#view-peta .modal__kolom--utama { border-color: var(--line); }
+#view-peta .modal__kepala h2 { font-family: var(--font-display); font-size: 15px; }
+#view-peta .modal__kaki { background: #f8fafc; }
+#view-peta .laci__terap {
+  border-radius: var(--radius);
+  background: var(--teal-dim);
+  border-color: var(--teal-dim);
+}
+#view-peta .laci__terap:hover:not(:disabled) {
+  background: var(--teal);
+  border-color: var(--teal);
+}
+#view-peta .laci__catatan { border-radius: 0 var(--radius) var(--radius) 0; }
+
+/* Unduh KML disamakan dengan `button.primary` dasbor: ia satu-satunya aksi yang
+   menghasilkan sesuatu di bilah ini, sisanya cuma mengubah tampilan. */
+#view-peta .unduh {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--teal-dim);
+  border-color: var(--teal-dim);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+#view-peta .unduh:hover {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+
+/* ------------------------------------------------------------ tata letak */
+#view-peta .isi {
+  /* 8fr:2fr membuat kolom detail 300 px di layar 1440 tapi cuma 210 px di
+     layar 1100 — terlalu kurus untuk dua kotak angka berdampingan. clamp
+     mematoknya pada rentang yang memang bisa dibaca, dan sisanya milik peta. */
+  /* Satu kolom: panel daftar & detail bukan lagi kolom di sebelah peta melainkan
+     lapisan melayang di atasnya, jadi peta selalu selebar kartunya. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px 16px 16px;
+  height: var(--peta-tinggi);
+}
+
+#view-peta .peta-kotak {
+  border-color: var(--line);
+  background: #eef2f6;
+  box-shadow: none;
+  /* Isi peta dikurung: perubahan di dalamnya (ubin masuk, vektor digambar ulang)
+     tidak lagi memaksa peramban menghitung ulang tata letak seluruh halaman. */
+  contain: layout paint;
+}
+
+/* -------------------------------------------------- panel melayang di peta */
+/* Latar buram penuh menggantikan kaca buram — lihat catatan di kepala berkas.
+   `translateZ(0)` menaruh tiap panel di lapisan komposit sendiri, jadi ia tidak
+   ikut digambar ulang tiap bingkai saat ubin di bawahnya bergeser. */
+#view-peta .kartu-peta,
+#view-peta .kartu-buka,
+#view-peta .koordinat,
+#view-peta .legenda,
+#view-peta .leaflet-control-layers {
+  backdrop-filter: none !important;
+  background: #ffffff !important;
+  border-color: var(--line) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 2px 10px rgba(31, 36, 48, .16) !important;
+  transform: translateZ(0);
+}
+#view-peta .kartu-buka { border-radius: 999px !important; }
+
+#view-peta .kartu-peta { width: 272px; padding: 12px 14px 11px; }
+#view-peta .kartu-peta__kepala {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--text-1);
+  padding-bottom: 9px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+#view-peta .stat {
+  background: var(--kabut);
+  border-radius: var(--radius);
+  border-left-width: 3px;
+}
+#view-peta .stat__nilai { font-weight: 700; }
+#view-peta .waktu__nilai li,
+#view-peta .lahan__pos { border-radius: var(--radius); }
+
+#view-peta .koordinat,
+#view-peta .legenda { width: 218px; }
+#view-peta .legenda__pita { border-radius: 2px; }
+/* Fontnya sengaja TIDAK diseragamkan ke var(--font-mono) dasbor: variabel itu
+   isinya Source Sans 3, bukan font monospasi sungguhan. Angka koordinat di sini
+   dibaca berdampingan dengan sumber lain, jadi lebar karakternya harus tetap. */
+#view-peta .koordinat__nilai { font-weight: 600; }
+
+/* ------------------------------------------------------------ kolom detail */
+#view-peta .samping { gap: 10px; min-width: 0; }
+
+/* Kepala kelompok yang bisa dilipat — disamakan dengan .baris__judul di sebelahnya,
+   yang di sini sudah berwarna teal dasbor. Padding tegaknya dirapatkan sedikit:
+   6-9 kepala kelompok dalam satu kartu, dan 17 px per kepala di kolom setinggi
+   730 px sudah setara satu baris angka yang hilang. */
+#view-peta .kelompok__judul { padding: 8px 0 7px; }
+#view-peta .kelompok { border-top-color: var(--line-soft); }
+#view-peta .kartu {
+  border-color: var(--line);
+  border-radius: var(--radius);
+  box-shadow: none;
+  padding: 12px 14px;
+}
+#view-peta .kartu h2 {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: .06em;
+  color: var(--text-1);
+}
+#view-peta .kartu__kepala {
+  padding-bottom: 9px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+#view-peta .lencana { border-radius: var(--radius); font-weight: 600; }
+#view-peta .baris__judul,
+#view-peta .pecahan__judul { color: var(--teal); }
+#view-peta .daftar li { border-radius: var(--radius); }
+#view-peta .daftar li.aktif { background: #e7eef6; }
+#view-peta .daftar li.lahan.aktif {
+  border-color: var(--teal);
+  box-shadow: inset 3px 0 0 var(--teal);
+}
+#view-peta .bilah,
+#view-peta .bilah--mini { border-radius: 2px; }
+
+/* Catatan sumber data panjangnya ikut lokasi — pada DI Kab. Garut ia satu paragraf
+   penuh setinggi ~280 px, dan karena `flex: 0 0 auto` ia mengambil tinggi itu dari
+   jatah daftar petak di atasnya sampai daftarnya terpotong di tengah baris.
+   Dibatasi dan diberi gulir sendiri: catatannya tetap terbaca utuh, daftarnya
+   tetap dapat ruang. */
+#view-peta .sumber {
+  /* Dipangkas dari 128 px. Sejak kolom ini dibagi tinggi antara daftar dan detail,
+     tiap piksel di sini diambil dari keduanya - 128 px untuk catatan asal data yang
+     dibaca sekali sama dengan satu baris daftar yang hilang selamanya. 76 px cukup
+     untuk empat baris pertama, sisanya digulir di tempat. */
+  max-height: 76px;
+  overflow-y: auto;
+  padding: 9px 11px;
+  background: var(--kabut);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+/* -------------------------------------------------------- kendali Leaflet */
+#view-peta .leaflet-bar a {
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  color: var(--text-1) !important;
+  border-radius: 0;
+}
+#view-peta .leaflet-bar a:hover { color: var(--teal) !important; background: #f4f7fa; }
+#view-peta .leaflet-bar {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(31, 36, 48, .16);
+}
+#view-peta .leaflet-control-layers-expanded { font-family: var(--font-body); }
+#view-peta .leaflet-control-attribution {
+  background: rgba(255, 255, 255, .9) !important;
+  font-family: var(--font-body);
+}
+#view-peta .leaflet-popup-content-wrapper,
+#view-peta .leaflet-popup-tip {
+  background: #fff;
+  border-color: var(--line);
+  border-radius: var(--radius);
+}
+#view-peta .pop__nama { font-family: var(--font-display); color: var(--text-1); }
+
+/* -------------------------------------------------------------- responsif */
+/* peta.css sudah meruntuhkan gridnya di bawah 1100 px. Yang perlu dicabut di
+   sini cuma tinggi tetapnya: dengan dua baris bertumpuk, tinggi itu justru
+   menggencet kartu detail sampai tak terbaca. */
+@media (max-width: 1100px) {
+  #view-peta .isi {
+    height: auto;
+    grid-template-rows: minmax(320px, 58vh) auto;
+  }
+}
+
+@media (max-width: 900px) {
+  #view-peta .isi { padding: 12px; gap: 12px; }
+  #view-peta .bar { padding: 10px 12px; }
+}
+
+@media (max-width: 600px) {
+  #view-peta { --peta-tinggi: auto; }
+  #view-peta .isi { grid-template-rows: minmax(300px, 52vh) auto; }
+  #view-peta .bar__judul h1 { font-size: 14px; }
+  #view-peta .pilih select { min-width: 0; }
+}
+
+/* Gagang lipat panel samping — disamakan dengan tombol dasbor. */
+#view-peta .samping-gagang {
+  border-color: #cbd5e1;
+  border-right: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  color: var(--text-1);
+  box-shadow: -2px 0 10px rgba(31, 36, 48, .14);
+}
+#view-peta .samping-gagang:hover { border-color: var(--teal); color: var(--teal); background: #f8fafc; }
+#view-peta .samping-gagang--tertutup { border-radius: var(--radius) 0 0 var(--radius); }

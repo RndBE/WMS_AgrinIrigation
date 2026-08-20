@@ -1,0 +1,603 @@
+  :root{
+    --bg-deep:#f5f7fb; --bg-panel:#ffffff; --bg-panel-2:#ffffff; --bg-input:#ffffff;
+    --line:#e3e7ee; --line-soft:#edf0f5;
+    --navy:#262f7f; --navy-dark:#1c2464; --gold:#f7c31c;
+    --teal:#2b6cb0; --teal-dim:#1f4fa6; --water-top:#9fc3d8; --water-bot:#46708f;
+    --brass:#c1a878; --brass-dim:#8f7c52;
+    --field:#4f9d4a; --field-dim:#dff0dc;
+    --text-1:#1f2430; --text-2:#5a6472; --text-3:#6b7482;
+    --ok:#12793a; --warn:#96650a; --danger:#a81d13; --danger-bright:#c02718;
+    --radius:4px;
+    /* Jarak tepi kiri-kanan, dipakai bersama oleh kop, nav, isi, dan footer
+       supaya semuanya rata pada satu garis. Nilainya diubah per breakpoint
+       di blok RESPONSIF di bawah — jangan tulis angka tepi secara langsung. */
+    --gutter:16px;
+    --font-display:'Source Sans 3', system-ui, sans-serif; --font-body:'Source Sans 3', system-ui, sans-serif; --font-mono:'Source Sans 3', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg-deep);
+    color:var(--text-1); font-family:var(--font-body); min-height:100vh; line-height:1.5;
+    font-variant-numeric:tabular-nums;
+  }
+  ::selection{background:color-mix(in srgb, var(--teal) 30%, transparent);}
+  /* Lebar penuh mengikuti jendela — bukan dikunci 1500px, karena layar operator
+     di ruang kendali jauh lebih lebar dan sisanya jadi pita abu-abu kosong. */
+  .app{width:100%; margin:0 auto; padding:0 0 50px;}
+  .wrap{padding:0 var(--gutter);}
+
+  /* ---------- KOP INSTANSI ---------- */
+  .gov-head{
+    display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;
+    background:#fff; border-bottom:3px solid var(--gold); padding:11px var(--gutter);
+  }
+  .gov-lockup{display:flex; align-items:center; gap:13px;}
+  .brand-mark{
+    width:52px; height:44px; flex-shrink:0; background:var(--gold);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .brand-mark svg{width:30px; height:30px;}
+  .gov-text{font-weight:700; font-size:12.5px; line-height:1.35; letter-spacing:.01em; color:var(--text-1); text-transform:uppercase;}
+  /* Kop nama aplikasi: dua baris, singkatan besar di atas nama panjangnya. Tiga
+     baris instansi dulu berbobot sama semua karena memang tiga tingkat lembaga
+     yang sederajat pentingnya; di sini satu nama dan satu penjelasnya, jadi
+     bobotnya dibedakan supaya "WMS" yang terbaca lebih dulu. */
+  .gov-text--app{line-height:1.15;}
+  .gov-app{font-size:21px; font-weight:700; letter-spacing:.05em;}
+  .gov-app-sub{font-size:11px; font-weight:600; letter-spacing:.07em; color:var(--text-2);}
+  .gov-user{display:flex; align-items:center; gap:11px;}
+  .gov-user .mark{width:34px; height:30px; background:var(--gold); display:flex; align-items:center; justify-content:center;}
+  .gov-user .mark svg{width:20px; height:20px;}
+  .gov-user .t{font-size:13.5px; font-weight:600; color:var(--text-1); line-height:1.25;}
+  .gov-user .r{font-size:11.5px; color:var(--text-3); letter-spacing:.06em;}
+
+  /* ---------- NAV BIRU ---------- */
+  .gov-nav{
+    display:flex; align-items:stretch; gap:2px; background:var(--navy);
+    /* dikurangi padding dalam tombol nav supaya teks tab sejajar kop & isi */
+    padding:0 max(0px, calc(var(--gutter) - 15px)); flex-wrap:wrap;
+  }
+  .gov-nav .spacer{flex:1;}
+  /* .navtab kini elemen <a> (punya rute sendiri), tombol Unduh tetap <button> —
+     keduanya dirapikan dengan aturan yang sama supaya tampak satu deret. */
+  .gov-nav button, .gov-nav .navtab{
+    background:transparent; border:none; border-radius:0; color:#dfe3f5;
+    padding:13px 15px; font-size:13.5px; font-weight:600; font-family:var(--font-body);
+    display:inline-flex; align-items:center; gap:8px; position:relative;
+    text-decoration:none; cursor:pointer; white-space:nowrap;
+  }
+  .gov-nav button svg, .gov-nav .navtab svg{width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.7;}
+  .gov-nav button:hover, .gov-nav .navtab:hover{color:#fff; background:var(--navy-dark);}
+  .gov-nav .navtab.active{color:#fff;}
+  .gov-nav .navtab.active::after{content:''; position:absolute; left:12px; right:12px; bottom:0; height:3px; background:var(--gold);}
+  .page-title{font-size:23px; font-weight:700; color:var(--text-1); padding:16px 0 12px;}
+
+  .search-box{
+    display:flex; align-items:center; gap:7px; background:#fff; border:1px solid var(--line);
+    border-radius:var(--radius); padding:7px 12px; min-width:230px;
+  }
+  .search-box input{background:transparent; border:none; outline:none; color:var(--text-1); font-size:12.5px; width:100%; font-family:var(--font-body);}
+  .search-box svg{width:14px; height:14px; flex-shrink:0; opacity:.6;}
+
+  .weather-chip{
+    display:flex; align-items:center; gap:9px; padding:5px 12px; border:1px solid var(--line);
+    border-radius:var(--radius); background:#fff;
+  }
+  .weather-chip .wicon{font-size:19px; line-height:1;}
+  .weather-chip .wtemp{font-size:15px; font-weight:600; color:var(--text-1);}
+  .weather-chip .wmeta{font-size:10px; color:var(--text-2); line-height:1.3;}
+  .weather-chip .wscen{font-size:9.5px; color:var(--text-3);}
+  .weather-chip[title]{cursor:help;}
+
+  .topbar-right{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+
+  button{
+    font-family:var(--font-body); cursor:pointer; border-radius:var(--radius); border:1px solid #cbd5e1;
+    background:#fff; color:var(--text-1); padding:7px 13px; font-size:13px; font-weight:600;
+    transition:.15s border-color, .15s background, .15s color; display:inline-flex; align-items:center; gap:6px;
+  }
+  button:hover{border-color:var(--teal); color:var(--teal);}
+  button:focus-visible, select:focus-visible, input:focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
+  button.primary{background:var(--teal-dim); border-color:var(--teal-dim); color:#fff;}
+  button.primary:hover{background:#173f85; color:#fff;}
+  button.on{background:var(--teal); border-color:var(--teal); color:#fff;}
+  button.on:hover{background:var(--teal-dim); color:#fff;}
+  select{font-family:var(--font-mono); font-size:12px; background:var(--bg-input); color:var(--text-1); border:1px solid var(--line); border-radius:0; padding:6px 9px;}
+
+  .status-pill{display:flex; align-items:center; gap:7px; padding:6px 12px; border-radius:var(--radius); font-size:12.5px; font-weight:700; letter-spacing:.04em; border:1px solid var(--line); background:#fff;}
+  .status-pill .dot{width:8px; height:8px; border-radius:50%; background:var(--ok);}
+  .status-pill.warn .dot{background:var(--warn);}
+  .status-pill.danger .dot{background:var(--danger-bright); box-shadow:0 0 8px var(--danger-bright); animation:pulse-dot 1.1s infinite;}
+  .status-pill.siaga .dot{background:var(--warn); box-shadow:0 0 8px var(--warn); animation:pulse-dot 1.4s infinite;}
+  @keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .clock{font-size:12.5px; color:var(--text-2); padding:6px 11px; border:1px solid var(--line); border-radius:var(--radius); background:#fff; white-space:nowrap;}
+  .clock b{color:var(--text-1); font-weight:600;}
+
+  /* ---------- NAV TABS ---------- */
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---------- SUMMARY ---------- */
+  .summary-row{display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-bottom:10px;}
+  @media (max-width:1000px){.summary-row{grid-template-columns:repeat(2,1fr);}}
+  .sumcard{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:15px 14px; text-align:center;}
+  .sumcard .lbl{font-size:13px; color:var(--teal); text-transform:none; letter-spacing:0; font-weight:600;}
+  .sumcard .val{font-size:22px; font-weight:700; color:var(--text-1); margin-top:5px;}
+  .sumcard .val span.unit{font-size:14px; color:var(--text-1); font-weight:700; margin-left:4px;}
+  .sumcard.accent .val, .sumcard.brass .val{color:var(--text-1);}
+
+  /* ---------- PANEL ---------- */
+  .panel{background:#fff; border:1px solid var(--line); border-top:3px solid var(--ok); border-radius:var(--radius); margin-bottom:12px; overflow:hidden;}
+  .panel-head{display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; gap:8px;}
+  .panel-head h2{font-family:var(--font-display); font-size:15.5px; font-weight:700; margin:0; color:var(--text-1);}
+  .panel-head .note{font-size:11.5px; color:var(--text-3);}
+  .panel-head .head-right{display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end;}
+  .panel-body{padding:16px;}
+
+  /* ---------- TAB DALAM KARTU ---------- */
+  /* Penukar pane di dalam satu panel (mis. Isometrik / Skematik). Sengaja
+     dibuat kecil bergaya pil supaya tidak tertukar dengan .navtab di atas. */
+  .panel-tabs{display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; background:#f4f7fa;}
+  .panel-tabs .ptab{appearance:none; border:0; background:transparent; font-family:inherit; font-size:11.5px;
+    font-weight:600; letter-spacing:.02em; color:var(--text-2); padding:6px 15px; cursor:pointer;
+    transition:background .15s ease, color .15s ease;}
+  .panel-tabs .ptab + .ptab{border-left:1px solid var(--line);}
+  .panel-tabs .ptab:hover{background:#e8eef5; color:var(--text-1);}
+  .panel-tabs .ptab.active{background:var(--teal); color:#fff;}
+  .map-pane{display:none;}
+  .map-pane.active{display:block;}
+  .group-card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:13px 16px; margin-bottom:12px;}
+  .group-card b{font-size:16px; font-weight:700; color:var(--text-1);}
+  .group-card span{font-size:14px; color:var(--text-2);}
+
+  .map-wrap{position:relative; overflow:hidden; background:#e6efe0; user-select:none;}
+  .iso-scroll{width:100%; height:560px; overflow:hidden; cursor:grab; touch-action:none; position:relative;}
+  .iso-scroll.grabbing{cursor:grabbing;}
+  .iso-stage{position:absolute; inset:0; transform-origin:center center; transition:transform .12s ease-out; background:#e6efe0;}
+  #isoBase{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; -webkit-user-drag:none;}
+  #isoWater{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
+  .iso-scroll svg{display:block; position:absolute; inset:0; width:100%; height:100%;}
+  #isoZoomLayer{transform-origin:center center; transition:transform .12s ease-out;}
+  .iso-pin{cursor:pointer;}
+  /* Warna cincin datang dari peubah --pin-ring yang disetel updateIsoWaterColors().
+     Lewat peubah, bukan lewat `style.fill` sebaris seperti dulu: fill sebaris
+     mengalahkan stylesheet, jadi aturan :hover di bawah tidak pernah berlaku sama
+     sekali. Nilai cadangan #1f4fa6 dipakai sebelum tick render() pertama. */
+  .iso-pin circle.pin-ring{fill:var(--pin-ring, #1f4fa6); stroke:#132f63; stroke-width:1.4;}
+  .iso-pin:hover circle.pin-ring{fill:#2b6cb0;}
+  .iso-pin text.pin-num{fill:#fff; font-family:var(--font-mono); font-size:12px; font-weight:700; text-anchor:middle;}
+  /* Tali & titik penambat LABEL, bukan penanda posisi. Cincin pin sendiri sudah
+     duduk tepat di koordinat posnya (cx=0 cy=0 pada <g> yang di-translate ke
+     ISO_POS); yang digeser ke kiri-bawah sejauh 62 unit justru labelnya, supaya
+     kotak 112x19 itu tidak menutupi bangunan di bawah pinnya.
+
+     Keduanya dulu tampil tetap pada opacity 0,5 sementara label yang ditambatnya
+     baru muncul kalau .labels-on menyala. Jadi pada tampilan bawaan — label mati —
+     yang terlihat cuma garis putus-putus menjulur ke sebuah titik hitam kecil di
+     tengah sungai, menambat sesuatu yang tidak ada. Terbaca seperti pin dan
+     posisinya terpisah, padahal tidak.
+
+     Sekarang ikut .labels-on seperti labelnya: label mati = pin saja di titiknya,
+     label hidup = tali, titik, dan labelnya muncul bersama sebagai satu kesatuan. */
+  .pin-leader{stroke:#1d1f20; stroke-width:1; stroke-dasharray:3 2; opacity:0; transition:opacity .15s;}
+  .pin-leader-dot{fill:#1d1f20; opacity:0; transition:opacity .15s;}
+  /* Label pos. Latarnya putih pekat bertepi navy tipis, bukan abu-abu 92% bertepi
+     abu-abu: label melayang di atas ilustrasi bercorak — sawah bergaris, dedaunan,
+     air beriak — dan latar tembus pandang membuat corak di bawahnya menembus
+     tulisannya. Sudutnya dibulatkan 4 px supaya sekeluarga dengan tombol peta, dan
+     angkanya tabular supaya digit di label yang bersebelahan berdiri sejajar.
+     Lebar kotaknya tidak dipatok di CSS — layoutIsoLabels() menyetelnya dari lebar
+     tulisan yang sebenarnya. */
+  .iso-label{
+    font-family:var(--font-body); font-size:11px; font-weight:600;
+    font-variant-numeric:tabular-nums; fill:var(--text-1); text-anchor:middle;
+    opacity:0; transition:opacity .15s;
+  }
+  .iso-label-bg{
+    fill:#fff; stroke:var(--navy); stroke-width:0.9; opacity:0;
+    transition:opacity .15s;
+  }
+  /* Baris kedua label (pos pintu): bacaan TMA & debit di bawah angka bukaannya.
+     Sedikit lebih kecil & lebih redup — bukaan yang jadi pokok pada pos pintu,
+     bacaan air pelengkapnya. Bobot yang sama membuat keduanya berebut dibaca. */
+  .iso-label--2{font-size:10px; font-weight:500; fill:var(--text-2);}
+  .labels-on .iso-label{opacity:1;}
+  .labels-on .iso-label-bg{opacity:0.96;}
+  .labels-on .pin-leader, .labels-on .pin-leader-dot{opacity:0.5;}
+  /* Pin yang disorot menegaskan labelnya. Urutan gambarnya diangkat dari JS —
+     SVG tidak punya z-index, yang menentukan urutan simpul di DOM (lihat
+     angkatPinKeDepan di simhidro.js). */
+  .iso-pin:hover .iso-label-bg{opacity:1; stroke-width:1.4;}
+  .pos-pop{
+    position:absolute; z-index:6; width:238px; background:#fff; border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:0 6px 20px rgba(31,36,48,.18); padding:13px 14px 12px; display:none;
+  }
+  .pos-pop.on{display:block;}
+  .pos-pop .pos-title{font-size:15.5px; font-weight:700; color:var(--text-1); padding-right:20px;}
+  .pos-close{
+    position:absolute; top:8px; right:8px; width:22px; height:22px; padding:0; justify-content:center;
+    border:none; background:transparent; color:var(--text-3); font-size:15px; border-radius:0;
+  }
+  .pos-close:hover{color:var(--text-1); background:#f1f4f8;}
+  .pos-chips{display:flex; gap:6px; flex-wrap:wrap; padding:9px 0 11px;}
+  .pos-chip{
+    display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; color:var(--text-2);
+    background:#f1f4f8; border-radius:3px; padding:3px 8px;
+  }
+  .pos-chip .dot{width:7px; height:7px; border-radius:50%; background:var(--ok);}
+  .pos-tiles{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+  .pos-tile{background:#f1f4f8; border-radius:3px; padding:8px 10px;}
+  .pos-tile b{display:block; font-size:17px; font-weight:700; color:var(--text-1); line-height:1.15;}
+  .pos-tile span{font-size:11px; color:var(--text-3);}
+  .pos-time{font-size:11.5px; color:var(--text-3); padding:11px 0 10px;}
+  .pos-actions{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .pos-actions button{justify-content:center; font-size:12.5px; padding:6px 8px; color:var(--teal); border-color:#bcd4ee;}
+  .pos-actions button:hover{background:#eaf2fb;}
+  .pos-actions button svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2;}
+  .map-controls{position:absolute; right:12px; bottom:12px; display:flex; flex-direction:column; gap:6px; align-items:flex-end;}
+  .map-controls button{width:34px; height:34px; padding:0; justify-content:center; font-size:15px; background:rgba(242,242,243,.92); backdrop-filter:blur(2px);}
+  .map-controls button#mapLabelToggle,
+  .map-controls button#mapEditPins,
+  .map-controls button#mapPinsReset,
+  .map-controls button#mapPinsCopy{width:auto; padding:0 10px; font-size:11px;}
+  .map-controls button#mapLabelToggle.on,
+  .map-controls button#mapEditPins.on{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .iso-scroll.pin-edit .iso-pin{cursor:grab;}
+  .iso-scroll.pin-edit .iso-pin.dragging{cursor:grabbing;}
+  .iso-scroll.pin-edit .iso-pin circle.pin-ring{stroke:#f0a020; stroke-width:2.6;}
+  .pin-edit-hint{position:absolute; left:12px; top:12px; z-index:6; display:none; align-items:center; gap:8px;
+    padding:6px 10px; font-size:11px; letter-spacing:.02em; background:rgba(242,242,243,.94); backdrop-filter:blur(2px);
+    border:1px solid var(--color-accent, #5980a6); color:var(--text-1, #1d1f20);}
+  .iso-scroll.pin-edit + .pin-edit-hint, .map-wrap.pin-edit-on .pin-edit-hint{display:flex;}
+  .flow-line{stroke-dasharray:9 7; animation:flow-move linear infinite;}
+  .iso-flow{stroke:#eaf6ff; stroke-width:2.4; stroke-dasharray:11 9; opacity:.8; animation:flow-move 3s linear infinite;}
+  .iso-flow.slow{animation-duration:4.6s;}
+  @keyframes flow-move{to{stroke-dashoffset:-64;}}
+  @media (prefers-reduced-motion: reduce){ .flow-line{animation:none;} }
+  .gate-label{font-family:var(--font-mono); font-size:10.5px; fill:var(--text-2);}
+  .gate-value{font-family:var(--font-mono); font-size:12px; font-weight:600; fill:var(--text-1);}
+  .lane-title{font-family:var(--font-display); font-size:12px; font-weight:700; fill:var(--text-1);}
+  /* ---------- SKEMATIK: potongan melintang jaringan ---------- */
+  /* Latar kertas milimeter meneruskan tampilan skema pipa yang digantikan
+     diagram ini, jadi pane skematik tetap terbaca sebagai kertas gambar
+     teknik di sebelah peta isometrik. */
+  .schematic-scroll{
+    overflow-x:auto; overflow-y:hidden; padding:10px 0 6px;
+    background:
+      repeating-linear-gradient(0deg, #e3e9f2 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(90deg, #e3e9f2 0 1px, transparent 1px 26px),
+      #f8fafc;
+  }
+  .schematic-scroll svg{display:block; min-width:1500px; width:100%; height:auto;}
+
+  /* Teks di dalam gambar. Ukurannya dipatok dalam satuan viewBox (1500 lebar),
+     jadi ikut mengecil bersama gambarnya saat panel menyempit. */
+  .sk-sec{font-family:var(--font-body); font-size:11px; font-weight:700; fill:var(--teal); letter-spacing:.06em; text-transform:uppercase;}
+  .sk-title{font-family:var(--font-body); font-size:12px; font-weight:700; fill:var(--text-1); letter-spacing:.04em; text-transform:uppercase;}
+  .sk-lbl{font-family:var(--font-body); font-size:10.5px; font-weight:600; fill:var(--text-3);}
+  .sk-val{font-family:var(--font-body); font-size:12.5px; font-weight:700; fill:var(--text-1);}
+  .sk-mode{font-family:var(--font-body); font-size:9.5px; font-weight:700; fill:var(--teal); letter-spacing:.06em;}
+  .sk-mode.manual{fill:var(--warn);}
+  .sk-note{font-family:var(--font-body); font-size:10px; font-weight:600; fill:var(--text-3);}
+  /* Tulisan menimpa dinding, air, dan batang penghubung, jadi diberi tepi
+     kertas tipis supaya tetap terbaca di semua latar. */
+  .sk-sec,.sk-title,.sk-lbl,.sk-val,.sk-mode{paint-order:stroke; stroke:#f8fafc; stroke-width:2.6px; stroke-linejoin:round;}
+
+  /* Garis permukaan air: goresnya berjalan mengikuti arus, dan dihentikan
+     lewat animation-play-state saat ruasnya tidak mengalir. */
+  /* Pola & laju gores disamakan dengan .flow-line pada prototipe
+     simulasi-water-management-irigasi.html: gores 9 px, sela 7 px, dan satu
+     putaran menggeser dashoffset −64 (empat periode gores). Durasinya tidak
+     dipatok di sini melainkan disetel setSkWater() dari arus terukur; nilai 3s
+     hanya berlaku sampai render pertama, supaya gores tidak diam kalau ada
+     ruas yang belum sempat diperbarui.
+     Warna gores tetap putih, TIDAK memakai #BFEFFF prototipe: latar skematik
+     di sini kertas putih dengan air biru muda, dan biru es itu nyaris hilang
+     di atasnya — prototipe memakainya di atas latar biru tua. */
+  .sk-flow{stroke:#fff; stroke-width:2; stroke-dasharray:9 7; animation:sk-flow 3s linear infinite;}
+
+  /* Garis acuan TMA rencana — DIAM saat skenario ditukar, jadi selisih air
+     terhadapnya langsung terbaca.
+
+     Abu-abu netral, bukan emas: emas di halaman ini warna "perlu perhatian", dan
+     garis ini tidak memperingatkan apa pun — ia cuma patokan diam. Abu-abu juga yang
+     dipakai contoh rujukannya.
+
+     Yang membedakannya dari .sk-flow tinggal tiga hal, dan ketiganya perlu karena
+     saat air kebetulan pas di rencana kedua garis bertumpuk persis: warnanya lebih
+     gelap dari putih, dash-nya lebih rapat (6/5 lawan 9/7), dan ia tidak beranimasi.
+     Nilainya dipilih supaya terbaca di atas kertas putih kotaknya MAUPUN di atas
+     puncak kolom air yang biru pucat — dua latar yang dilewatinya bergantian. */
+  .sk-acuan{stroke:#5a6472; stroke-width:1.8; stroke-dasharray:6 5; opacity:.85;
+            pointer-events:stroke;}
+  @keyframes sk-flow{to{stroke-dashoffset:-64;}}
+  @media (prefers-reduced-motion: reduce){ .sk-flow{animation:none;} }
+
+  /* Perpindahan keadaan hulu. Tombol skenario tidak melompatkan angka: ia
+     menggulir pemutaran histori satu menit rekaman per 70 ms, jadi keadaan
+     baru masuk sepanjang ±4 detik. Yang menandainya cuma pelat keadaan di
+     kanan atas: ia turun sekali saat berpindah, lalu diam.
+
+     KOLOM AIR TIDAK DIKILATKAN. Dulu ruas sungai, lubang pintu, dan kolam
+     dicerahkan dua kali (brightness 1,45 + saturate 1,35, 1,15s x 2) untuk
+     menunjukkan arah datangnya keadaan baru. Airnya #7fb0cd; dicerahkan
+     sebanyak itu kanal hijau & birunya mentok 255, jadi seluruh pita berubah
+     jadi biru pucat hampir putih lalu kembali — terbaca sebagai air berkedip,
+     bukan sebagai keadaan yang merambat dari hulu. Kedipnya juga selesai
+     sebelum perpindahannya: kilatan 2,3 detik, gulir satu jendela ±4,2 detik.
+
+     Perpindahannya tetap terbaca dari pelat keadaan, dari tinggi kolom air
+     yang meluncur, dan dari angka TMA/arus/debit yang berjalan sepanjang
+     gulir — tanpa perlu ada yang berkedip. */
+  .sk-scen-masuk{animation:sk-scen-masuk 1.9s ease;}
+  @keyframes sk-scen-masuk{
+    0%{opacity:0; transform:translateY(-8px);}
+    16%{opacity:1; transform:none;}
+    100%{opacity:1; transform:none;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .sk-scen-masuk{animation:none;}
+  }
+
+  /* ---------- TABS INNER CONTENT ---------- */
+  .subtabs-nav{display:flex; gap:2px; padding:8px 8px 0; flex-wrap:wrap;}
+  .tab-btn{background:transparent; border:1px solid transparent; border-bottom:none; color:var(--text-2); padding:8px 14px; font-size:12px; font-weight:500; border-radius:0 8px 0 0;}
+  .tab-btn:hover{color:var(--text-1);}
+  .tab-btn.active{color:var(--text-1); background:var(--bg-panel-2); border-color:var(--line);}
+  .tab-panels{padding:15px; border-top:1px solid var(--line);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* ---------- CONFIG / CONTROL CARDS ---------- */
+  .cfg-section-title{font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--text-1); margin:20px 0 10px; display:flex; align-items:center; gap:8px;}
+  .cfg-section-title:first-child{margin-top:0;}
+  .cfg-section-title .n{background:var(--teal-dim); color:#fff; border-radius:3px; padding:1px 8px; font-size:12px; font-weight:700;}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .grid2{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
+  @media (max-width:1000px){.grid3{grid-template-columns:1fr;} .grid2{grid-template-columns:1fr;}}
+  .cfg-card, .ctrl-card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:13px 15px;}
+  .cfg-card h4, .ctrl-card h3{font-family:var(--font-display); font-size:14.5px; font-weight:700; margin:0 0 10px; color:var(--text-1); display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .maks-badge{display:inline-block; font-size:11.5px; font-weight:600; color:var(--teal); border:1px solid var(--teal); border-radius:3px; padding:1px 8px;}
+  .ctrl-top{display:grid; grid-template-columns:210px minmax(0,1fr); gap:14px; align-items:center; margin-bottom:10px;}
+  .mini-elev{border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; background:#fff;}
+  .mini-elev .cap{font-size:10.5px; color:var(--teal); text-align:center; padding:3px; border-bottom:1px solid var(--line); font-weight:600;}
+  .mini-elev svg{display:block; width:100%; height:auto;}
+  .ctrl-readout{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+  .ctrl-readout div{background:#f1f4f8; border-radius:3px; padding:6px 9px;}
+  .ctrl-readout b{display:block; font-size:16px; font-weight:700; color:var(--text-1); line-height:1.15;}
+  .ctrl-readout span{font-size:10.5px; color:var(--text-3);}
+  .ctrl-dev{
+    display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-2);
+    border-left:3px solid var(--ok); background:#f8fafc; padding:6px 10px; margin-bottom:10px;
+  }
+  .ctrl-dev.chase{border-left-color:var(--warn);}
+  .ctrl-dev.stuck{border-left-color:var(--danger); color:#a81d13; font-weight:600;}
+  .ctrl-field.off{opacity:.38; pointer-events:none;}
+  .ctrl-field .tagmode{font-size:10px; font-weight:700; letter-spacing:.06em; color:var(--text-3);}
+  .lamp-row{display:flex; gap:10px; justify-content:center; padding-top:10px;}
+  .lamp{width:44px; text-align:center;}
+  .lamp .plate{border:1px solid var(--line); border-radius:3px 3px 0 0; font-size:11px; font-weight:700; color:var(--text-1); background:#fff;}
+  .lamp .bulb{
+    height:34px; border:1px solid #2b3242; border-top:none; border-radius:0 0 14px 14px;
+    display:flex; align-items:center; justify-content:center; background:#2b3242;
+  }
+  .lamp .bulb span{
+    width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:9px; font-weight:700; color:#fff;
+  }
+  .elev-card{border:1px solid var(--line); border-radius:var(--radius); margin-top:10px; overflow:hidden;}
+  .elev-card .cap{font-size:12.5px; color:var(--teal); text-align:center; padding:6px; border-bottom:1px solid var(--line); font-weight:600;}
+  .elev-card svg{display:block; width:100%; max-width:360px; height:auto; margin:0 auto;}
+  .mode-toggle{display:flex; gap:5px;}
+  .mode-toggle button{padding:3px 9px; font-size:10.5px;}
+  .field{margin-bottom:10px;}
+  .field label{display:flex; justify-content:space-between; font-size:12.5px; color:var(--text-2); margin-bottom:5px;}
+  .field label b{color:var(--text-1); font-weight:600;}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+  input[type=range]{width:100%; accent-color:var(--teal); height:4px; cursor:pointer;}
+  input[type=number]{
+    width:100%; background:var(--bg-input); border:1px solid var(--line); border-radius:0; color:var(--text-1);
+    font-family:var(--font-mono); font-size:12px; padding:6px 8px;
+  }
+  .scenario-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;}
+  .assumption-box{
+    font-size:12.5px; color:var(--text-2); background:#f8fafc;
+    border:1px solid var(--line); border-left:3px solid var(--teal); border-radius:0 var(--radius) var(--radius) 0;
+    padding:10px 12px; margin-top:8px; line-height:1.6;
+  }
+
+  /* ---------- IRRIGATION / SAWAH CARDS ---------- */
+  .sawah-card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px;}
+  .status-badge{font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:3px; display:inline-block;}
+  .status-badge.ideal{background:#e7f7ed; color:#12793a; border:1px solid #b3e2c5;}
+  .status-badge.cukup{background:#fef5e3; color:#96650a; border:1px solid #f6ddab;}
+  .status-badge.kurang{background:#fdeceb; color:#a81d13; border:1px solid #f5c2be;}
+  .status-badge.lebih{background:#eaf2fb; color:#1f4fa6; border:1px solid #bcd4ee;}
+
+  /* ---------- CHARTS ---------- */
+  .chart-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:1000px){.chart-grid{grid-template-columns:1fr;}}
+  .chart-box{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:13px 15px 9px;}
+  .chart-box h3{font-family:var(--font-display); font-size:14.5px; font-weight:700; margin:0 0 8px; color:var(--text-1);}
+  .chart-box canvas{max-height:220px;}
+
+  /* ---------- FORMULA ---------- */
+  .formula-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:1000px){.formula-grid{grid-template-columns:1fr;}}
+  .formula-card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px;}
+  .formula-card h3{font-family:var(--font-display); font-size:15px; font-weight:700; margin:0 0 8px; color:var(--text-1);}
+  .formula-card p{font-size:12px; color:var(--text-2); margin:0 0 8px;}
+  .formula-box{font-family:ui-monospace, monospace; font-size:12.5px; background:#f8fafc; border:1px solid var(--line); border-radius:var(--radius); padding:10px 12px; margin-bottom:8px; color:var(--text-1); overflow-x:auto; white-space:nowrap;}
+  .formula-live{font-family:var(--font-mono); font-size:11px; color:var(--text-3); border-left:2px solid var(--teal-dim); padding-left:9px;}
+  .formula-live b{color:var(--teal); font-weight:600;}
+  table.data-table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  table.data-table th{
+    text-align:left; padding:9px 10px; background:#f8fafc; border-bottom:1px solid var(--line);
+    color:var(--text-3); font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.07em;
+  }
+  table.data-table td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line-soft);}
+  table.data-table tbody tr:hover{background:#f8fafc;}
+  .balance-ok{color:var(--ok); font-weight:600;} .balance-bad{color:var(--warn); font-weight:600;}
+
+  /* ---------- LOG ---------- */
+  .log-list{font-size:13px; max-height:420px; overflow-y:auto; display:flex; flex-direction:column-reverse;}
+  .log-entry{padding:6px 9px; border-bottom:1px solid var(--line-soft); display:flex; gap:9px;}
+  .log-entry .t{color:var(--text-3); flex-shrink:0;}
+  .log-entry.info .msg{color:var(--text-2);} .log-entry.ok .msg{color:var(--ok);}
+  .log-entry.warn .msg{color:var(--warn);} .log-entry.danger .msg{color:var(--danger-bright);}
+
+  .footnote{font-size:11px; color:var(--text-3); padding:12px 4px 0; line-height:1.6;}
+  .footnote b{color:var(--text-2);}
+  .highlight-flash{animation:flashbg 1.1s ease;}
+  @keyframes flashbg{0%{background:rgba(89,128,166,.28);} 100%{background:transparent;}}
+
+  ::-webkit-scrollbar{height:9px; width:9px;}
+  ::-webkit-scrollbar-track{background:var(--bg-input);}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:0;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--teal-dim);}
+
+  /* ---------- SHELL: TOP BAR · SIDEBAR · FOOTER ---------- */
+  .railbar{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 0 12px;
+  }
+  .railbar .spacer{flex:1;}
+  .shell{display:block;}
+  .content{min-width:0;}
+  .footer{border-top:1px solid var(--line); margin-top:18px; padding:14px var(--gutter) 0; background:#fff;}
+  .map-wrap{background:#eef2f6;}
+
+  /* ---------- URUTAN LAPISAN PETA ISOMETRIK ---------- */
+  /* Aliran air = lapisan paling bawah, draft skema bendung di atasnya,
+     pin pos telemetri paling atas. */
+  #isoWater{z-index:0;}
+  #isoBase{z-index:1;}
+  #isoSvg{z-index:2;}
+  .iso-stage > canvas, .iso-stage > img, .iso-stage > svg{position:absolute; inset:0;}
+
+  /* =========================================================================
+     RESPONSIF
+     Breakpoint 1000px yang sudah ada di atas hanya meruntuhkan grid isi.
+     Blok di bawah menangani bagian yang ukurannya dipatok tetap dan pecah di
+     layar sempit: kop instansi, bilah nav, railbar, panel peta, dan tabel.
+     ========================================================================= */
+
+  /* ---------- LAYAR LEBAR ---------- */
+  /* Halaman selebar jendela, jadi tepinya dilonggarkan bertahap. Tanpa ini
+     isi menempel ke sisi monitor dan barisnya jadi sulit dipindai mata. */
+  @media (min-width:1500px){
+    :root{--gutter:26px;}
+    .iso-scroll{height:620px;}
+  }
+  @media (min-width:1900px){
+    :root{--gutter:36px;}
+    .iso-scroll{height:680px;}
+  }
+  @media (min-width:2400px){ :root{--gutter:52px;} }
+
+  /* Diagram skematik dipatok 1875px lalu ditengahkan — bukan melar penuh.
+
+     Angkanya bukan sembarang: viewBox-nya 1500×660, jadi 1875px = 1,25 px per unit
+     viewBox. Itu skala yang sama dengan sebelum gambar ini pernah dibuat melar
+     penuh (waktu itu viewBox 1200 dipatok 1500px, juga 1,25), jadi ukuran tulisan
+     dan kotaknya persis seperti semula dan tingginya 660 × 1,25 = 825px.
+
+     Melar penuh sudah dicoba dan dilepas lagi: pada kartu selebar 1880px skalanya
+     jadi 1,57 dan tingginya 1034px — tulisannya membengkak dan satu panel memakan
+     seluruh layar. Yang bertambah panjang sekarang PITA-nya, lewat viewBox yang
+     dilebarkan 1200 → 1500 (lihat SKL.bandW di simhidro.js), bukan lewat skalanya:
+     pita 1875px dari sebelumnya 1500px, dengan tinggi yang tidak berubah.
+
+     Lebar minimumnya dipegang aturan .schematic-scroll svg di atas (min-width:1500px
+     = skala 1,0) supaya di layar sempit gambarnya digulir mendatar, bukan dipadatkan
+     sampai bacaan pintunya bertumpuk. */
+  .schematic-scroll svg{max-width:1875px; margin:0 auto;}
+
+  /* ---------- TABLET / LAYAR SEDANG ---------- */
+  @media (max-width:900px){
+    :root{--gutter:12px;}
+    .gov-head{padding:10px var(--gutter); gap:12px;}
+    .gov-text{font-size:11px;}
+    .gov-app{font-size:18px;}
+    .gov-app-sub{font-size:10px;}
+    .brand-mark{width:44px; height:38px;}
+    .brand-mark svg{width:25px; height:25px;}
+    .page-title{font-size:20px; padding:13px 0 10px;}
+
+    /* Nav dibiarkan menggeser mendatar, bukan membungkus jadi 2-3 baris:
+       tinggi kop tetap terkendali dan urutan tab tidak berubah-ubah. */
+    .gov-nav{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none;}
+    .gov-nav::-webkit-scrollbar{display:none;}
+    .gov-nav button, .gov-nav .navtab{flex:0 0 auto; padding:12px 12px; font-size:12.5px;}
+    .gov-nav .spacer{display:none;}
+
+    .iso-scroll{height:420px;}
+    .ctrl-top{grid-template-columns:1fr;}
+  }
+
+  /* ---------- PONSEL ---------- */
+  @media (max-width:600px){
+    :root{--gutter:10px;}
+    .app{padding-bottom:32px;}
+
+    .gov-head{flex-direction:column; align-items:flex-start; gap:10px;}
+    .gov-user{width:100%;}
+    .gov-text{font-size:10.5px; line-height:1.3;}
+    .page-title{font-size:18px;}
+
+    /* Railbar ditumpuk: chip cuaca sebaris penuh (isinya tiga baris teks),
+       status + jam berbagi baris, pencarian penuh, kendali putar dibuat
+       melebar supaya cukup besar untuk jempol. */
+    .railbar .spacer{display:none;}
+    .weather-chip{flex:1 1 100%;}
+    .status-pill{flex:1 1 auto; justify-content:center;}
+    .clock{flex:1 1 auto; text-align:center;}
+    .search-box{flex:1 1 100%; min-width:0;}
+    .railbar select{flex:1 1 22%;}
+    .railbar #playPauseBtn, .railbar #resetBtn{flex:1 1 30%; justify-content:center;}
+
+    .summary-row{gap:8px;}
+    .sumcard{padding:11px 9px;}
+    .sumcard .lbl{font-size:11.5px;}
+    .sumcard .val{font-size:18px;}
+    .sumcard .val span.unit{font-size:11.5px;}
+
+    .panel-head{padding:10px 12px; gap:6px;}
+    .panel-head h2{font-size:14px;}
+    .panel-head .head-right{width:100%; justify-content:space-between;}
+    .panel-body{padding:12px;}
+
+    /* Peta: tinggi dipangkas, dan sentuhan tegak dikembalikan ke halaman.
+       Dengan touch-action:none bawaan desktop, jempol yang mendarat di peta
+       menahan gulir halaman sehingga isi di bawah peta tidak bisa dicapai.
+       pan-y = gulir tegak milik halaman, geser mendatar tetap menggeser peta. */
+    .iso-scroll{height:300px; touch-action:pan-y;}
+    .map-controls{right:8px; bottom:8px; gap:4px;}
+    .map-controls button{width:30px; height:30px; font-size:13px;}
+    .map-controls button#mapLabelToggle,
+    .map-controls button#mapEditPins,
+    .map-controls button#mapPinsReset,
+    .map-controls button#mapPinsCopy{font-size:10px; padding:0 8px;}
+    .pos-pop{width:min(238px, calc(100vw - 44px));}
+    .pin-edit-hint{left:8px; top:8px; right:8px; font-size:10px;}
+
+    /* Diagram skematik memang gambar lebar — tetap digulir mendatar, cuma
+       ambang minimalnya diturunkan supaya gulirnya tidak sejauh itu. Angkanya ikut
+       naik bersama viewBox yang dilebarkan 1200 → 1500, jadi nisbah pengecilannya
+       sama seperti dulu (1000/1200 = 1250/1500 = 0,833). */
+    .schematic-scroll svg{min-width:1250px;}
+
+    .subtabs-nav{padding:6px 6px 0;}
+    .tab-panels{padding:11px;}
+    .field-row{flex-direction:column; gap:0;}
+    .lamp-row{flex-wrap:wrap;}
+    .scenario-row button{flex:1 1 auto; justify-content:center;}
+    table.data-table{font-size:12.5px;}
+    table.data-table th, table.data-table td{padding:7px 8px; white-space:nowrap;}
+    .log-list{max-height:300px;}
+    .chart-box{padding:11px 12px 8px;}
+    .chart-box canvas{max-height:190px;}
+    .footer{padding:12px var(--gutter) 0;}
+  }

@@ -1,9 +1,17 @@
+/* Peta Lokasi — DIHASILKAN dari web-app/static/css/app.css.
+   JANGAN SUNTING BERKAS INI. Sunting sumbernya, lalu jalankan:
+       node tools/peta/salin-css.cjs
+   Yang diubah: empat selector global di kepala berkas (:root, *, [hidden],
+   html/body), satu penetral aturan tombol wms.css, dan penyeragaman nilai
+   border-radius 5-14px ke var(--lengkung). Sisanya apa adanya.
+   Warna, sudut, dan tata letaknya diselaraskan ke dasbor lewat
+   public/css/peta-selaras.css yang dimuat setelah berkas ini. */
 /* Beacon SWH — putih + biru muda pastel.
    Hue-nya digeser ke arah pertanian: biru air (irigasi) sebagai warna utama, dengan
    aksen hijau daun teredam untuk hal yang bertumbuh, dan tanah/gandum untuk peringatan.
    Semua warna sengaja bernilai terang tinggi & saturasi rendah supaya citra satelit di
    bawahnya tetap terbaca dan halaman terasa lapang, bukan berisik. */
-:root {
+#view-peta {
   --putih:        #ffffff;
   --kertas:       #f6fbfd;   /* putih kebiruan - latar halaman */
   --kabut:        #eaf4fa;   /* biru muda pastel - latar kartu sekunder */
@@ -22,24 +30,44 @@
   --lengkung:     14px;
 }
 
-* { box-sizing: border-box; }
+#view-peta *, #view-peta *::before, #view-peta *::after { box-sizing: border-box; }
 
 /* `hidden` bawaan peramban cuma `display: none` tanpa penanda apa pun, jadi SETIAP
    aturan yang memasang `display` sendiri mengalahkannya - dan unsur yang disembunyikan
    dari JS diam-diam tetap tampak. Sudah kejadian sekali di `.kartu--kecil`; aturan ini
    menutup seluruh kelasnya, bukan satu kasusnya. */
-[hidden] { display: none !important; }
+#view-peta [hidden] { display: none !important; }
 
-html, body {
-  height: 100%;
+/* Penetral aturan tombol wms.css.
+   wms.css memasang `button {}` telanjang untuk seluruh halaman — font, tebal
+   huruf, padding, border-radius, display:inline-flex. Berkas asal app.css tidak
+   punya aturan itu sama sekali, jadi tombolnya dulu memakai bawaan peramban.
+   Kelas peta.css sudah menyetel border, latar, dan padding sendiri, tetapi yang
+   tidak disetel ulang tetap bocor: tombol × di kartu jadi tebal dan berfont
+   halaman, bukan font tab ini.
+
+   :where() dipakai supaya kekhususan aturan ini tetap 0,0,1 — sama dengan
+   `button {}` di wms.css. peta.css dimuat SETELAH wms.css, jadi aturan ini
+   menang pada seri, sementara setiap kelas peta.css di bawahnya (0,1,0) tetap
+   menang melawan aturan ini. Menulisnya sebagai `#view-peta button` akan
+   berkekhususan 1,0,1 dan justru mengalahkan kelasnya sendiri — display:flex
+   pada .kartu-buka akan mati. */
+:where(#view-peta) button {
+  font: inherit;
+  font-weight: normal;
+  display: inline-block;
+  align-items: normal;
+  gap: normal;
+  border-radius: 0;
+  transition: none;
+}
+#view-peta {
   margin: 0;
   background: var(--kertas);
   color: var(--tinta);
   font: 14px/1.5 "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-
-body { display: flex; flex-direction: column; }
 
 /* ------------------------------------------------------------------ bilah atas */
 .bar {
@@ -403,7 +431,7 @@ body { display: flex; flex-direction: column; }
   font: inherit;
   font-size: 13px;
   padding: 6px 28px 6px 10px;
-  border-radius: 9px;
+  border-radius: var(--lengkung);
   cursor: pointer;
   min-width: 138px;
 }
@@ -420,7 +448,7 @@ body { display: flex; flex-direction: column; }
   color: var(--biru-tua);
   font-size: 13px;
   padding: 6px 12px;
-  border-radius: 9px;
+  border-radius: var(--lengkung);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -570,7 +598,7 @@ body { display: flex; flex-direction: column; }
   align-items: baseline;
   gap: 6px;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--lengkung);
   background: var(--kabut);
   border-left: 3px solid var(--pastel-tua);
 }
@@ -620,7 +648,7 @@ body { display: flex; flex-direction: column; }
   flex-direction: column;
   gap: 1px;
   padding: 5px 7px;
-  border-radius: 7px;
+  border-radius: var(--lengkung);
   background: var(--kabut);
   border-left: 2px solid var(--pastel-tua);
   min-width: 0;
@@ -744,7 +772,7 @@ body { display: flex; flex-direction: column; }
   background: rgba(255, 255, 255, .95);
   backdrop-filter: blur(7px);
   border: 1px solid var(--pastel);
-  border-radius: 11px;
+  border-radius: var(--lengkung);
   box-shadow: var(--bayang);
 }
 .koordinat__kepala {
@@ -790,7 +818,7 @@ body { display: flex; flex-direction: column; }
   font: inherit;
   font-size: 11px;
   padding: 2px 9px;
-  border-radius: 7px;
+  border-radius: var(--lengkung);
   cursor: pointer;
   flex: 0 0 auto;
 }
@@ -809,7 +837,7 @@ body { display: flex; flex-direction: column; }
   background: rgba(255, 255, 255, .93);
   backdrop-filter: blur(7px);
   border: 1px solid var(--pastel);
-  border-radius: 11px;
+  border-radius: var(--lengkung);
   box-shadow: var(--bayang);
 }
 .legenda__judul {
@@ -818,7 +846,7 @@ body { display: flex; flex-direction: column; }
   display: block;
   margin-bottom: 5px;
 }
-.legenda__pita { height: 9px; border-radius: 5px; }
+.legenda__pita { height: 9px; border-radius: var(--lengkung); }
 .legenda__batas {
   display: flex;
   justify-content: space-between;
@@ -1047,7 +1075,7 @@ body { display: flex; flex-direction: column; }
 .bilah {
   display: flex;
   height: 12px;
-  border-radius: 6px;
+  border-radius: var(--lengkung);
   overflow: hidden;
   margin: 7px 0 8px;
   background: var(--kabut);
@@ -1086,7 +1114,7 @@ body { display: flex; flex-direction: column; }
   align-items: center;
   gap: 8px;
   padding: 5px 7px;
-  border-radius: 8px;
+  border-radius: var(--lengkung);
   cursor: pointer;
   font-size: 12.5px;
 }
@@ -1156,7 +1184,7 @@ body { display: flex; flex-direction: column; }
   flex-direction: column;
   gap: 1px;
   padding: 5px 7px;
-  border-radius: 7px;
+  border-radius: var(--lengkung);
   background: var(--kabut);
   border-left: 2px solid var(--biru);
   min-width: 0;
@@ -1217,7 +1245,7 @@ body { display: flex; flex-direction: column; }
 
 /* popup Leaflet dibuat sewarna kartu */
 .leaflet-popup-content-wrapper {
-  border-radius: 12px;
+  border-radius: var(--lengkung);
   box-shadow: var(--bayang-kartu);
   border: 1px solid var(--pastel);
   background: rgba(255, 255, 255, .96);
@@ -1269,7 +1297,7 @@ body { display: flex; flex-direction: column; }
 }
 .leaflet-control-layers {
   border: 1px solid var(--pastel) !important;
-  border-radius: 11px !important;
+  border-radius: var(--lengkung) !important;
   box-shadow: var(--bayang-kartu) !important;
   background: rgba(255, 255, 255, .93) !important;
   backdrop-filter: blur(7px);

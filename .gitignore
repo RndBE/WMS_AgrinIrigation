@@ -1,0 +1,66 @@
+# Berkas sementara Python / notebook (sisi analisa, folder note/ dan web-app/)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Cache ubin peta: diunduh sendiri oleh web-app saat dipakai, tidak perlu ikut repo
+# (ukurannya cepat membengkak dan isinya milik penyedia peta, bukan hasil analisa).
+note/output/tiles/
+note/output/tiles-rbi/
+
+# Cache lapisan BIG & Daerah Irigasi: sama alasannya — diunduh sendiri dari layanan
+# ArcGIS saat dipakai, isinya milik BIG/SISDA, dan bentuk siap-pakainya sudah ikut
+# repo sebagai public/data/peta/big-*.json dan di-*.json.
+note/output/big/
+note/output/di/
+
+.DS_Store
+Thumbs.db
+
+# ---- Aplikasi Laravel (sekarang duduk di akar repo, sejajar web-app/) ----
+# Disalin dari .gitignore bawaan Laravel. Pola berawalan "/" dihitung dari letak
+# berkas ini, jadi setelah aplikasinya naik ke akar, pola itu tetap menunjuk ke
+# folder yang benar. Catatan: /.vscode di bawah tidak berpengaruh pada
+# .vscode/settings.json yang sudah lebih dulu terlacak di repo ini.
+*.log
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+_ide_helper.php
+Homestead.json
+Homestead.yaml
+Thumbs.db
+
+# Simpanan ubin peta tab Peta Lokasi. Duduk di dalam public/ supaya ubin yang
+# sudah tersimpan dilayani sebagai berkas statis dan tidak melewati PHP — itu
+# yang membuat petanya cepat (0,11 detik per viewport lawan 6,8 detik). Isinya
+# tetap milik penyedia peta (Esri, BIG), bukan hasil analisa, dan ukurannya
+# cepat membengkak, jadi tidak ikut repo. Isi ulang dengan:
+#   php artisan peta:panaskan-ubin
+/public/data/peta-ubin
+
+# CA bundle untuk penerus ubin peta (lihat config/services.php -> peta.cainfo).
+# Berkas per-mesin yang juga kedaluwarsa, jadi tidak ikut repo. Unduh:
+#   curl -o storage/app/cacert.pem https://curl.se/ca/cacert.pem
+/storage/app/cacert.pem

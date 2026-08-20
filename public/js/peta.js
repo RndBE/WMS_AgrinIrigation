@@ -1,9 +1,51 @@
+/* Peta Lokasi — DIHASILKAN dari web-app/static/js/app.js.
+   JANGAN SUNTING BERKAS INI. Sunting sumbernya, lalu jalankan:
+       node tools/peta/salin-js.cjs
+   Yang diubah hanya tiga hal: alamat data lewat window.PETA, endpoint Flask jadi
+   berkas beku note/ekspor-peta.py, dan awal jalan ditunda ke window.petaMulai()
+   supaya Leaflet tidak lahir di kontainer berukuran nol. */
 /* Beacon SWH — peta satu halaman.
  * Semua angka datang dari /api/lokasi/<id>; halaman ini tidak menghitung apa pun
  * sendiri kecuali penskalaan warna. Medan yang bernilai null ditampilkan sebagai
  * "belum dihitung", tidak pernah sebagai 0. */
 (() => {
   "use strict";
+
+  /* Alamat data dikirim Laravel lewat window.PETA (lihat resources/views/skema/
+     index.blade.php). Nilai cadangan di bawah hanya jaga-jaga kalau berkas ini
+     dimuat di luar halaman Blade-nya.
+
+       data      folder berkas beku hasil note/ekspor-peta.py — dilayani langsung
+                 oleh web server, tidak melewati PHP
+       tile      penerus ubin citra satelit (perlu PHP: unduh sekali lalu cache)
+       tileRbi   penerus ubin Rupabumi BIG
+
+     Semua muatan sudah dibekukan per lokasi DAN per rezim, jadi tidak ada lagi
+     query string: rezim masuk ke nama berkas. */
+  const PETA = Object.assign({
+    data: "/data/peta",
+    tile: "/api/peta/tile",
+    tileRbi: "/api/peta/tile-rbi",
+  }, window.PETA || {});
+
+  /* Rezim bawaan satu lokasi, dari data-rezim pada <option>-nya (disetel Blade
+     dari rezim_tersedia). Diperlukan pada muatan PERTAMA: nama berkas beku
+     memuat rezimnya, sementara daftar rezim yang tersedia baru diketahui dari
+     muatan pertama itu sendiri. Versi Flask tidak perlu ini karena servernya
+     memakai `rezim or "FL"` sebagai bawaan. Kosong = lokasi tanpa rezim. */
+  function rezimBawaan(lokasiId) {
+    const pilihan = document.getElementById("pilih-lokasi");
+    const opsi = pilihan
+      && [...pilihan.options].find((o) => o.value === lokasiId);
+    return (opsi && opsi.dataset.rezim) || null;
+  }
+
+  /* Nama berkas beku untuk satu lokasi. Rezim null / kosong berarti lokasi itu
+     memang tidak punya pilihan rezim (lihat rezim_tersedia di data.py). */
+  const berkasLokasi = (lokasiId, rezim, akhiran) => {
+    const r = rezim || rezimBawaan(lokasiId);
+    return `${PETA.data}/lokasi-${lokasiId}${r ? "-" + r : ""}.${akhiran}`;
+  };
 
   // Skala biru muda pastel -> biru air. Sengaja terang di ujung bawah supaya citra
   // satelit di bawah poligon masih terbaca.
@@ -1326,7 +1368,7 @@
     });
     big = null;
     try {
-      const r = await fetch(`/api/big/${lokasiId}`);
+      const r = await fetch(`${PETA.data}/big-${lokasiId}.json`);
       if (!r.ok) return;
       big = await r.json();
     } catch (e) {
@@ -1410,7 +1452,7 @@
     });
     di = null;
     try {
-      const r = await fetch(`/api/di/${lokasiId}`);
+      const r = await fetch(`${PETA.data}/di-${lokasiId}.json`);
       if (!r.ok) return;
       di = await r.json();
     } catch (e) {
@@ -1800,17 +1842,20 @@
   /* -------------------------------------------------------------------- muat */
   async function muat(lokasiId, rezim) {
     el.sub.textContent = "memuat…";
-    const q = rezim ? `?rezim=${encodeURIComponent(rezim)}` : "";
-    const r = await fetch(`/api/lokasi/${lokasiId}${q}`);
+    const r = await fetch(berkasLokasi(lokasiId, rezim, "json"));
     if (!r.ok) {
-      const e = await r.json().catch(() => ({}));
-      el.sub.textContent = "gagal memuat: " + (e.galat || r.status);
+      el.sub.textContent = r.status === 404
+        ? "data lokasi ini belum diekspor — jalankan: python note/ekspor-peta.py"
+        : "gagal memuat: " + r.status;
       return;
     }
     data = await r.json();
-    // Rezim ikut dibawa: KML-nya harus berisi angka rezim yang sedang dilihat, bukan
-    // rezim bawaan. Server yang menamai berkasnya lewat Content-Disposition.
-    el.unduhKml.href = `/api/lokasi/${lokasiId}.kml${q}`;
+    /* Rezim ikut dibawa: KML-nya harus berisi angka rezim yang sedang dilihat,
+       bukan rezim bawaan. Berkas beku sudah dipisah per rezim, dan atribut
+       download yang menamainya — dulu tugas Content-Disposition dari Flask. */
+    el.unduhKml.href = berkasLokasi(lokasiId, rezim, "kml");
+    el.unduhKml.setAttribute("download",
+      berkasLokasi(lokasiId, rezim, "kml").split("/").pop());
     buangBarisSubjek();      // nama, jumlah, dan skala warnanya ikut berganti
     pasangTanpaPetak(!data.geojson.features.length);
     pasangIstilah();
@@ -1929,11 +1974,11 @@
       updateWhenIdle: L.Browser.mobile,
     };
     const dasar = {
-      "Citra satelit": L.tileLayer("/api/tile/{z}/{x}/{y}.jpg", {
+      "Citra satelit": L.tileLayer(`${PETA.tile}/{z}/{x}/{y}.jpg`, {
         ...opsiUbin,
         attribution: "Citra: Esri, Maxar, Earthstar Geographics",
       }),
-      "Rupabumi (BIG)": L.tileLayer("/api/tile-rbi/{z}/{x}/{y}.png", {
+      "Rupabumi (BIG)": L.tileLayer(`${PETA.tileRbi}/{z}/{x}/{y}.png`, {
         ...opsiUbin,
         attribution: "Peta dasar: Badan Informasi Geospasial, RBI 2019",
       }),
@@ -2236,5 +2281,17 @@
     muat(el.lokasi.value, null);
   }
 
-  document.addEventListener("DOMContentLoaded", mulai);
+  /* Tab Peta Lokasi ikut dimuat bersama seluruh tab lain lalu disembunyikan
+     dengan display:none. Kalau L.map() dijalankan saat itu, kontainernya masih
+     0 x 0 piksel dan fitBounds akan memilih zoom yang salah — persis masalah
+     yang sudah ditangani resizeCharts() untuk Chart.js pada tab Tren Data.
+     Jadi peta baru dibangun saat tabnya benar-benar tampil, dan hanya sekali.
+     activateView() di simhidro.js yang memanggilnya. */
+  let sudahMulai = false;
+  window.petaMulai = function petaMulai() {
+    if (sudahMulai) return;
+    if (!document.getElementById("peta")) return;   // tab tidak ada di halaman ini
+    sudahMulai = true;
+    mulai();
+  };
 })();
