@@ -209,7 +209,7 @@
   /* Pin yang disorot menegaskan labelnya. Urutan gambarnya diangkat dari JS —
      SVG tidak punya z-index, yang menentukan urutan simpul di DOM (lihat
      angkatPinKeDepan di simhidro.js). */
-  .iso-pin:hover .iso-label-bg{opacity:1; stroke-width:1.4;}
+  .labels-on .iso-pin:hover .iso-label-bg{opacity:1; stroke-width:1.4;}
   .pos-pop{
     position:absolute; z-index:6; width:238px; background:#fff; border:1px solid var(--line);
     border-radius:var(--radius); box-shadow:0 6px 20px rgba(31,36,48,.18); padding:13px 14px 12px; display:none;
