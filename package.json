@@ -1,5 +1,6 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
+    "name": "wms-agrin-irrigation",
     "private": true,
     "type": "module",
     "scripts": {
@@ -7,7 +8,6 @@
         "dev": "vite"
     },
     "devDependencies": {
-        "@rolldown/binding-win32-x64-msvc": "^1.2.3",
         "@tailwindcss/vite": "^4.0.0",
         "concurrently": "^10.0.3",
         "laravel-vite-plugin": "^3.1",
@@ -15,6 +15,8 @@
         "vite": "^8.0.0"
     },
     "optionalDependencies": {
-        "@laravel/multiplex": "^0.4.1"
+        "@laravel/multiplex": "^0.4.1",
+        "@rolldown/binding-linux-x64-gnu": "^1.2.3",
+        "@rolldown/binding-win32-x64-msvc": "^1.2.3"
     }
 }
