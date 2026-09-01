@@ -3770,18 +3770,20 @@ const PIN_ICON = {
      satu blok putih pada ukuran 1x yang benar-benar dipakai peta; satu bilik
      lebar terbaca sebagai meja.
 
-     Celah di antara kedua bilik 3 unit, bukan 2. Pada 2 unit celahnya cuma
-     selebar satu piksel di ukuran 1x, dan kedua bilik lebur jadi satu bilah
-     putih — persis cacat yang membuat versi tiga bilik gagal. 3 unit menyisakan
-     celah yang masih terlihat pada ukuran terkecil, dan lebar mukanya tetap
-     12,4 unit sehingga bilik mengecil, bukan bangunannya melebar.
+     Celah di antara kedua bilik 4 unit. Angka ini tidak berdiri sendiri: ia
+     dikalikan PIN_GLIF_SKALA, jadi yang menentukan keterbacaan hasil kalinya —
+     4 x 0,62 = 2,5 unit tergambar. Di bawah kira-kira 2,4 kedua bilik lebur jadi
+     satu bilah putih, persis cacat yang membuat versi tiga bilik gagal. Lebar
+     mukanya tetap 12,4 unit, jadi yang mengecil biliknya, bukan bangunannya yang
+     melebar. Mengecilkan pin lagi berarti menaikkan angka ini lagi — sampai
+     biliknya sendiri terlalu sempit untuk terlihat.
 
      Batasnya +-9,6 x, +-7 y. Lebih lebar daripada ikon lain (+-8) karena
      bangunan memang melebar, dan kepala tetes memberi ruangnya. */
   gate: '<path d="M-9.2,-6.8 H9.2" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>'
       + '<path d="M-7.6,-5 L-9.4,6.8 M7.6,-5 L9.4,6.8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>'
-      + '<rect x="-6.2" y="-4.4" width="4.7" height="6.2" rx="0.6" fill="#fff"/>'
-      + '<rect x="1.5" y="-4.4" width="4.7" height="6.2" rx="0.6" fill="#fff"/>',
+      + '<rect x="-6.2" y="-4.4" width="4.2" height="6.2" rx="0.6" fill="#fff"/>'
+      + '<rect x="2" y="-4.4" width="4.2" height="6.2" rx="0.6" fill="#fff"/>',
   wave: '<path d="M-8,-2.5 q4,-4 8,0 t8,0" fill="none" stroke="#fff" stroke-width="2"/><path d="M-8,3 q4,-4 8,0 t8,0" fill="none" stroke="#fff" stroke-width="2"/>',
   valve: '<circle cx="0" cy="0" r="6" fill="none" stroke="#fff" stroke-width="2"/><path d="M-6,0 H6 M0,-6 V6" stroke="#fff" stroke-width="2"/>',
   outflow: '<path d="M-8,0 H3.5" stroke="#fff" stroke-width="2.2"/><path d="M-0.5,-5 L6,0 L-0.5,5 Z" fill="#fff"/>',
@@ -3801,7 +3803,7 @@ const PIN_ICON = {
 
 /* BADAN PIN — TETES, BUKAN CAKRAM.
  *
- * Kepala bundar r=10 dengan dua garis singgung yang turun bertemu di satu ujung
+ * Kepala bundar r=9 dengan dua garis singgung yang turun bertemu di satu ujung
  * pada y = PIN_UJUNG. Bentuk penanda peta yang sudah dikenali siapa pun: ada
  * arah, dan arahnya menunjuk ke bawah — ke bangunan yang diwakilinya. Cakram
  * bundar tidak menunjuk apa pun; di atas ilustrasi yang penuh bangunan, ia
@@ -3811,22 +3813,26 @@ const PIN_ICON = {
  * dipatok di titik pos seperti penanda peta pada umumnya. Alasannya letak ke-12
  * pos di ISO_POS disetel tangan dengan menggeser CAKRAM sampai duduk pas di atas
  * bangunannya (lihat tombol "Geser pin"). Memindahkan patokan ke ujung menaikkan
- * seluruh kepala 21 unit, dan setelan tangan itu hangus semuanya — kepala yang
+ * seluruh kepala 19 unit, dan setelan tangan itu hangus semuanya — kepala yang
  * tadinya menutupi bendung pindah ke rimbun pohon di atasnya. Yang ditukar cuma
  * bentuknya; letak yang sudah dinilai benar tidak disentuh.
  *
  * UKURANNYA. Percobaan pertama memakai kepala r=15 — sama dengan cakram lama —
  * dan hasilnya terlalu besar: tetes menambahkan ekor di bawah kepala, jadi pada
  * radius yang sama tinggi penandanya naik dari 30 unit ke 45 dan pin mulai
- * menutupi bangunan yang seharusnya ditunjuknya. Sekarang r=10, tinggi utuh 31 —
- * setara cakram lama, tapi kini menunjuk.
+ * menutupi bangunan yang seharusnya ditunjuknya. Sekarang r=9, tinggi utuh 28 —
+ * lebih ringkas daripada cakram lama yang 30, dan kini menunjuk.
  *
- * Yang menahannya tidak turun lagi bukan selera melainkan glif `gate`: celah 3
- * unit di antara kedua biliknya menyusut ikut PIN_GLIF_SKALA, dan di bawah r=10
- * celah itu tinggal di bawah 2 unit — kedua bilik lebur jadi satu bilah putih dan
- * bangunannya tidak lagi terbaca berpintu dua. Glifnya menyusut lewat satu angka,
- * bukan digambar ulang: satu tempat mengecilkan seluruh keluarga ikon sekaligus,
- * jadi tidak ada ikon yang bisa ketinggalan.
+ * Yang menahannya tidak turun lagi bukan selera melainkan glif `gate`: celah di
+ * antara kedua biliknya menyusut ikut PIN_GLIF_SKALA, dan begitu celah tergambar
+ * di bawah ~2,4 unit kedua bilik lebur jadi satu bilah putih — bangunannya tidak
+ * lagi terbaca berpintu dua. Itu sebabnya celah di glifnya dinaikkan 3 -> 4 unit
+ * bersamaan dengan pengecilan ini: 4 x 0,62 masih 2,5. Kepala di bawah r=9
+ * menuntut glif yang lebih sederhana, bukan sekadar angka skala yang lebih kecil.
+ *
+ * Glifnya menyusut lewat satu angka, bukan digambar ulang: satu tempat
+ * mengecilkan seluruh keluarga ikon sekaligus, jadi tidak ada ikon yang bisa
+ * ketinggalan.
  *
  * Garis tepinya gelap pekat (#0f1420), bukan navy #132f63 seperti cakram dulu,
  * dan tanpa garis putih di dalamnya. Cakram dulu butuh cincin putih itu supaya
@@ -3840,10 +3846,10 @@ const PIN_ICON = {
  * bukan sebagai warna statusnya. Garisnya tidak dihapus sama sekali karena masih ada
  * satu latar yang membutuhkannya — rimbun pohon, satu-satunya bidang di peta
  * yang segelap warna cincin status paling pekat. */
-const PIN_KEPALA_R = 10, PIN_UJUNG = 21;
+const PIN_KEPALA_R = 9, PIN_UJUNG = 19;
 /* Glif PIN_ICON semuanya digambar untuk kepala r=15 (batas +-8, `gate` +-9,6).
    Dikecilkan bersama-sama di sini, sekali, alih-alih setiap glif diketik ulang. */
-const PIN_GLIF_SKALA = 0.67;
+const PIN_GLIF_SKALA = 0.62;
 const PIN_TETES_D = (() => {
   const cos = PIN_KEPALA_R / PIN_UJUNG;              /* titik singgung dari ujung */
   const sin = Math.sin(Math.acos(cos));
