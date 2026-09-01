@@ -23,18 +23,10 @@
      bagian halaman yang tidak berlaku di tab tertentu — lihat peta-selaras.css. --}}
 <body data-tab="{{ $activeView ?? '' }}">
 <div class="app">
-
-  {{-- KOP APLIKASI.
-       Nama instansi (Kementerian PU / Ditjen SDA / BBWS Cimanuk Cisanggarung)
-       dibuang: tampilan ini masih berjalan di atas data dummy, dan kop instansi
-       pada tampilan yang angkanya belum data lapangan menyatakan kewenangan yang
-       belum dimilikinya. Diganti nama aplikasinya sendiri. --}}
   <header class="gov-head">
     <div class="gov-lockup">
       <div class="brand-mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#1f2430" stroke-width="1.8" stroke-linecap="round">
-          <path d="M2 8h20"/><path d="M2 16h20"/><path d="M8 5v6"/><path d="M16 5v6"/><path d="M5 19h14"/>
-        </svg>
+        <img src="@aset('logo_be2.png')" alt="Beacon Engineering">
       </div>
       <div class="gov-text gov-text--app">
         <div class="gov-app">WMS</div>

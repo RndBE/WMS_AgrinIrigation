@@ -3754,7 +3754,34 @@ function treeBlob(gx, gy) {
 }
 const PIN_ICON = {
   drop: '<path d="M0,-8 C4,-3 7.5,0.4 7.5,3.4 A7.5,7.5 0 0,1 -7.5,3.4 C-7.5,0.4 -4,-3 0,-8 Z" fill="#fff"/>',
-  gate: '<rect x="-7" y="-7" width="14" height="14" fill="none" stroke="#fff" stroke-width="2"/><rect x="-7" y="-1.2" width="14" height="4.6" fill="#fff"/>',
+  /* `gate` — TAMPAK MUKA BANGUNAN BERPINTU: jembatan pelayanan melintang di
+     atas, dua bilik pintu di bawahnya, dan dua kaki yang mengembang ke luar
+     seperti sayap pangkal bendung.
+
+     Dua bentuk sebelumnya digambar sebagai SKEMA — kotak bertepi dengan bilah
+     di tengah, lalu rangka dengan daun menggantung. Keduanya menuntut pembacanya
+     menerjemahkan lambang, dan pada cakram 30 px terjemahan itu tidak pernah
+     selesai: satu kotak putih bisa berarti apa saja. Yang digambar sekarang
+     rupa bangunannya sendiri, bentuk yang sama dengan bendung gerak di
+     ilustrasi peta di bawahnya — jadi pin dan bangunan yang ditunjuknya
+     bercerita hal yang sama.
+
+     DUA bilik, bukan tiga atau satu. Tiga membuat pilar tengahnya menyatu jadi
+     satu blok putih pada ukuran 1x yang benar-benar dipakai peta; satu bilik
+     lebar terbaca sebagai meja.
+
+     Celah di antara kedua bilik 3 unit, bukan 2. Pada 2 unit celahnya cuma
+     selebar satu piksel di ukuran 1x, dan kedua bilik lebur jadi satu bilah
+     putih — persis cacat yang membuat versi tiga bilik gagal. 3 unit menyisakan
+     celah yang masih terlihat pada ukuran terkecil, dan lebar mukanya tetap
+     12,4 unit sehingga bilik mengecil, bukan bangunannya melebar.
+
+     Batasnya +-9,6 x, +-7 y. Lebih lebar daripada ikon lain (+-8) karena
+     bangunan memang melebar, dan kepala tetes memberi ruangnya. */
+  gate: '<path d="M-9.2,-6.8 H9.2" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>'
+      + '<path d="M-7.6,-5 L-9.4,6.8 M7.6,-5 L9.4,6.8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>'
+      + '<rect x="-6.2" y="-4.4" width="4.7" height="6.2" rx="0.6" fill="#fff"/>'
+      + '<rect x="1.5" y="-4.4" width="4.7" height="6.2" rx="0.6" fill="#fff"/>',
   wave: '<path d="M-8,-2.5 q4,-4 8,0 t8,0" fill="none" stroke="#fff" stroke-width="2"/><path d="M-8,3 q4,-4 8,0 t8,0" fill="none" stroke="#fff" stroke-width="2"/>',
   valve: '<circle cx="0" cy="0" r="6" fill="none" stroke="#fff" stroke-width="2"/><path d="M-6,0 H6 M0,-6 V6" stroke="#fff" stroke-width="2"/>',
   outflow: '<path d="M-8,0 H3.5" stroke="#fff" stroke-width="2.2"/><path d="M-0.5,-5 L6,0 L-0.5,5 Z" fill="#fff"/>',
@@ -3765,12 +3792,67 @@ const PIN_ICON = {
    `outflow` pada pos hilir menandakan KEDUDUKAN pos itu di sistem (sumber air,
    keluaran ke sungai), bukan jenis alatnya; keduanya tunggal di tempatnya jadi
    tidak menimbulkan kembaran. `gate` dipakai seluruh pos AWGC — primer,
-   pengambilan, tersier — karena ketiganya bangunan sewatak: daun pintu yang
-   dinaik-turunkan.
+   pengambilan, tersier — karena ketiganya bangunan sewatak: bilik berpintu di
+   bawah jembatan pelayanan.
 
    `valve` tidak dipakai pos mana pun lagi sejak pintu tersier pindah ke `gate`.
    Dibiarkan ada karena ia bentuk yang sah untuk bangunan berkeran kalau nanti
    ada — bukan karena masih terpakai. */
+
+/* BADAN PIN — TETES, BUKAN CAKRAM.
+ *
+ * Kepala bundar r=10 dengan dua garis singgung yang turun bertemu di satu ujung
+ * pada y = PIN_UJUNG. Bentuk penanda peta yang sudah dikenali siapa pun: ada
+ * arah, dan arahnya menunjuk ke bawah — ke bangunan yang diwakilinya. Cakram
+ * bundar tidak menunjuk apa pun; di atas ilustrasi yang penuh bangunan, ia
+ * terbaca sebagai tombol yang melayang, bukan sebagai penanda tempat.
+ *
+ * KEPALANYA TETAP DI TITIK POS, ujungnya menjulur ke bawah — BUKAN ujungnya yang
+ * dipatok di titik pos seperti penanda peta pada umumnya. Alasannya letak ke-12
+ * pos di ISO_POS disetel tangan dengan menggeser CAKRAM sampai duduk pas di atas
+ * bangunannya (lihat tombol "Geser pin"). Memindahkan patokan ke ujung menaikkan
+ * seluruh kepala 21 unit, dan setelan tangan itu hangus semuanya — kepala yang
+ * tadinya menutupi bendung pindah ke rimbun pohon di atasnya. Yang ditukar cuma
+ * bentuknya; letak yang sudah dinilai benar tidak disentuh.
+ *
+ * UKURANNYA. Percobaan pertama memakai kepala r=15 — sama dengan cakram lama —
+ * dan hasilnya terlalu besar: tetes menambahkan ekor di bawah kepala, jadi pada
+ * radius yang sama tinggi penandanya naik dari 30 unit ke 45 dan pin mulai
+ * menutupi bangunan yang seharusnya ditunjuknya. Sekarang r=10, tinggi utuh 31 —
+ * setara cakram lama, tapi kini menunjuk.
+ *
+ * Yang menahannya tidak turun lagi bukan selera melainkan glif `gate`: celah 3
+ * unit di antara kedua biliknya menyusut ikut PIN_GLIF_SKALA, dan di bawah r=10
+ * celah itu tinggal di bawah 2 unit — kedua bilik lebur jadi satu bilah putih dan
+ * bangunannya tidak lagi terbaca berpintu dua. Glifnya menyusut lewat satu angka,
+ * bukan digambar ulang: satu tempat mengecilkan seluruh keluarga ikon sekaligus,
+ * jadi tidak ada ikon yang bisa ketinggalan.
+ *
+ * Garis tepinya gelap pekat (#0f1420), bukan navy #132f63 seperti cakram dulu,
+ * dan tanpa garis putih di dalamnya. Cakram dulu butuh cincin putih itu supaya
+ * tidak lebur di daerah rimbun pohon yang gelap; tepi hampir hitam mengerjakan
+ * hal yang sama dengan satu garis, dan sisi tetes yang menyempit tidak punya
+ * ruang untuk dua garis bertumpuk. Kilap di kepala ellipse putih 16% — memberi
+ * bentuknya sedikit isi tanpa perlu gradasi yang harus dibuat sekali per warna
+ * status. Tebalnya 0,6 (lihat .iso-pin .pin-ring di wms.css), turun dua kali
+ * dari 1,7 pada percobaan pertama: pada kepala sekecil ini garis 1,7 memakan
+ * hampir seperempat jari-jarinya dan penandanya terbaca sebagai cincin hitam,
+ * bukan sebagai warna statusnya. Garisnya tidak dihapus sama sekali karena masih ada
+ * satu latar yang membutuhkannya — rimbun pohon, satu-satunya bidang di peta
+ * yang segelap warna cincin status paling pekat. */
+const PIN_KEPALA_R = 10, PIN_UJUNG = 21;
+/* Glif PIN_ICON semuanya digambar untuk kepala r=15 (batas +-8, `gate` +-9,6).
+   Dikecilkan bersama-sama di sini, sekali, alih-alih setiap glif diketik ulang. */
+const PIN_GLIF_SKALA = 0.67;
+const PIN_TETES_D = (() => {
+  const cos = PIN_KEPALA_R / PIN_UJUNG;              /* titik singgung dari ujung */
+  const sin = Math.sin(Math.acos(cos));
+  const px = (PIN_KEPALA_R * sin).toFixed(2), py = (PIN_KEPALA_R * cos).toFixed(2);
+  /* Busur besar (large-arc=1) arah negatif (sweep=0): dari singgung kanan-bawah
+     memutar LEWAT ATAS ke singgung kiri-bawah, 240 derajat. */
+  return `M-${px},${py} L0,${PIN_UJUNG} L${px},${py} `
+    + `A${PIN_KEPALA_R},${PIN_KEPALA_R} 0 1,0 -${px},${py} Z`;
+})();
 
 /* Pin pada koordinat gambar (bukan grid isometrik).
  *
@@ -3790,10 +3872,10 @@ function pinMarkerXY(id, x, y, icon, tooltip, len, up) {
     <title>${tooltip}</title>
     <line class="pin-leader" id="pinLeader_${id}" x1="-9" y1="${up ? -9 : 9}" x2="${(lx + 9).toFixed(1)}" y2="${(ly + (up ? 4 : -2)).toFixed(1)}"/>
     <circle class="pin-leader-dot" id="pinDot_${id}" cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.5"/>
-    <ellipse cx="0" cy="4" rx="12" ry="4" fill="#000" opacity="0.22"/>
-    <circle class="pin-ring" cx="0" cy="0" r="15"/>
-    <circle cx="0" cy="0" r="15" fill="none" stroke="#fff" stroke-width="1.2" opacity="0.7"/>
-    ${PIN_ICON[icon] || PIN_ICON.drop}
+    <ellipse cx="0" cy="${PIN_UJUNG - 1}" rx="${(PIN_KEPALA_R * 0.47).toFixed(1)}" ry="${(PIN_KEPALA_R * 0.17).toFixed(1)}" fill="#000" opacity="0.25"/>
+    <path class="pin-ring" d="${PIN_TETES_D}"/>
+    <ellipse cx="0" cy="${(-PIN_KEPALA_R * 0.42).toFixed(1)}" rx="${(PIN_KEPALA_R * 0.72).toFixed(1)}" ry="${(PIN_KEPALA_R * 0.42).toFixed(1)}" fill="#fff" opacity="0.16"/>
+    <g transform="scale(${PIN_GLIF_SKALA})">${PIN_ICON[icon] || PIN_ICON.drop}</g>
     <g class="iso-label-grp" id="pinLbl_${id}">
       <rect class="iso-label-bg" id="pinBg_${id}" x="${(lx - 56).toFixed(1)}" y="${(ly - 10).toFixed(1)}" width="112" height="20" rx="4"/>
       <text class="iso-label" id="pinLabel_${id}" x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}">-</text>
@@ -3938,12 +4020,26 @@ function layoutIsoLabels(paksa) {
       const cx = p.x + dx, cy = p.y + dy;
       const box = { x0: cx - k.w / 2, x1: cx + k.w / 2, y0: cy - k.h / 2, y1: cy + k.h / 2 };
       let nilai = urut * 0.5;           /* pilihan yang lebih awal sedikit diutamakan */
-      /* menutupi cakram pin mana pun — pelanggaran terberat: pin itu yang diklik */
+      /* menutupi badan pin mana pun — pelanggaran terberat: pin itu yang diklik.
+         Kotaknya TIDAK simetris tegak: badan pin berbentuk tetes yang kepalanya
+         di titik pos dan ujungnya menjulur 30 unit ke bawah, jadi batas bawahnya
+         jauh lebih rendah daripada batas atasnya. Dengan kotak simetris +-18
+         seperti dulu, label bisa mendarat tepat di atas ujung penunjuk pin
+         tetangganya — bagian yang justru menyatakan pin itu menunjuk ke mana. */
       ids.forEach(o => {
         if (o === k.id) return;
         const q = pin[o];
-        if (q.x + 18 > box.x0 && q.x - 18 < box.x1 && q.y + 18 > box.y0 && q.y - 18 < box.y1) nilai += 100;
+        const m = PIN_KEPALA_R + 3;
+        if (q.x + m > box.x0 && q.x - m < box.x1
+          && q.y + PIN_UJUNG + 3 > box.y0 && q.y - m < box.y1) nilai += 100;
       });
+      /* Ekor pin SENDIRI. Hukumannya lebih ringan daripada menutupi pin lain:
+         label yang menutupi ujung penunjuknya sendiri masih bisa diklik dan masih
+         jelas milik siapa — cuma jelek. Tanpa hukuman ini calon [0,44] (tegak
+         lurus di bawah pin) selalu menang untuk pin yang terkurung, dan kotak
+         putihnya memotong ujung tetesnya. */
+      if (box.x0 < p.x + 8 && box.x1 > p.x - 8
+        && box.y1 > p.y + PIN_KEPALA_R - 4 && box.y0 < p.y + PIN_UJUNG + 3) nilai += 55;
       terpakai.forEach(u => { if (tumpang(box, u)) nilai += 40; });
       /* Menutupi tulisan petak dihukum lebih berat daripada menutupi sesama label
          pin: label pin punya kotak latar putih yang menutup rapat apa pun di
@@ -3980,7 +4076,7 @@ function layoutIsoLabels(paksa) {
     const keTepi = Math.min(
       Math.abs(ux) > 1e-3 ? (k.w / 2) / Math.abs(ux) : Infinity,
       Math.abs(uy) > 1e-3 ? (k.h / 2) / Math.abs(uy) : Infinity);
-    const pangkal = 16;                                   /* tepi cakram pin, r=15 */
+    const pangkal = PIN_KEPALA_R + 1;                     /* tepi kepala tetes */
     const ujung = Math.max(pangkal, jarak - keTepi);
     set('pinLeader_' + k.id, {
       x1: ux * pangkal, y1: uy * pangkal,

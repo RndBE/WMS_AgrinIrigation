@@ -32,17 +32,24 @@
     display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;
     background:#fff; border-bottom:3px solid var(--gold); padding:11px var(--gutter);
   }
-  .gov-lockup{display:flex; align-items:center; gap:13px;}
-  .brand-mark{
-    width:52px; height:44px; flex-shrink:0; background:var(--gold);
-    display:flex; align-items:center; justify-content:center;
-  }
-  .brand-mark svg{width:30px; height:30px;}
+  .gov-lockup{display:flex; align-items:center; gap:17px;}
+  /* Lambang perusahaan, bukan lagi glif di dalam kotak kuning: lebarnya
+     mengikuti gambar (rasio ~3,8:1), yang dikunci cuma tingginya supaya sejajar
+     dengan dua baris tulisan di sebelahnya. flex-shrink:0 menahan lambang tetap
+     seukuran itu saat kop menyempit; yang mengalah tulisan di sebelahnya. */
+  .brand-mark{flex-shrink:0; display:flex; align-items:center;}
+  .brand-mark img{height:34px; width:auto; display:block;}
   .gov-text{font-weight:700; font-size:12.5px; line-height:1.35; letter-spacing:.01em; color:var(--text-1); text-transform:uppercase;}
   /* Kop nama aplikasi: dua baris, singkatan besar di atas nama panjangnya. Tiga
      baris instansi dulu berbobot sama semua karena memang tiga tingkat lembaga
      yang sederajat pentingnya; di sini satu nama dan satu penjelasnya, jadi
      bobotnya dibedakan supaya "WMS" yang terbaca lebih dulu. */
+  /* Tanpa garis pemisah di kiri. Percobaan sebelumnya memasang garis kuning di
+     sini sebagai penerus aksen kotak lambang yang dibuang, tapi di kop yang
+     sudah bergaris kuning tebal di bawahnya, garis tegak kedua justru menambah
+     satu elemen tanpa menambah keterangan — batas antara lambang dan nama
+     aplikasi sudah cukup ditandai jarak. Jaraknya dinaikkan sedikit karena
+     sekarang itu satu-satunya yang memisahkan keduanya. */
   .gov-text--app{line-height:1.15;}
   .gov-app{font-size:21px; font-weight:700; letter-spacing:.05em;}
   .gov-app-sub{font-size:11px; font-weight:600; letter-spacing:.07em; color:var(--text-2);}
@@ -226,8 +233,12 @@
      Lewat peubah, bukan lewat `style.fill` sebaris seperti dulu: fill sebaris
      mengalahkan stylesheet, jadi aturan :hover di bawah tidak pernah berlaku sama
      sekali. Nilai cadangan #1f4fa6 dipakai sebelum tick render() pertama. */
-  .iso-pin circle.pin-ring{fill:var(--pin-ring, #1f4fa6); stroke:#132f63; stroke-width:1.4;}
-  .iso-pin:hover circle.pin-ring{fill:#2b6cb0;}
+  /* Badan pin berbentuk TETES, jadi selektornya `.pin-ring` tanpa nama elemen:
+     dulu `circle.pin-ring`, dan sesudah badannya jadi <path> selektor itu tidak
+     cocok dengan apa pun — warna status, sorot kursor, dan sorot mode geser
+     ketiganya mati tanpa satu pun galat. Lihat PIN_TETES_D di simhidro.js. */
+  .iso-pin .pin-ring{fill:var(--pin-ring, #1f4fa6); stroke:#0f1420; stroke-width:0.6;}
+  .iso-pin:hover .pin-ring{fill:#2b6cb0;}
   .iso-pin text.pin-num{fill:#fff; font-family:var(--font-mono); font-size:12px; font-weight:700; text-anchor:middle;}
   /* Tali & titik penambat LABEL, bukan penanda posisi. Cincin pin sendiri sudah
      duduk tepat di koordinat posnya (cx=0 cy=0 pada <g> yang di-translate ke
@@ -312,7 +323,7 @@
   .map-controls button#mapEditPins.on{background:var(--teal); border-color:var(--teal); color:#fff;}
   .iso-scroll.pin-edit .iso-pin{cursor:grab;}
   .iso-scroll.pin-edit .iso-pin.dragging{cursor:grabbing;}
-  .iso-scroll.pin-edit .iso-pin circle.pin-ring{stroke:#f0a020; stroke-width:2.6;}
+  .iso-scroll.pin-edit .iso-pin .pin-ring{stroke:#f0a020; stroke-width:1.6;}
   .pin-edit-hint{position:absolute; left:12px; top:12px; z-index:6; display:none; align-items:center; gap:8px;
     padding:6px 10px; font-size:11px; letter-spacing:.02em; background:rgba(242,242,243,.94); backdrop-filter:blur(2px);
     border:1px solid var(--color-accent, #5980a6); color:var(--text-1, #1d1f20);}
@@ -684,8 +695,8 @@
     .gov-text{font-size:11px;}
     .gov-app{font-size:18px;}
     .gov-app-sub{font-size:10px;}
-    .brand-mark{width:44px; height:38px;}
-    .brand-mark svg{width:25px; height:25px;}
+    .brand-mark img{height:28px;}
+    .gov-lockup{gap:12px;}
     .page-title{font-size:20px; padding:13px 0 10px;}
 
     /* Nav dibiarkan menggeser mendatar, bukan membungkus jadi 2-3 baris:
