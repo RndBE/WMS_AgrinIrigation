@@ -322,9 +322,41 @@
      digambar tangan di atas ilustrasi raster, jadi tepinya tidak persis batas
      petak yang tergambar; kalau sorot langsung memunculkan bacaan, kotaknya ikut
      muncul saat kursor sebenarnya masih di jalan atau di pepohonan sebelahnya.
-     Garis tepi tipis ini cukup untuk memberitahu "di sini bisa diklik". */
-  .iso-petak:hover .petak-area{fill:rgba(79,157,74,.10); stroke:#2f6b2c; stroke-width:1.2;}
-  .iso-petak.terbuka .petak-area{fill:rgba(79,157,74,.26); stroke:#2f6b2c; stroke-width:1.8;}
+     Garis tepi ini cukup untuk memberitahu "di sini bisa diklik". */
+  /* --petak-garis / --petak-isi / --petak-isi-kuat dipasang updatePetakWarna()
+     di simhidro.js dari status pemenuhan air petaknya (Ideal / Cukup / Kurang /
+     Lebih). Nilai cadangan di sini yang dipakai kalau JS belum sempat jalan. */
+  .iso-petak:hover .petak-area{
+    fill:var(--petak-isi, rgba(79,157,74,.12)); stroke:var(--petak-garis, #2f6b2c); stroke-width:2.6;
+  }
+  .iso-petak.terbuka .petak-area{
+    fill:var(--petak-isi-kuat, rgba(79,157,74,.26)); stroke:var(--petak-garis, #2f6b2c); stroke-width:3.4;
+  }
+
+  /* Tombol 🏷 Label menyalakan BATAS PETAK dan tulisannya sekaligus, satu tombol
+     yang sama dengan label pin: keduanya lapisan keterangan di atas ilustrasi,
+     dan dua tombol terpisah untuk dua jenis keterangan cuma menambah barang di
+     sudut peta tanpa menambah yang bisa dilakukan. */
+  .labels-on .petak-area{
+    fill:var(--petak-isi, rgba(79,157,74,.13)); stroke:var(--petak-garis, #2f6b2c);
+    stroke-width:2.4; stroke-opacity:.92;
+  }
+  .labels-on .iso-petak:hover .petak-area{fill:var(--petak-isi-kuat, rgba(79,157,74,.2)); stroke-width:3;}
+  .labels-on .iso-petak.terbuka .petak-area{stroke-width:3.8;}
+
+  /* Tulisan di tengah petak. Tanpa kotak latar seperti label pin, melainkan
+     dilingkari garis putih (paint-order:stroke): kotak latar butuh diukur dan
+     ditata supaya tidak saling menutupi — pekerjaan layoutIsoLabels() — sedangkan
+     tulisan petak selalu berada di dalam bidangnya sendiri dan tidak pernah
+     berkerumun. Lingkaran putihnya cukup untuk membuatnya terbaca di atas sawah
+     bergaris. */
+  .petak-label{
+    font-family:var(--font-body); font-size:12px; font-weight:700; fill:#1f3d1c;
+    text-anchor:middle; pointer-events:none; opacity:0; transition:opacity .15s;
+    paint-order:stroke; stroke:#fff; stroke-width:3.2px; stroke-linejoin:round;
+  }
+  .petak-label--2{font-size:10.5px; font-weight:600; fill:#33502f; stroke-width:2.8px;}
+  .labels-on .petak-label{opacity:1;}
   .map-wrap.petak-edit-on .petak-area{fill:rgba(43,108,176,.10); stroke:#2b6cb0; stroke-width:1.2; stroke-dasharray:5 4;}
   .map-wrap.petak-edit-on .iso-petak.aktif .petak-area{fill:rgba(240,160,32,.16); stroke:#f0a020; stroke-width:2; stroke-dasharray:none;}
   .petak-vtx{fill:#fff; stroke:#2b6cb0; stroke-width:1.8; cursor:grab;}

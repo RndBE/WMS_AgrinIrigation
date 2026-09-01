@@ -2547,6 +2547,8 @@ function render() {
   updateIsoLabels();
   updateIsoWaterColors();
   updateIsoLeaves();
+  updatePetakWarna();
+  updatePetakLabels();
   updatePetakTip();
   renderPosPop();
   updateFormulaTab();
@@ -4273,20 +4275,95 @@ function salinKeClipboard(teks, btn) {
   else { console.log(teks); done(); }
 }
 
-/* Markup satu petak. Titik sudutnya hanya digambar saat mode gambar menyala —
-   di luar itu poligonnya benar-benar tak terlihat sampai disorot. */
+/* Titik tengah petak = titik berat poligonnya (rumus shoelace), bukan titik
+   tengah kotak pembungkusnya. Pada petak berbentuk L atau yang satu sudutnya
+   menjorok jauh, titik tengah kotak pembungkus bisa jatuh di LUAR petaknya —
+   labelnya lalu tertulis di jalan atau di petak sebelah. Poligon yang luasnya
+   nol (semua sudut segaris, bisa terjadi saat digambar) tidak punya titik berat,
+   jadi di situ saja kotak pembungkusnya dipakai. */
+function titikTengahPetak(pts) {
+  let a2 = 0, cx = 0, cy = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i], q = pts[(i + 1) % pts.length];
+    const f = p[0] * q[1] - q[0] * p[1];
+    a2 += f; cx += (p[0] + q[0]) * f; cy += (p[1] + q[1]) * f;
+  }
+  if (Math.abs(a2) < 1e-6) {
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+  }
+  return [cx / (3 * a2), cy / (3 * a2)];
+}
+
+/* Markup satu petak. Titik sudutnya hanya digambar saat mode gambar menyala.
+   Tulisan di tengah petak dan garis tepinya baru terlihat kalau label peta
+   dinyalakan — kelas .labels-on pada <svg>, tombol yang sama yang menyalakan
+   label pin (lihat wms.css). Di luar itu poligonnya tak terlihat sampai
+   disorot, supaya ilustrasinya tidak terbaca seperti denah kavling. */
 function petakMarkup(id) {
   const pts = ISO_PETAK[id].map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
   const i = petakIndex(id);
   const nama = (state.areas[i] || {}).name || String(i + 1);
   const aktif = petakEdit && id === petakAktif ? ' aktif' : '';
+  const [cx, cy] = titikTengahPetak(ISO_PETAK[id]);
   let sudut = '';
   if (petakEdit) {
     sudut = ISO_PETAK[id].map((p, k) =>
       `<circle class="petak-vtx" data-petak="${id}" data-idx="${k}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4.5"/>`).join('');
   }
   return `<g class="iso-petak${aktif}" data-petak="${id}">`
-    + `<polygon class="petak-area" points="${pts}"><title>Petak ${nama}</title></polygon>${sudut}</g>`;
+    + `<polygon class="petak-area" points="${pts}"><title>Petak ${nama}</title></polygon>`
+    + `<text class="petak-label" id="petakLabel_${id}" x="${cx.toFixed(1)}" y="${(cy - 2).toFixed(1)}"></text>`
+    + `<text class="petak-label petak-label--2" id="petakLabel2_${id}" x="${cx.toFixed(1)}" y="${(cy + 10).toFixed(1)}"></text>`
+    + sudut + '</g>';
+}
+
+/* Warna petak = status pemenuhan airnya, kelas yang sama dengan kartu petak di
+   bawah peta dan kotak bacaannya: irrigationStatus(). Petak yang kekurangan air
+   karena itu terbaca dari petanya sendiri, tanpa harus diklik satu per satu.
+   Warnanya warna lambang status (sama dengan pil di kotak bacaan), BUKAN
+   FIELD_STATUS_COLOR yang dipakai skematik: yang itu pastel, dipilih untuk garis
+   tipis di atas latar putih skematik, dan di atas ilustrasi sawah yang sudah
+   hijau bercorak ia nyaris tidak terlihat. Yang disamakan klasifikasinya, bukan
+   nilai warnanya — itu yang membuat peta dan kartu tidak pernah berbeda status. */
+const PETAK_WARNA = {
+  ideal:  { garis: '#12793a', isi: 'rgba(18,121,58,.14)',  kuat: 'rgba(18,121,58,.28)' },
+  cukup:  { garis: '#96650a', isi: 'rgba(150,101,10,.14)', kuat: 'rgba(150,101,10,.28)' },
+  kurang: { garis: '#a81d13', isi: 'rgba(168,29,19,.15)',  kuat: 'rgba(168,29,19,.30)' },
+  lebih:  { garis: '#1f4fa6', isi: 'rgba(31,79,166,.14)',  kuat: 'rgba(31,79,166,.28)' },
+};
+function updatePetakWarna() {
+  Object.keys(ISO_PETAK).forEach(id => {
+    const g = document.querySelector(`.iso-petak[data-petak="${id}"]`);
+    if (!g) return;
+    const i = petakIndex(id);
+    const a = state.areas[i] || { ha: 0 };
+    const st = irrigationStatus(state.Qfield[i] || 0, (state.duty * a.ha) / 1000);
+    const w = PETAK_WARNA[st.cls] || PETAK_WARNA.ideal;
+    g.style.setProperty('--petak-garis', w.garis);
+    g.style.setProperty('--petak-isi', w.isi);
+    g.style.setProperty('--petak-isi-kuat', w.kuat);
+    g.dataset.status = st.cls;
+  });
+}
+
+/* Isi tulisan petak, disegarkan tiap tick bersama label pin.
+   Dilewati kalau label sedang mati: tulisannya tidak terlihat, dan menulis ulang
+   enam simpul teks empat kali sedetik untuk yang tidak terlihat itu sia-sia. */
+function updatePetakLabels() {
+  const svg = el('isoSvg');
+  if (!svg || !svg.classList.contains('labels-on')) return;
+  Object.keys(ISO_PETAK).forEach(id => {
+    const i = petakIndex(id);
+    const a = state.areas[i] || { name: String(i + 1), ha: 0 };
+    const req = (state.duty * a.ha) / 1000;
+    const q = state.Qfield[i] || 0;
+    const pers = req > 0.0001 ? (q / req) * 100 : 100;
+    const t1 = document.getElementById('petakLabel_' + id);
+    const t2 = document.getElementById('petakLabel2_' + id);
+    if (t1) t1.textContent = 'Petak ' + a.name;
+    if (t2) t2.textContent = (+a.ha || 0).toFixed(0) + ' ha · ' + pers.toFixed(0) + '%';
+  });
 }
 
 /* ---- bacaan yang muncul saat petak disorot ---- */
@@ -4432,6 +4509,11 @@ function initPetakSawah() {
     petakDrag.el.setAttribute('cy', y.toFixed(1));
     const poly = petakDrag.el.parentNode.querySelector('.petak-area');
     if (poly) poly.setAttribute('points', ISO_PETAK[petakDrag.id].map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '));
+    const [lx, ly] = titikTengahPetak(ISO_PETAK[petakDrag.id]);
+    const t1 = document.getElementById('petakLabel_' + petakDrag.id);
+    const t2 = document.getElementById('petakLabel2_' + petakDrag.id);
+    if (t1) { t1.setAttribute('x', lx.toFixed(1)); t1.setAttribute('y', (ly - 2).toFixed(1)); }
+    if (t2) { t2.setAttribute('x', lx.toFixed(1)); t2.setAttribute('y', (ly + 10).toFixed(1)); }
     petakDrag.moved = true;
   });
 
@@ -4502,6 +4584,7 @@ function buildIsoMap() {
   });
   svg.innerHTML = out;
   angkatPinKeDepan(svg);
+  updatePetakWarna();
 }
 
 /* Pin yang disorot digambar paling akhir, jadi labelnya di atas label tetangganya.
@@ -5922,6 +6005,7 @@ function initIsoMapControls() {
     /* Dipaksa: selama label mati layoutIsoLabels() menolak jalan (getBBox nol pada
        tulisan yang belum tergambar), jadi penataan pertama harus terjadi di sini —
        sesudah kelasnya dipasang, bukan sebelumnya. */
+    updatePetakLabels();
     layoutIsoLabels(true);
   });
   scrollEl.addEventListener('wheel', (e) => {
