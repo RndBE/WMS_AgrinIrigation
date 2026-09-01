@@ -3834,6 +3834,12 @@ const LBL_CALON = [
   [-106, 8], [106, 8],                                /* mendatar, sejajar pin */
   [-60, 66], [60, 66], [-60, -62], [60, -62],         /* diagonal, lebih turun/naik */
   [0, 78], [0, -74],                                  /* tegak jauh */
+  /* Cadangan terjauh. Ditambahkan sesudah tulisan petak ikut jadi penghalang:
+     dengan enam kotak tulisan petak di tengah jaringan irigasi, pin yang
+     berkerumun kadang tidak menemukan satu pun letak bebas di antara calon di
+     atas, dan label yang kalah terpaksa mendarat menutupi tulisan petak. */
+  [-140, 22], [140, 22], [-140, -18], [140, -18],
+  [-104, 92], [104, 92], [-104, -88], [104, -88],
 ];
 let lblSidik = '', lblUkur = null;
 
@@ -3885,7 +3891,11 @@ function layoutIsoLabels(paksa) {
     const t = document.getElementById(pre + id);
     return t ? t.textContent.length : 0;
   };
-  const sidik = ids.map(id => panjang('pinLabel_', id) + ':' + panjang('pinLabel2_', id)).join(',');
+  /* Panjang tulisan petak ikut masuk sidik: ia jadi penghalang di bawah, jadi
+     kalau tulisannya berubah panjang (petak jadi "Kurang 83%" dari "100%"),
+     letak label pin di sekitarnya perlu dihitung ulang. */
+  const sidik = ids.map(id => panjang('pinLabel_', id) + ':' + panjang('pinLabel2_', id)).join(',')
+    + '|' + Object.keys(ISO_PETAK).map(id => panjang('petakLabel_', id) + ':' + panjang('petakLabel2_', id)).join(',');
   /* Tanpa paksaan, penataan dilewati kalau tulisannya tidak berubah. DENGAN paksaan
      ia tetap jalan walau tulisannya sama — itu yang dipakai saat pin digeser, karena
      yang berubah letak pinnya, bukan isi labelnya. */
@@ -3899,6 +3909,27 @@ function layoutIsoLabels(paksa) {
 
   const tumpang = (a, b) => !(a.x1 <= b.x0 || b.x1 <= a.x0 || a.y1 <= b.y0 || b.y1 <= a.y0);
   const terpakai = [];
+
+  /* TULISAN PETAK IKUT DIHITUNG SEBAGAI PENGHALANG.
+     Label pin dulu hanya saling menghindari sesama label pin dan cakram pin, jadi
+     begitu tulisan petak muncul (tombol Label yang sama menyalakan keduanya), kotak
+     label pin mendarat tepat di atas nama petak — "Petak Leuwigoong" tertutup
+     "Bukaan 73 cm" dan tidak bisa dibaca sama sekali.
+     Yang mengalah label pinnya: tulisan petak terpaku di titik berat petaknya
+     sendiri, memindahkannya berarti menuliskannya di luar petak yang dinamainya.
+     Kotaknya diambil dari getBBox — ukuran tulisan sebenarnya sesudah tergambar,
+     bukan taksiran dari jumlah huruf. */
+  const halangPetak = [];
+  Object.keys(ISO_PETAK).forEach(id => {
+    ['petakLabel_', 'petakLabel2_'].forEach(pre => {
+      const t = document.getElementById(pre + id);
+      if (!t || !t.textContent) return;
+      let b;
+      try { b = t.getBBox(); } catch (e) { return; }
+      if (!b || !(b.width > 0)) return;
+      halangPetak.push({ x0: b.x - 4, x1: b.x + b.width + 4, y0: b.y - 3, y1: b.y + b.height + 3 });
+    });
+  });
 
   kotak.forEach(k => {
     const p = pin[k.id];
@@ -3914,6 +3945,11 @@ function layoutIsoLabels(paksa) {
         if (q.x + 18 > box.x0 && q.x - 18 < box.x1 && q.y + 18 > box.y0 && q.y - 18 < box.y1) nilai += 100;
       });
       terpakai.forEach(u => { if (tumpang(box, u)) nilai += 40; });
+      /* Menutupi tulisan petak dihukum lebih berat daripada menutupi sesama label
+         pin: label pin punya kotak latar putih yang menutup rapat apa pun di
+         bawahnya, sedangkan dua label pin yang bertumpang sebagian masih menyisakan
+         angka yang terbaca. */
+      halangPetak.forEach(u => { if (tumpang(box, u)) nilai += 70; });
       /* keluar kanvas: label terpotong tepi gambar */
       if (box.x0 < 4 || box.x1 > ISO_VB.w - 4 || box.y0 < 4 || box.y1 > ISO_VB.h - 4) nilai += 60;
       if (nilai < nilaiTerbaik) { nilaiTerbaik = nilai; terbaik = { cx, cy, box }; }
