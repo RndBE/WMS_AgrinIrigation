@@ -4083,13 +4083,11 @@ function kirimTataLetak() {
       body: JSON.stringify(muatan),
     })
       .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
-      .then(() => {
-        /* Salinan di memori ikut diperbarui supaya penataan berikutnya dalam
-           sesi yang sama tidak membaca nilai server yang sudah basi. */
-        TATA_LETAK.pin = muatan.pin;
-        TATA_LETAK.petak = muatan.petak;
-        statusTataLetak('Tersimpan untuk semua alat', 'ok');
-      })
+      /* Salinan di memori TIDAK ditulis ulang di sini. Ia sudah diperbarui saat
+         disimpan; menuliskan `muatan` lagi sesudah jawabannya tiba justru
+         mengembalikan keadaan ke saat kiriman dirakit, dan geseran yang terjadi
+         selama permintaan berlangsung akan hilang. */
+      .then(() => { statusTataLetak('Tersimpan untuk semua alat', 'ok'); })
       .catch((e) => {
         console.warn('Tata letak peta gagal disimpan ke server:', e);
         statusTataLetak('Gagal simpan ke server — tersimpan di peramban ini saja', 'gagal');
@@ -4111,6 +4109,12 @@ function savePinPos() {
   const o = {};
   Object.keys(ISO_POS).forEach(k => { o[k] = [Math.round(ISO_POS[k][0]), Math.round(ISO_POS[k][1])]; });
   tulisLokal(PIN_POS_KEY, o);
+  /* Salinan server di memori ikut diperbarui SEKARANG, bukan menunggu POST-nya
+     berhasil. buildIsoMap() memanggil loadPinPos() tiap kali peta digambar ulang,
+     dan loadPinPos() mendahulukan nilai server: kalau salinan itu masih yang lama
+     selama 700 ms penundaan kiriman, tiap penggambaran ulang mengembalikan letak
+     yang baru saja diubah — geserannya seperti tidak pernah terjadi. */
+  TATA_LETAK.pin = o;
   tataLetakBawaan.pin = false;
   kirimTataLetak();
 }
@@ -4239,6 +4243,10 @@ function savePetakPos() {
   const o = {};
   Object.keys(ISO_PETAK).forEach(k => { o[k] = ISO_PETAK[k].map(p => [Math.round(p[0]), Math.round(p[1])]); });
   tulisLokal(PETAK_POS_KEY, o);
+  /* Sama seperti savePinPos: menambah atau menggeser sudut langsung memanggil
+     buildIsoMap(), yang membaca ulang lewat loadPetakPos(). Tanpa baris ini sudut
+     yang baru ditambahkan hilang seketika, tertimpa bentuk lama dari server. */
+  TATA_LETAK.petak = o;
   tataLetakBawaan.petak = false;
   kirimTataLetak();
 }
