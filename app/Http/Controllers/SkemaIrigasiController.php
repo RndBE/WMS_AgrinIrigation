@@ -43,7 +43,7 @@ class SkemaIrigasiController extends Controller
     /**
      * Folder gambar CCTV, relatif terhadap public/. Berkasnya ditaruh manual
      * (belum ada pengambilan otomatis dari IPCAM), dinamai menurut kunci pos di
-     * CCTV_POS: intake.jpg, spillway.jpg, dan seterusnya.
+     * CCTV_POS: intake.jpg, scouring.jpg, dan seterusnya.
      */
     public const CCTV_DIR = 'assets/cctv';
 
@@ -65,21 +65,25 @@ class SkemaIrigasiController extends Controller
     /**
      * Pos CCTV yang ditampilkan di beranda.
      *
-     * Empat pos bangunan air — yang sama dengan yang digambar skematik — supaya
-     * kartunya bercerita sama dengan sisa beranda. Pos non-air (Rumah Jaga,
+     * Tiga pos bangunan bendung ditambah dua pos jaringan di hilir (saluran
+     * sekunder dan tersier) — semuanya bangunan air yang juga digambar
+     * skematik, supaya kartunya bercerita sama dengan sisa beranda. Pos non-air (Rumah Jaga,
      * Control Room) sengaja tidak dimuat; menambahkannya cukup satu baris di
      * sini plus berkas gambarnya di public/assets/cctv.
      *
      * `node` menautkan tiap pos ke simpul skema, dipakai untuk pranala "Detail
      * pintu" — jadi operator bisa berpindah dari gambar ke bacaan alatnya.
-     * Pos tanpa simpul yang bersesuaian (mis. spillway, yang mercunya bukan
-     * bangunan berpintu) diberi null dan tidak memunculkan pranala.
+     * Pos tanpa simpul yang bersesuaian diberi null dan tidak memunculkan
+     * pranala: dua pos saluran. Gambarnya badan saluran, bukan bangunan
+     * berpintu — dan simpul yang mengawasinya (AWLR_SEKUNDER, AWLR_TERSIER_*)
+     * alat ukur, bukan pintu, sehingga pranala "Detail pintu" salah sebut.
      */
     public const CCTV_POS = [
-        'intake'   => ['nama' => 'Intake',        'berkas' => 'intake.jpg',   'node' => 'PG_INTAKE_1'],
-        'spillway' => ['nama' => 'Spillway',      'berkas' => 'spillway.jpg', 'node' => null],
-        'scouring' => ['nama' => 'Scouring Gate', 'berkas' => 'scouring.jpg', 'node' => 'PG_SCOURING'],
-        'floodway' => ['nama' => 'Floodway Gate', 'berkas' => 'floodway.jpg', 'node' => 'PG_FLOODWAY_1'],
+        'intake'   => ['nama' => 'Intake',           'berkas' => 'intake.jpg',   'node' => 'PG_INTAKE_1'],
+        'scouring' => ['nama' => 'Scouring Gate',    'berkas' => 'scouring.jpg', 'node' => 'PG_SCOURING'],
+        'floodway' => ['nama' => 'Floodway Gate',    'berkas' => 'floodway.jpg', 'node' => 'PG_FLOODWAY_1'],
+        'sekunder' => ['nama' => 'Saluran Sekunder', 'berkas' => 'sekunder.png', 'node' => null],
+        'tersier'  => ['nama' => 'Saluran Tersier',  'berkas' => 'tersier.png',  'node' => null],
     ];
 
     /**

@@ -167,9 +167,17 @@
      Gambar saja — bacaan alatnya sudah punya tempat di kartu Pos Telemetri.
 
      auto-fit + minmax membuat jumlah kolomnya mengikuti lebar yang tersedia
-     tanpa breakpoint sendiri: empat kolom di layar lebar, turun sendiri jadi dua
-     lalu satu. 260px batas bawah yang masih menyisakan gambar terbaca. */
-  .cctv-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;}
+     tanpa breakpoint sendiri: turun sendiri jadi dua lalu satu. 260px batas
+     bawah yang masih menyisakan gambar terbaca.
+
+     Batas atasnya TIGA kolom, sisanya turun ke baris berikutnya. Yang mengunci
+     itu max() di dalam minmax: satu kolom tidak boleh lebih sempit dari
+     sepertiga lebar kartu (dikurangi dua gap di antaranya), jadi kolom keempat
+     tidak pernah muat betapapun lebar layarnya. Angka 3 dan --cctv-gap harus
+     dibaca bersama — mengubah gap tanpa mengubah rumusnya membuat kolom
+     ketiga terdorong turun. */
+  .cctv-grid{--cctv-gap:14px; display:grid; gap:var(--cctv-gap);
+    grid-template-columns:repeat(auto-fit, minmax(max(260px, (100% - 2*var(--cctv-gap))/3), 1fr));}
   .cctv-item{margin:0; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; background:#fff;}
   /* Bingkai berbanding tetap 16:9 supaya baris kartu tetap rata walau gambar
      yang ditaruh operator beda-beda ukurannya; object-fit:cover memangkas

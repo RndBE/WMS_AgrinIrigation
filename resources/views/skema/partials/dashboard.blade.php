@@ -180,8 +180,8 @@
   --}}
   <div class="panel collapsible" data-panel-key="cctv">
     <div class="panel-head">
-      <h2>Pantauan CCTV — Bangunan Bendung</h2>
-      <span class="note">{{ collect($cctv)->where('ada', true)->count() }} dari {{ count($cctv) }} pos bergambar — berkas statis di <code>public/{{ \App\Http\Controllers\SkemaIrigasiController::CCTV_DIR }}</code></span>
+      <h2>Pantauan CCTV — Bendung &amp; Jaringan</h2>
+      <span class="note">{{ collect($cctv)->where('ada', true)->count() }} dari {{ count($cctv) }} pos bergambar</code></span>
     </div>
     <div class="panel-body">
       <div class="cctv-grid">
@@ -189,9 +189,9 @@
           <figure class="cctv-item">
             <div class="cctv-frame">
               @if ($pos['ada'])
-                {{-- loading="lazy": empat gambar kamera berukuran penuh tidak
-                     perlu menahan tampilnya beranda, apalagi saat kartunya
-                     sedang terlipat. --}}
+                {{-- loading="lazy": gambar kamera berukuran penuh tidak perlu
+                     menahan tampilnya beranda, apalagi saat kartunya sedang
+                     terlipat. --}}
                 <img src="{{ $pos['url'] }}" alt="CCTV {{ $pos['nama'] }}" loading="lazy" decoding="async">
               @else
                 <div class="cctv-kosong">

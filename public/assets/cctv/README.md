@@ -1,6 +1,6 @@
 # Gambar CCTV beranda
 
-Kartu **Pantauan CCTV — Bangunan Bendung** di beranda menampilkan berkas gambar
+Kartu **Pantauan CCTV — Bendung & Jaringan** di beranda menampilkan berkas gambar
 dari folder ini. Belum ada pengambilan otomatis dari IPCAM: berkasnya ditaruh
 manual, lalu diganti kapan saja tanpa menyentuh kode.
 
@@ -9,9 +9,10 @@ manual, lalu diganti kapan saja tanpa menyentuh kode.
 | Pos | Berkas | Node skema |
 |---|---|---|
 | Intake | `intake.jpg` | `PG_INTAKE_1` |
-| Spillway | `spillway.jpg` | — |
 | Scouring Gate | `scouring.jpg` | `PG_SCOURING` |
 | Floodway Gate | `floodway.jpg` | `PG_FLOODWAY_1` |
+| Saluran Sekunder | `sekunder.png` | — |
+| Saluran Tersier | `tersier.png` | — |
 
 Pos yang berkasnya belum ada tampil sebagai bingkai kosong bertuliskan nama
 berkas yang ditunggu — bukan ikon gambar rusak, jadi kartunya tetap rapi selama
@@ -30,6 +31,9 @@ gambar dilengkapi satu per satu.
   — supaya angkanya cocok dengan yang terlihat di penjelajah berkas.
 - **Ukuran berkas** sebaiknya ditekan. Bingkai di beranda cuma ±300 px lebar,
   jadi foto 2560×1440 (0,5 MB per pos) jauh lebih besar daripada yang dipakai.
+  `tersier.png` masih 2,7 MB — PNG untuk foto lanskap; menyimpannya sebagai JPG
+  1280×720 memangkasnya ke puluhan KB tanpa perubahan yang terlihat (ganti juga
+  nama berkasnya di `CCTV_POS`).
   Menskalakannya ke 1280×720 memangkas muatan halaman tanpa perubahan yang
   terlihat. Tidak wajib: gambar dimuat `lazy` dan kartunya bisa dilipat.
 
