@@ -41,6 +41,87 @@ class SkemaIrigasiController extends Controller
     public const PETA_DATA = 'data/peta';
 
     /**
+     * Folder gambar CCTV, relatif terhadap public/. Berkasnya ditaruh manual
+     * (belum ada pengambilan otomatis dari IPCAM), dinamai menurut kunci pos di
+     * CCTV_POS: intake.jpg, spillway.jpg, dan seterusnya.
+     */
+    public const CCTV_DIR = 'assets/cctv';
+
+    /**
+     * Zona waktu untuk waktu gambar CCTV yang dibaca operator.
+     *
+     * config('app.timezone') masih UTC bawaan Laravel, sedangkan berkas gambar
+     * ditulis mesin lokal pada waktu WIB — memformatnya dengan zona aplikasi
+     * membuat gambar yang baru saja ditaruh pukul 11:58 terbaca 04:58, meleset
+     * tujuh jam. Angka yang tertulis di bawah gambar harus cocok dengan yang
+     * dilihat operator di penjelajah berkas, jadi zonanya disebut di sini.
+     *
+     * Sengaja TIDAK mengubah config('app.timezone'): itu menyentuh seluruh
+     * aplikasi — cap waktu basis data, log, penjadwalan — untuk memperbaiki satu
+     * baris tampilan.
+     */
+    public const CCTV_TZ = 'Asia/Jakarta';
+
+    /**
+     * Pos CCTV yang ditampilkan di beranda.
+     *
+     * Empat pos bangunan air — yang sama dengan yang digambar skematik — supaya
+     * kartunya bercerita sama dengan sisa beranda. Pos non-air (Rumah Jaga,
+     * Control Room) sengaja tidak dimuat; menambahkannya cukup satu baris di
+     * sini plus berkas gambarnya di public/assets/cctv.
+     *
+     * `node` menautkan tiap pos ke simpul skema, dipakai untuk pranala "Detail
+     * pintu" — jadi operator bisa berpindah dari gambar ke bacaan alatnya.
+     * Pos tanpa simpul yang bersesuaian (mis. spillway, yang mercunya bukan
+     * bangunan berpintu) diberi null dan tidak memunculkan pranala.
+     */
+    public const CCTV_POS = [
+        'intake'   => ['nama' => 'Intake',        'berkas' => 'intake.jpg',   'node' => 'PG_INTAKE_1'],
+        'spillway' => ['nama' => 'Spillway',      'berkas' => 'spillway.jpg', 'node' => null],
+        'scouring' => ['nama' => 'Scouring Gate', 'berkas' => 'scouring.jpg', 'node' => 'PG_SCOURING'],
+        'floodway' => ['nama' => 'Floodway Gate', 'berkas' => 'floodway.jpg', 'node' => 'PG_FLOODWAY_1'],
+    ];
+
+    /**
+     * Daftar pos CCTV beserta keadaan berkas gambarnya.
+     *
+     * Keberadaan berkas diperiksa DI SINI, bukan di Blade: view tinggal
+     * menggambar, dan pos yang gambarnya belum ditaruh tampil sebagai bingkai
+     * kosong bertuliskan keterangan — bukan ikon gambar rusak.
+     *
+     * `waktu` diambil dari waktu ubah berkas. Gambarnya statis, jadi itulah satu
+     * -satunya penanda kapan ia terakhir diperbarui; menampilkan waktu sekarang
+     * akan berbohong tentang seberapa baru gambarnya.
+     */
+    public static function cctvPos(): array
+    {
+        $out = [];
+
+        foreach (self::CCTV_POS as $kunci => $pos) {
+            $relatif = self::CCTV_DIR . '/' . $pos['berkas'];
+            $berkas  = public_path($relatif);
+            $ada     = is_file($berkas);
+
+            $out[] = [
+                'kunci' => $kunci,
+                'nama'  => $pos['nama'],
+                'node'  => $pos['node'],
+                'ada'   => $ada,
+                /* Cap waktu ubah berkas ditempel sebagai query supaya penyegaran
+                   gambar tidak tertahan cache peramban saat berkasnya diganti. */
+                'url'   => $ada ? asset($relatif) . '?v=' . filemtime($berkas) : null,
+                'waktu' => $ada
+                    ? \Illuminate\Support\Carbon::createFromTimestamp(filemtime($berkas))
+                        ->setTimezone(self::CCTV_TZ)->format('Y-m-d H:i')
+                    : null,
+                'path'  => $relatif,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * Peta kunci tab -> alamat & judulnya, dikirim ke simhidro.js. Alamatnya
      * diambil dari route() supaya yang dipakai History API saat tab ditukar
      * persis sama dengan yang dihasilkan Laravel — tidak dirangkai sendiri
@@ -115,6 +196,7 @@ class SkemaIrigasiController extends Controller
             'viewRoutes' => self::viewPayload(),
             'dummy'      => self::frontendDummyPayload(),
             'loggers'    => t_Logger::linkedToSkema()->with('temp16')->orderBy('id_logger')->get(),
+            'cctv'       => self::cctvPos(),
             'petaLokasi' => self::petaLokasi(),
             'petaRoutes' => self::petaRoutes(),
         ]);
@@ -199,8 +281,9 @@ class SkemaIrigasiController extends Controller
     /**
      * Skema bendung gerak — inilah yang di-seed dan ditampilkan dashboard:
      *   sungai induk           → 3 pintu floodway         → hilir
+     *   sungai induk           → 3 pintu intake → kolam bendung
      *   kolam bendung          → pintu scouring           → hilir
-     *   3 pintu pengambilan    → SATU saluran sekunder
+     *   kolam bendung          → SATU saluran sekunder
      *   saluran sekunder       → 3 pintu tersier          → 3 petak sawah
      * Tata letaknya sengaja ditaruh di bawah jaringan as-built agar dua komponen
      * ini tidak saling menimpa kalau topologi digambar utuh.
@@ -235,18 +318,18 @@ class SkemaIrigasiController extends Controller
             ['source' => 'AWLR_HULU', 'target' => 'PG_FLOODWAY_1', 'type' => 'primary'],
             ['source' => 'AWLR_HULU', 'target' => 'PG_FLOODWAY_2', 'type' => 'primary'],
             ['source' => 'AWLR_HULU', 'target' => 'PG_FLOODWAY_3', 'type' => 'primary'],
-            ['source' => 'AWLR_HULU', 'target' => 'AWLR_KOLAM',    'type' => 'primary'],
+            ['source' => 'AWLR_HULU', 'target' => 'PG_INTAKE_1',   'type' => 'secondary'],
+            ['source' => 'AWLR_HULU', 'target' => 'PG_INTAKE_2',   'type' => 'secondary'],
+            ['source' => 'AWLR_HULU', 'target' => 'PG_INTAKE_3',   'type' => 'secondary'],
             ['source' => 'PG_FLOODWAY_1', 'target' => 'AWLR_HILIR', 'type' => 'primary'],
             ['source' => 'PG_FLOODWAY_2', 'target' => 'AWLR_HILIR', 'type' => 'primary'],
             ['source' => 'PG_FLOODWAY_3', 'target' => 'AWLR_HILIR', 'type' => 'primary'],
             ['source' => 'AWLR_KOLAM',  'target' => 'PG_SCOURING', 'type' => 'primary'],
             ['source' => 'PG_SCOURING', 'target' => 'AWLR_HILIR',  'type' => 'primary'],
-            ['source' => 'AWLR_KOLAM', 'target' => 'PG_INTAKE_1', 'type' => 'secondary'],
-            ['source' => 'AWLR_KOLAM', 'target' => 'PG_INTAKE_2', 'type' => 'secondary'],
-            ['source' => 'AWLR_KOLAM', 'target' => 'PG_INTAKE_3', 'type' => 'secondary'],
-            ['source' => 'PG_INTAKE_1', 'target' => 'AWLR_SEKUNDER', 'type' => 'secondary'],
-            ['source' => 'PG_INTAKE_2', 'target' => 'AWLR_SEKUNDER', 'type' => 'secondary'],
-            ['source' => 'PG_INTAKE_3', 'target' => 'AWLR_SEKUNDER', 'type' => 'secondary'],
+            ['source' => 'PG_INTAKE_1', 'target' => 'AWLR_KOLAM', 'type' => 'secondary'],
+            ['source' => 'PG_INTAKE_2', 'target' => 'AWLR_KOLAM', 'type' => 'secondary'],
+            ['source' => 'PG_INTAKE_3', 'target' => 'AWLR_KOLAM', 'type' => 'secondary'],
+            ['source' => 'AWLR_KOLAM', 'target' => 'AWLR_SEKUNDER', 'type' => 'secondary'],
             ['source' => 'AWLR_SEKUNDER', 'target' => 'PG_TERSIER_1', 'type' => 'tertiary'],
             ['source' => 'AWLR_SEKUNDER', 'target' => 'PG_TERSIER_2', 'type' => 'tertiary'],
             ['source' => 'AWLR_SEKUNDER', 'target' => 'PG_TERSIER_3', 'type' => 'tertiary'],
@@ -636,7 +719,7 @@ class SkemaIrigasiController extends Controller
      *
      * Neracanya tetap tertutup — debit tiap simpul = jumlah debit cabangnya:
      *   hulu 28,17 = floodway 27,61 + kolam 0,56
-     *   kolam 0,56 = 3 pengambilan 0,36 + scouring 0,20
+     *   3 intake 0,56 = kolam 0,56 = sekunder 0,36 + scouring 0,20
      *   hilir 27,81 = floodway 27,61 + scouring 0,20
      * Luas 120 + 150 + 90 = 360 ha × duty 1,0 l/dtk/ha = 0,36 m³/dtk — sama
      * dengan debit saluran sekunder, jadi status sawah bertumpu di "Ideal".
@@ -648,9 +731,9 @@ class SkemaIrigasiController extends Controller
         'PG_FLOODWAY_3'  => ['tma_hulu_cm' => 136, 'tma_hilir_cm' => 120, 'debit_m3s' => 9.21, 'kapasitas_m3s' => 12.00, 'saluran' => 'Bendung Gerak — Pintu Floodway 3',     'elevasi_m' => 240.2, 'luas_area' => 0],
         'AWLR_KOLAM'     => ['tma_hulu_cm' => 136, 'tma_hilir_cm' => 130, 'debit_m3s' => 0.56, 'kapasitas_m3s' => 0.80, 'saluran' => 'Kolam Bendung / Kantong Lumpur',       'elevasi_m' => 236.4, 'luas_area' => 360],
         'PG_SCOURING'    => ['tma_hulu_cm' => 130, 'tma_hilir_cm' => 120, 'debit_m3s' => 0.20, 'kapasitas_m3s' => 0.30, 'saluran' => 'Kantong Lumpur — Pintu Scouring',      'elevasi_m' => 235.0, 'luas_area' => 0],
-        'PG_INTAKE_1'    => ['tma_hulu_cm' => 130, 'tma_hilir_cm' => 100, 'debit_m3s' => 0.12, 'kapasitas_m3s' => 0.15, 'saluran' => 'Pintu Pengambilan Parigi',            'elevasi_m' => 231.5, 'luas_area' => 120],
-        'PG_INTAKE_2'    => ['tma_hulu_cm' => 130, 'tma_hilir_cm' => 100, 'debit_m3s' => 0.15, 'kapasitas_m3s' => 0.19, 'saluran' => 'Pintu Pengambilan Cikananga',         'elevasi_m' => 231.5, 'luas_area' => 150],
-        'PG_INTAKE_3'    => ['tma_hulu_cm' => 130, 'tma_hilir_cm' => 100, 'debit_m3s' => 0.09, 'kapasitas_m3s' => 0.12, 'saluran' => 'Pintu Pengambilan Ciduga',            'elevasi_m' => 231.5, 'luas_area' => 90],
+        'PG_INTAKE_1'    => ['tma_hulu_cm' => 143, 'tma_hilir_cm' => 136, 'debit_m3s' => 0.1867, 'kapasitas_m3s' => 0.27, 'saluran' => 'Pintu Pengambilan Parigi',            'elevasi_m' => 238.0, 'luas_area' => 120],
+        'PG_INTAKE_2'    => ['tma_hulu_cm' => 143, 'tma_hilir_cm' => 136, 'debit_m3s' => 0.2333, 'kapasitas_m3s' => 0.33, 'saluran' => 'Pintu Pengambilan Cikananga',         'elevasi_m' => 238.0, 'luas_area' => 150],
+        'PG_INTAKE_3'    => ['tma_hulu_cm' => 143, 'tma_hilir_cm' => 136, 'debit_m3s' => 0.1400, 'kapasitas_m3s' => 0.20, 'saluran' => 'Pintu Pengambilan Ciduga',            'elevasi_m' => 238.0, 'luas_area' => 90],
         'AWLR_SEKUNDER'  => ['tma_hulu_cm' => 100, 'tma_hilir_cm' => 95, 'debit_m3s' => 0.36, 'kapasitas_m3s' => 0.50, 'saluran' => 'Saluran Sekunder Induk',              'elevasi_m' => 228.6, 'luas_area' => 360],
         'PG_TERSIER_1'   => ['tma_hulu_cm' => 95, 'tma_hilir_cm' => 20, 'debit_m3s' => 0.12, 'kapasitas_m3s' => 0.15, 'saluran' => 'Pintu Tersier Ranca Ucing',           'elevasi_m' => 222.4, 'luas_area' => 120],
         'PG_TERSIER_2'   => ['tma_hulu_cm' => 95, 'tma_hilir_cm' => 20, 'debit_m3s' => 0.15, 'kapasitas_m3s' => 0.19, 'saluran' => 'Pintu Tersier Sawah Bera',            'elevasi_m' => 222.4, 'luas_area' => 150],
@@ -761,8 +844,8 @@ class SkemaIrigasiController extends Controller
            pintu mode AUTO menutup sampai debit petak kembali Ideal.
 
            Ke arah KERING, faktornya dijaga tidak lebih rendah dari SADAP_MIN.
-           Alasannya: qSek = 0,36f dan (qKolam − qScour) = 0,56f − 0,20f =
-           0,36f — dua suku itu sama persis, jadi pasokan irigasi dulu menyusut
+           Alasannya: qSek = qKolam − qScour = 0,56f − 0,20f = 0,36f,
+           jadi pasokan irigasi dulu menyusut
            sebanding debit sungai TANPA kelonggaran sedikit pun. Pada kemarau
            (f = 0,17) petak cuma menerima 17% kebutuhannya, dan karena faktor
            pintu maksimum hanya 1,333³ = 2,370, bukaan penuh ketiga tingkat pun
@@ -815,7 +898,10 @@ class SkemaIrigasiController extends Controller
         foreach ($bagi(['PG_FLOODWAY_1', 'PG_FLOODWAY_2', 'PG_FLOODWAY_3'], $qFlood) as $id => $qGate) {
             $q[$id] = min($qGate, (float) $panel[$id]['kapasitas_m3s']);
         }
-        $q += $bagi(['PG_INTAKE_1', 'PG_INTAKE_2', 'PG_INTAKE_3'], $qSek);
+        /* Ketiga intake berada di hulu kolam, jadi jumlah debitnya adalah
+           seluruh debit MASUK kolam (qKolam), bukan hanya yang kemudian keluar
+           menuju saluran sekunder (qSek). */
+        $q += $bagi(['PG_INTAKE_1', 'PG_INTAKE_2', 'PG_INTAKE_3'], $qKolam);
 
         /* Tiap tersier menerima porsinya dari saluran sekunder; petak sawah
            menerima persis yang lewat pintu tersiernya. */

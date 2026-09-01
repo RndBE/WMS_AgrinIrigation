@@ -48,6 +48,66 @@ const FIXED = {
   CdPrimary: 0.68, CdSecondary: 0.62, CdTertiary: 0.62,
   fieldCw: 1.7, fieldB: 1.5,              // ambang lebar menuju petak sawah
 };
+/* ---------------- Bendung: mercu tetap & tampungan hulu ----------------
+
+   Sampai sebelum ini muka air hulu dibaca mentah dari snapshot
+   (`state.hUp = m(N.WEIR_COPONG.tmaHulu)`) dan limpasan ambang dihitung sebagai
+   SISA (`Qspill = qLimpas - Qflood`). Dua-duanya membuat bendung tidak pernah
+   membendung: menutup seluruh pintu floodway & scouring tidak menaikkan muka air
+   hulu satu sentimeter pun, dan debit hilir tetap sebesar debit sungai karena
+   air yang tidak lewat pintu langsung dianggap melimpas.
+
+   Sekarang hulu punya TAMPUNGAN sungguhan. Neraca volumenya:
+
+     dS/dt = Qsungai − (Qscouring + Qfloodway + Qmercu)
+     h_hulu = S / (B_sungai × HULU_L)
+
+   Jadi begitu pintu ditutup, keluaran turun di bawah masukan, S naik, dan muka
+   air hulu merangkak naik sampai melewati mercu — barulah air keluar lagi lewat
+   limpasan. Selama pengisian itu debit hilir memang berkurang; setelah muka air
+   setimbang di atas mercu, hilir pulih ke debit sungai. Itu perilaku bendung
+   yang sebenarnya, dan itu yang dulu tidak ada.
+
+   HULU_L — panjang pengaruh bendungan (backwater) di hulu. Menentukan seberapa
+   cepat mukanya naik: pada keadaan normal (28,2 m³/dtk) menutup seluruh pintu
+   menaikkan muka air 1,43 → ±3,0 m dalam ±45 menit rekaman, yaitu ±12 detik
+   nyata pada laju putar bawaan (satu tick 260 ms = satu menit rekaman).
+
+   MERCU_RASIO — elevasi mercu terhadap TMA hulu RANCANGAN (D.nodes, bukan
+   snapshot skenario yang sedang berjalan): mercu adalah bangunan, tinggal
+   tetap walau keadaan hulu berganti. 1,15 menaruhnya di ATAS muka air operasi
+   normal, jadi pada bukaan acuan keadaan normal & kemarau tidak melimpas sama
+   sekali — sama seperti pembagian yang lama. */
+/* Tinggi tanggul KOLAM BENDUNG — 3,20 m, bukan tanggul sungai 6,0 m.
+
+   Data tidak memuat tinggi tanggul kantong lumpur sama sekali, jadi angkanya
+   dipilih di sini. DUA syarat yang harus dipenuhi sekaligus:
+
+   1. SEBANDING dengan saluran sekunder pada keadaan normal. Terhadap tanggul
+      sungai 6,0 m kolom air kolam cuma mengisi 22,7% kotaknya sementara saluran
+      sekunder mengisi 50%, jadi dua kotak yang airnya sama-sama di tinggi
+      operasi tidak pernah terbaca sebanding — dan pin kolam terbaca "kering"
+      pada kemarau padahal debitnya praktis sama dengan sekunder.
+
+   2. TIDAK LUBER saat banjir. Muka air kolam mengikuti muka air hulu, dan pada
+      keadaan banjir ia mencapai 2,96 m. Tanggul 2,70 m — yang sempat dipakai —
+      membuat kolomnya mentok 105% dan tergambar jebol, padahal kelasnya biru:
+      pesan yang saling bertentangan di satu kotak yang sama.
+
+   2,70 m memenuhi keduanya sejak pintu intake pindah ke MULUT kolam: muka air
+   kantong lumpur tidak lagi mengikuti muka air hulu, melainkan ditentukan debit
+   yang lewat, dan tidak pernah melewati ±1,4 m. Kolom airnya jadi 50% (normal),
+   46% (banjir), 19% (kemarau) — sebanding dengan saluran sekunder yang 50%, dan
+   tidak pernah mentok. Angka 2,70 sendiri berasal dari perbandingan yang dipakai
+   saluran sekunder: tanggul 2,0 m terhadap muka air operasi 1,00 m, jadi kolam
+   yang operasinya 1,36 m mendapat 1,36 / 0,50 = 2,72 → 2,70 m. */
+const POOL_HMAX = 2.70;
+
+const HULU_L = 800;         // m, panjang backwater di hulu bendung
+const MERCU_RASIO = 1.15;   // elevasi mercu / TMA hulu rancangan
+const MERCU_CW = 1.70;      // koefisien ambang lebar mercu
+const MERCU_RASIO_B = 0.35; // lebar mercu / lebar sungai (sisanya ditempati pintu)
+
 const G_BIG = { Kp: 0.8, Ki: 0.02, rate: 0.02 };     // gain pintu pengendali TMA (primer & sekunder)
 const G_SMALL = { Kp: 0.12, Ki: 0.03, rate: 0.0015 }; // gain pintu pengendali debit (tersier)
 const DT = 5;
@@ -66,12 +126,19 @@ function freshState() {
     running: false, speed: 4, simTime: 0, scenario: 'normal',
     Qnat: 30, QnatTarget: 30,
 
-    river: { B: 30, Hmax: 6 },           // penampang sungai utama (hulu & kolam berbagi geometri sama)
+    river: { B: 30, Hmax: 6 },           // penampang sungai utama
     targetPoolLevel: 2.5,
-    pool: { h: 2.0, S: 0 },
+    /* Kolam bendung punya TINGGI TANGGUL SENDIRI (Hmax), tidak lagi meminjam
+       tanggul sungai. Lihat POOL_HMAX. */
+    pool: { h: 2.0, S: 0, Hmax: 2.7 },
+
+    /* Tampungan hulu bendung. `S` volume (m³), `hMercu` elevasi mercu (m).
+       `siap` false selama tampungan belum dipatok ke keadaan acuan — dipatok di
+       initDummyGates() dan tiap kali pemutaran direset. */
+    hulu: { S: 0, hMercu: 0, bMercu: 0, siap: false },
 
     /* Pintu primer bendung: tiga floodway melimpaskan ke hilir sungai,
-       satu pintu scouring memasok saluran (menuju pintu sekunder/intake). */
+       satu pintu scouring menguras kantong lumpur ke hilir. */
     primary: [
       { name: 'Floodway 1', role: 'floodway', b: 8, aMax: 3.0, mode: 'auto', manualA: 1.2, ctrl: { i: 0, a: 1.2 } },
       { name: 'Floodway 2', role: 'floodway', b: 8, aMax: 3.0, mode: 'auto', manualA: 1.2, ctrl: { i: 0, a: 1.2 } },
@@ -79,9 +146,8 @@ function freshState() {
       { name: 'Pintu Scouring', role: 'scouring', b: 6, aMax: 3.0, mode: 'auto', manualA: 1.2, ctrl: { i: 0, a: 1.2 } },
     ],
 
-    /* Satu saluran sekunder disuplai tiga pintu pengambilan dari kolam. Ketiga
-       pintu mengendalikan TMA saluran yang sama, jadi targetLevel-nya juga satu
-       — polanya sama dengan empat pintu primer yang mengendalikan TMA kolam. */
+    /* Tiga pintu intake mengisi kantong lumpur dari hulu. Air lalu mengalir ke
+       satu saluran sekunder; kendali intake menyeimbangkan kedua tampungan. */
     secondary: {
       canal: { B: 8, Hmax: 2.4, h: 1.0, S: 0 },
       targetLevel: 1.0,
@@ -114,7 +180,7 @@ function freshState() {
     /* Qflood = lewat pintu floodway · Qspill = melimpas di atas ambang bendung.
        Keduanya sampai ke hilir; dipisah supaya bacaan pintu dan neraca air bisa
        menyebut yang mana. */
-    Qflood: 0, Qspill: 0,
+    Qflood: 0, Qspill: 0, Qscour: 0,
     Qsec: [0, 0, 0], QsecTotal: 0, vSec: 0,
     Qtert: [0, 0, 0], vTert: [0, 0, 0],
     Qfield: [0, 0, 0],
@@ -175,7 +241,8 @@ function stepSimulation() {
     else { pg.ctrl.a += clamp(clamp(pg.manualA, 0, pg.aMax) - pg.ctrl.a, -G_BIG.rate * dt, G_BIG.rate * dt); a = pg.ctrl.a; }
     const Qk = gateDischarge(hUp, state.pool.h, a, pg.b, FIXED.CdPrimary).Q;
     QgateTotal += Qk;
-    if (pg.role === 'scouring') Qscour += Qk; else Qflood += Qk;
+    if (pg.role === 'scouring') Qscour += Qk;
+    else if (pg.role === 'floodway') Qflood += Qk;
   }
   state.QgateTotal = QgateTotal;
   state.Qscour = Qscour;
@@ -212,7 +279,18 @@ function stepSimulation() {
   state.pool.S = Math.max(0, state.pool.S);
   state.pool.h = Math.min(state.river.Hmax * 1.05, state.pool.S / (state.river.B * FIXED.poolL));
   state.Qhilir = poolManning.Q;
-  state.vPool = poolManning.V;
+  /* Arus kolam = debit masuk dibagi luas penampangnya, bukan kecepatan Manning
+     poolManning.V — arti yang sama dengan jalur data dummy, supaya satu field
+     tidak punya dua makna. poolManning tetap dipakai untuk DEBIT keluarannya
+     (state.Qhilir di atas); yang tidak dipakai lagi hanya kecepatannya. */
+  state.vPool = QgateTotal / (state.river.B * Math.max(state.pool.h, 0.05));
+  /* Kedalaman & arus ruas hilir — dihitung di sini juga, dengan rumus yang sama
+     dengan applyDummySnapshot(), supaya nilainya tidak pernah tertinggal dari
+     mode pemutaran data yang mungkin jalan sebelumnya. */
+  state.hHilir = manningInvertH(state.Qhilir, state.river.B, FIXED.nRiver,
+                                FIXED.S0River, state.river.Hmax * 1.05);
+  state.vHilir = state.hHilir > 0.01
+    ? state.Qhilir / (state.river.B * state.hHilir) : 0;
   state.Qsec = Qsec;
   state.QsecTotal = QsecTotal;
 
@@ -348,6 +426,7 @@ function reachStatus(h, hMax, th, Q, kapasitas) {
   const a = levelStatus(h, hMax, th), b = debitStatus(Q, kapasitas);
   return LEVEL_URUT[Math.max(LEVEL_URUT.indexOf(a), LEVEL_URUT.indexOf(b))];
 }
+
 const FIELD_STATUS_COLOR = { kurang: '#dbb08f', cukup: '#e6d79a', ideal: '#9dc48a', lebih: '#cbd97e' };
 
 /* Nama rantai dari snapshot dummy; CHAIN_NAMES jadi cadangan bila belum termuat. */
@@ -409,16 +488,13 @@ const SKC = {
 
 /* Koordinat gambar (viewBox 1500×720).
 
-   URUTAN ALIRAN pada tiap rantai irigasi:
+   URUTAN GAMBAR pada tiap rantai irigasi:
 
      sungai hulu → PINTU INTAKE → KOLAM BENDUNG → saluran sekunder
                  → pintu tersier → saluran tersier → petak sawah
 
    Kolam bendung berdiri DI DALAM rantai, di antara pintu intake dan saluran
-   sekunder — bukan di dalam pita sungai. Dulu ia digambar di pita, di hilir
-   ketiga pintu floodway, judulnya pun berbunyi "Kolam Bendung (setelah 3 pintu
-   primer)": air seolah melewati floodway untuk sampai ke kolam, padahal floodway
-   membuang ke hilir.
+   sekunder — bukan di dalam pita sungai.
 
    Kolamnya SATU untuk ketiga rantai — sama seperti saluran sekunder, yang juga
    satu dan digambar tiga kali. Jadi kotaknya dibentangkan melintasi ketiga rantai
@@ -429,16 +505,26 @@ const SKC = {
    ruang di kanan rantai terjauh kosong, dan tulisan di luar kotak membuat kolom
    airnya terbaca utuh.
 
-   CATATAN — beda dengan topologi data. bendungTopology() di controller menyambung
-   AWLR_KOLAM → PG_INTAKE_1/2/3 → AWLR_SEKUNDER, yaitu kolam SEBELUM intake, dan
-   neraca airnya (qScour & qSek membagi isi kolam) ikut susunan itu. Gambar ini
-   memakai urutan intake → kolam atas permintaan operator. Kalau datanya nanti
-   diselaraskan, arah kedua batang penghubung di perulangan rantai yang ditukar.
+   CATATAN — beda dengan topologi data, dan itu DISENGAJA.
+
+   bendungTopology() di controller menyambung AWLR_HULU → AWLR_KOLAM →
+   PG_INTAKE_1/2/3 → AWLR_SEKUNDER, yaitu kolam SEBELUM intake, dan sejak
+   perbaikan hidrolika applyDummySnapshot() pun menghitungnya begitu: kolam diisi
+   dari sungai, dikuras pintu scouring dan ketiga pintu intake.
+
+   Gambar ini tetap memakai urutan intake → kolam atas permintaan operator.
+   Susunannya sempat dibalik mengikuti data, lalu dikembalikan ke sini — jadi
+   kalau nanti ada yang hendak menyelaraskannya lagi, tanyakan dulu: perbedaan
+   ini pilihan, bukan kelalaian. Yang ditukar cukup arah kedua batang penghubung
+   di perulangan rantai, plus tukar nilai kolamTitleY/kolamY dengan
+   titleLane/gateSecY.
 
    PITA SUNGAI (y 48–170) berisi ruas hulu, pintu scouring, tiga lubang floodway,
-   dan ruas hilir — seperti sebelumnya, tanpa kolam. Ruas hilir kini kotak air
-   beranimasi seperti ruas hulu, bukan lagi panah polos; panah arahnya digambar
-   sebagai garis luar di atas kotak itu (lihat SKL.hilirX).
+   dan ruas hilir — tanpa kolam. Pintu scouring digambar di kiri Floodway 1
+   mengikuti letaknya di badan bendung; kolom airnya setinggi muka air HULU,
+   walaupun air yang benar-benar lewat di bawah daunnya berasal dari kolam.
+   Ruas hilir kotak air beranimasi seperti ruas hulu, bukan panah polos; panah
+   arahnya digambar sebagai garis luar di atas kotak itu (lihat SKL.hilirX).
 
    TINGGI KANVAS 660 → 720: baris kolam menyisipkan judul + kotak 40 unit di antara
    bacaan pintu intake dan kotak saluran sekunder, jadi semua baris dari capSec ke
@@ -583,7 +669,7 @@ function buildSchematic() {
   const svg = document.getElementById('hmiSvg');
   if (!svg) return;
   const L = SKL, R = SKR;
-  const flood = state.primary.filter(p => p.role !== 'scouring');
+  const flood = state.primary.filter(p => p.role === 'floodway');
   const scour = state.primary.find(p => p.role === 'scouring');
 
   let out = '';
@@ -602,8 +688,13 @@ function buildSchematic() {
   out += skText(L.huluX[0], 220, 'sk-lbl', 'Arus') + skText(L.huluX[0], 233, 'sk-val', '—', 'skHuluV');
   out += skText(L.huluX[0], 248, 'sk-lbl', 'Debit alami') + skText(L.huluX[0], 261, 'sk-val', '—', 'skHuluQ');
 
-  /* Pintu scouring — di kiri Floodway 1, seperti susunan bendung sebenarnya:
-     penguras berdiri di sebelah pengambilan untuk membilas endapan di depannya. */
+  /* Pintu scouring — di kiri Floodway 1, seperti letaknya di badan bendung:
+     penguras berdiri di sebelah pengambilan untuk membilas endapan di depannya.
+
+     Kolom airnya setinggi muka air HULU. Air yang benar-benar lewat di bawah
+     daunnya berasal dari kolam (lihat state.Qscour), tetapi lubangnya digambar
+     di pita mengikuti letak bangunannya — sama seperti kolam yang digambar di
+     dalam rantai walau datanya menaruhnya sebelum intake. */
   const scx = (L.scourX[0] + L.scourX[1]) / 2;
   out += skText(scx, 50, 'sk-lbl', scour ? scour.name : 'Pintu Scouring', null, 'middle');
   out += skBay('S', L.scourX[0], L.scourX[1], L.railTop, L.railBot - L.railTop);
@@ -654,15 +745,16 @@ function buildSchematic() {
      bawah: tiga masuk ke atap kolam dari tiap pintu intake, tiga keluar dari
      dasarnya ke tiap kotak saluran sekunder.
 
+     Susunan ini sama dengan topologi data Laravel: intake berada sebelum kolam,
+     lalu kolam mengalirkan air ke saluran sekunder.
+
      Digambar SEBELUM perulangan rantai supaya batang penghubungnya tergambar di
      atas kotak ini, bukan tertutup olehnya. */
   out += skText(L.kolamX[0], L.kolamTitleY, 'sk-sec', 'Kolam Bendung / Kantong Lumpur');
   const kw = L.kolamX[1] - L.kolamX[0];
   out += skWaterBox('Pool', L.kolamX[0], L.kolamY, kw, L.kolamH);
   out += skGarisAcuan('Pool', L.kolamX[0], L.kolamY, kw, L.kolamH, 'TMA rencana');
-  /* Bacaan kolam di SEBELAH KANAN kotaknya. Dulu di dalam kotak karena kolam masih
-     di pita dan ruang di bawahnya sudah dipakai rantai irigasi; sekarang ruang di
-     kanan rantai terjauh kosong, dan tulisan di luar kotak membuat kolom airnya
+  /* Bacaan kolam di SEBELAH KANAN kotaknya — di luar kotak supaya kolom airnya
      terbaca utuh. */
   out += skText(L.kolamReadX[0], L.kolamReadY, 'sk-lbl', 'TMA kolam') + skText(L.kolamReadX[0], L.kolamReadY + 14, 'sk-val', '—', 'skPoolTma');
   out += skText(L.kolamReadX[1], L.kolamReadY, 'sk-lbl', 'Arus') + skText(L.kolamReadX[1], L.kolamReadY + 14, 'sk-val', '—', 'skPoolV');
@@ -670,8 +762,8 @@ function buildSchematic() {
   /* ---- Tiga rantai irigasi ---- */
   L.laneX.forEach((cx, i) => {
     const nm = skNames(i);
-    /* Batang penghubung mulai dari REL BAWAH pita: tiap rantai menyadap langsung
-       dari sungai lewat pintu intake-nya sendiri. */
+    /* Batang penghubung mulai dari REL BAWAH pita: tiap rantai menyadap dari
+       sungai lewat pintu intake-nya sendiri. */
     out += skLink(cx, L.railBot, R.gateSecY);
     out += `<circle cx="${cx}" cy="${L.railBot}" r="4" fill="${SKC.sill}"/>`;
     out += skText(cx, R.titleLane, 'sk-title', 'Rantai Irigasi ' + (i + 1), null, 'middle');
@@ -681,9 +773,8 @@ function buildSchematic() {
     out += skText(cx, R.valSec, 'sk-val', '—', 'skGateI' + i, 'middle');
     out += skText(cx, R.modeSec, 'sk-mode', 'AUTO', 'skModeI' + i, 'middle');
 
-    /* Pintu intake → KOLAM BENDUNG → saluran sekunder. Dulu satu batang langsung
-       dari pintu intake ke kotak saluran sekunder; sekarang lewat kolam. Gelang di
-       atap dan dasar kolam menandai titik masuk & keluarnya. */
+    /* Pintu intake → KOLAM BENDUNG → saluran sekunder. Gelang di atap dan dasar
+       kolam menandai titik masuk & keluarnya. */
     out += skLink(cx, R.modeSec, L.kolamY);
     out += `<circle cx="${cx}" cy="${L.kolamY}" r="3.4" fill="${SKC.sill}"/>`;
     out += skLink(cx, L.kolamY + L.kolamH, R.canalSecY);
@@ -824,9 +915,28 @@ function skMulaiLuncur() {
  *     hulu      0,340 → 2,18 s      1,040 → 1,25 s
  *
  * Urutannya tetap: air lebih deras = gores lebih cepat. Yang berubah cuma
- * kepadatan pemetaannya, bukan arahnya. */
+ * kepadatan pemetaannya, bukan arahnya.
+ *
+ * ATAP 6 → 14 DETIK. Sesudah arus kolam dihitung dari debit/penampang (bukan
+ * Manning atas geometri sungai), rentangnya turun ke 0,007–0,017 m/dtk — dan
+ * SELURUH rentang itu memetak ke atas 6 detik, jadi kolam menumbuk atap di
+ * semua keadaan: menutup pintu intake tidak mengubah laju goresnya sedikit pun.
+ * Itu persis penyakit yang catatan di atas sebut untuk saluran irigasi, hanya
+ * satu tingkat lebih rendah. Saluran sekunder pun menumbuknya saat pintu
+ * ditutup (0,026 m/dtk → 7,9 s).
+ *
+ * Dengan atap 14 detik keduanya kembali bergerak:
+ *
+ *     kolam     0,007 → 14,0 s (tertutup)   0,017 →  9,9 s (terbuka lebar)
+ *     sekunder  0,026 →  7,9 s (tertutup)   0,073 →  4,7 s (terbuka lebar)
+ *
+ * 14 detik memang sangat lambat — dan memang seharusnya begitu. Kantong lumpur
+ * dibuat lebar justru supaya air MELAMBAT sampai endapan sempat turun; ruas
+ * paling pelan di seluruh peta adalah gambaran yang benar untuknya. Batas bawah
+ * 0,35 detik tidak tersentuh: ruas tercepat (hilir saat banjir, 1,06 m/dtk)
+ * masih di 1,23 detik. */
 function lajuGores(V) {
-  return clamp(1.27 / Math.sqrt(Math.max(V || 0, 0.001)), 0.35, 6);
+  return clamp(1.27 / Math.sqrt(Math.max(V || 0, 0.001)), 0.35, 14);
 }
 
 /* Kolom air, warnanya, dan laju riak satu kotak. Kelas "normal" memakai
@@ -991,30 +1101,37 @@ function updateSchematic() {
   set('skHuluV', state.vUp.toFixed(2) + ' m/dtk');
   set('skHuluQ', state.Qnat.toFixed(2) + ' m³/dtk');
 
-  /* Kolam bendung sekarang berdiri DI DALAM rantai, di antara pintu intake dan
-     saluran sekunder — jadi letak & tinggi kotaknya L.kolamY/L.kolamH, bukan
-     L.railTop/bandH. Acuan tingginya tetap river.Hmax supaya kolom air dan garis
-     acuan TMA rencana (targetPoolLevel) memakai satu skala yang sama seperti dulu. */
-  setSkWater('Pool', state.pool.h, state.river.Hmax, L.kolamY, L.kolamH, poolState, state.vPool);
+  /* Kolam bendung berdiri di barisnya sendiri, langsung di bawah pita sungai —
+     jadi letak & tinggi kotaknya L.kolamY/L.kolamH, bukan L.railTop/bandH.
+
+     Acuan tingginya state.pool.Hmax (tanggul KOLAM), bukan river.Hmax: terhadap
+     tanggul sungai 6 m kolom airnya cuma mengisi 22,7% kotak sementara saluran
+     sekunder di bawahnya mengisi 50%, jadi dua kotak yang airnya sama-sama pada
+     tinggi operasi tidak pernah terbaca sebanding. Lihat POOL_HMAX. */
+  setSkWater('Pool', state.pool.h, state.pool.Hmax, L.kolamY, L.kolamH, poolState, state.vPool);
   /* Acuan disetel tiap frame, bukan sekali saat dibangun: nilainya bisa diubah dari
      Konfigurasi (Target TMA kolam) selagi simulasi berjalan. Menyetelnya ulang cuma
      dua penulisan atribut, jauh lebih murah daripada menyimpan nilai lama untuk
      dibandingkan. */
-  setSkAcuan('Pool', state.targetPoolLevel, state.river.Hmax, L.kolamY, L.kolamH);
+  setSkAcuan('Pool', state.targetPoolLevel, state.pool.Hmax, L.kolamY, L.kolamH);
   set('skPoolTma', state.pool.h.toFixed(2) + ' m');
   set('skPoolV', state.vPool.toFixed(2) + ' m/dtk');
-  set('skPoolQ', state.QgateTotal.toFixed(2) + ' m³/dtk');
+  /* Tidak ada bacaan debit di baris kolam — kotaknya cuma menampilkan TMA &
+     arus, seperti sebelumnya. Debit masuk kolam dibaca di panel Neraca Air. */
 
-  /* Ruas hilir. Yang dihitung mesin hanya debitnya (state.Qhilir); kedalaman &
-     arusnya diturunkan di sini dengan Manning pada geometri sungai yang sama —
-     kolom air perlu kedalaman, laju gores perlu arus.
+  /* Ruas hilir. Kedalaman & arusnya diturunkan dari debitnya (state.Qhilir)
+     dengan Manning pada geometri sungai yang sama — kolom air perlu kedalaman,
+     laju gores perlu arus. Keduanya dihitung di applyDummySnapshot() supaya peta
+     isometrik memakai angka yang sama persis; cadangannya dihitung di sini untuk
+     mode simulasi PI, yang tidak melewati applyDummySnapshot().
 
      TIDAK memakai state.hUp: muka air hulu ditahan bendung, jadi selalu lebih
      tinggi dari muka air di bawah pintu, dan memakainya membuat ruas hilir
      tergambar penuh justru saat pintu tertutup. */
-  const hHilir = manningInvertH(state.Qhilir, state.river.B, FIXED.nRiver,
-                                FIXED.S0River, state.river.Hmax * 1.05);
-  const vHilir = hHilir > 0.01 ? state.Qhilir / (state.river.B * hHilir) : 0;
+  const hHilir = state.hHilir != null ? state.hHilir
+    : manningInvertH(state.Qhilir, state.river.B, FIXED.nRiver, FIXED.S0River, state.river.Hmax * 1.05);
+  const vHilir = state.vHilir != null ? state.vHilir
+    : (hHilir > 0.01 ? state.Qhilir / (state.river.B * hHilir) : 0);
   const hilirState = capRiver ? flowStateOf('hilir', state.Qhilir, capRiver) : 'normal';
   setSkWater('Hilir', hHilir, state.river.Hmax, L.railTop, bandH, hilirState, vHilir);
   set('skHilirTma', hHilir.toFixed(2) + ' m');
@@ -1022,14 +1139,16 @@ function updateSchematic() {
   set('skHilirQ', state.Qhilir.toFixed(2) + ' m³/dtk');
 
   const leafFull = bandH - 8, leafMin = 5;
-  state.primary.filter(p => p.role !== 'scouring').forEach((p, i) => {
+  state.primary.filter(p => p.role === 'floodway').forEach((p, i) => {
     setSkWater('P' + i, state.hUp, state.river.Hmax, L.railTop, bandH, huluState, state.vUp);
     setSkLeaf('P' + i, p.ctrl.a, p.aMax, L.railTop + 2, leafFull, leafMin);
     set('skGateP' + i, p.ctrl.a.toFixed(2) + ' m');
     setMode('skModeP' + i, p.mode);
   });
-  /* Pintu scouring tetap di dalam pita, di kiri Floodway 1, jadi kolom airnya
-     setinggi muka air sungai. */
+  /* Pintu scouring digambar di dalam pita, di kiri Floodway 1, jadi kolom airnya
+     setinggi muka air sungai — mengikuti letak bangunannya, bukan asal airnya.
+     Debit yang benar-benar lewat di bawah daunnya (state.Qscour) berasal dari
+     kolam; angkanya dibaca di panel Neraca Air, bukan di sini. */
   const scour = state.primary.find(p => p.role === 'scouring');
   if (scour) {
     setSkWater('S', state.hUp, state.river.Hmax, L.railTop, bandH, huluState, state.vUp);
@@ -1351,7 +1470,115 @@ function dummyKelambanan(N) {
   });
 }
 
-function applyDummySnapshot(minute) {
+/* `dt` = detik waktu rekaman yang berlalu sejak panggilan sebelumnya. Dipakai
+   HANYA oleh neraca tampungan hulu; sisanya tetap kuasi-statik seperti dulu.
+   Pemanggil yang cuma menggambar ulang tanpa memajukan waktu (boot, reset)
+   mengirim 0, jadi muka air hulu diam di tempat. */
+/* ---------------- Aturan operasi pintu primer per keadaan hulu ----------------
+
+   Pola operasi bendung gerak: saat air kurang pintu ditutup untuk membendung,
+   saat air berlebih dibuka untuk melewatkan.
+
+     KEMARAU  floodway tutup · scouring tutup
+       Seluruh pintu tertutup. Air tertahan di hulu, muka airnya naik sampai
+       melewati mercu; debit hilir jatuh ke nol selama pengisian itu. Kolam tetap
+       terisi karena sadapan bendung tidak berpintu — justru itu tujuannya:
+       meninggikan muka air supaya pengambilan tetap dapat air.
+
+     NORMAL   floodway kerja (bukaan acuan) · scouring tutup
+       Debit sungai dilewatkan lewat floodway; penguras ditutup supaya air kolam
+       tidak terbuang ke hilir. Pembilasan endapan dilakukan berkala, bukan
+       terus-menerus.
+
+     BANJIR   floodway penuh · scouring penuh
+       Semua bukaan maksimum. Pada keadaan banjir floodway memang sudah mentok
+       bukaan maksimum sebelum aturan ini ada, jadi yang berubah cuma penguras.
+
+   'kerja' = bukaan acuan dummy (bukaanPersen, biasanya 75%), 'penuh' = bukaan
+   maksimum pintu, 'tutup' = 0. Kunci tabelnya nama mode di layar
+   (normal/flood/drought), sama dengan DUMMY_SCENARIO. */
+const OPERASI_PRIMER = {
+  normal:  { floodway: 'kerja', scouring: 'tutup' },
+  flood:   { floodway: 'penuh', scouring: 'penuh' },
+  drought: { floodway: 'tutup', scouring: 'tutup' },
+};
+function bukaanOperasi(peran) {
+  const A = OPERASI_PRIMER[state.scenario] || OPERASI_PRIMER.normal;
+  const P = (window.WMS_DUMMY || {}).pintu || {};
+  const aMax = (P.bukaanMaksCm || 100) / 100;
+  if (A[peran] === 'penuh') return aMax;
+  if (A[peran] === 'kerja') return aMax * (P.bukaanPersen || 75) / 100;
+  return 0;
+}
+
+/* Boot dan reset tidak punya langkah kendali sebelumnya. Sinkronkan pintu AUTO
+   langsung ke tabel operasi agar tampilan pertama sudah benar: khususnya pada
+   kondisi Normal, scouring harus 0 cm sejak frame pertama, bukan sempat 75 cm
+   sampai simulasi atau perpindahan skenario dijalankan. Pintu MANUAL tidak
+   disentuh supaya posisi operator tetap dihormati. */
+function terapkanOperasiPrimerLangsung() {
+  state.primary.forEach(p => {
+    if (p.mode !== 'auto') return;
+    p.ctrl.a = clamp(bukaanOperasi(p.role), 0, p.aMax);
+  });
+}
+
+/* Bukaan ACUAN KALIBRASI untuk keadaan hulu yang sedang berjalan — yaitu bukaan
+   tempat bendung menghasilkan persis angka snapshot.
+
+   Dua pemakainya:
+     · applyDummySnapshot() mengkalibrasi koefisien pintu terhadapnya;
+     · initDummyGates()     memasang pintu di sini sebagai posisi awal.
+
+   Keduanya harus memakai dasar yang sama. Kalau tidak, tampilan pertama meleset
+   dari snapshot: pada keadaan kemarau bukaan acuan floodway 0,21 m, dan pintu
+   yang dipasang di 0,75 m melewatkan 3,6x jatahnya — debit hilir terbaca 16,34
+   m³/dtk sementara sungai cuma membawa 4,79.
+
+   BUKAN sasaran kendali AUTO. Sasaran itu datang dari OPERASI_PRIMER, tabel
+   aturan operasi per keadaan, dan sengaja BERBEDA dari bukaan di sini: pada
+   kemarau aturannya menutup seluruh pintu, jadi muka air hulu memang bergerak
+   naik meninggalkan angka snapshot. Bukaan aturan juga tidak bisa dipakai
+   mengkalibrasi — pada kemarau nilainya nol, dan nol tidak bisa jadi penyebut. */
+function dummyBukaanAcuan(N) {
+  const D = window.WMS_DUMMY || {};
+  const P = D.pintu || {};
+  const m = (cm) => cm / 100;
+  const aPintu = m((P.bukaanMaksCm || 100) * (P.bukaanPersen || 75) / 100);
+  const aMax = m(P.bukaanMaksCm || 100);
+  const normal = (((D.skenario || {}).normal || {}).nodes) || D.nodes || {};
+  const huluNormal = normal.WEIR_COPONG || normal.AWLR_HULU || {};
+  const kolamNormal = normal[dummyIndukId()] || {};
+
+  const hUp0 = Math.max(m((N.WEIR_COPONG || {}).tmaHulu || 0), 0.05);
+  const qHulu = (N.WEIR_COPONG || {}).debit || 0;
+  const qKolam = (N[dummyIndukId()] || {}).debit || 0;
+  const hNormal = Math.max(m(huluNormal.tmaHulu || 143), 0.05);
+  const qLimpasNormal = Math.max(0, (huluNormal.debit || 0) - (kolamNormal.debit || 0));
+  const qLimpas = Math.max(0, qHulu - qKolam);
+
+  /* Scouring MENGURAS kolam untuk membilas endapan di depan pengambilan — ia
+     bukan pemasok jaringan irigasi. Jatahnya sudah tertulis di simpul
+     PG_SCOURING tiap keadaan, dan bukaan yang melewatkannya adalah bukaan acuan
+     itu sendiri: snapshot memang potret bendung pada bukaan acuan.
+
+     Dulu bukaan ini dihitung `(kebutuhan seluruh petak + jatah pembilas) ×
+     aPintu / qKolam`, mengikuti susunan lama tempat scouring memasok jaringan.
+     Yang memasok jaringan sekarang pintu intake, dan lingkarnya sendiri yang
+     mengejar kebutuhan petak. */
+  const aScour = aPintu;
+  /* Debit pintu di bawah daun sebanding a√h, jadi bukaan yang dibutuhkan untuk
+     melimpaskan qLimpas pada tinggi tekan hUp0:
+       a = aPintu × (qLimpas / qLimpas_normal) × √(h_normal / hUp0)
+     Cd dan lebar daun hilang dalam perbandingan terhadap keadaan normal. */
+  const aFlood = qLimpasNormal > 0.0001
+    ? clamp(aPintu * (qLimpas / qLimpasNormal) * Math.sqrt(hNormal / hUp0), 0.02, aMax)
+    : aPintu;
+
+  return { aPintu, aMax, aScour, aFlood, hUp0 };
+}
+
+function applyDummySnapshot(minute, dt) {
   const D = window.WMS_DUMMY;
   if (!D) return;
   const w = dummyWave(minute || 0);
@@ -1389,7 +1616,12 @@ function applyDummySnapshot(minute) {
 
   state.Qnat = N.WEIR_COPONG.debit;
   state.QnatTarget = state.Qnat;
-  state.hUp = m(N.WEIR_COPONG.tmaHulu);
+  /* `hUp0` = muka air hulu yang TERBACA di snapshot, yaitu muka air acuan:
+     tinggi yang memang tercapai kalau seluruh pintu berdiri di bukaan acuan.
+     Muka air yang dipakai tampilan (state.hUp) dihitung dari tampungan di
+     bawah, dan pada bukaan acuan ia setimbang tepat di hUp0 — lihat kalibrasi
+     koefisien pintu. */
+  const hUp0 = m(N.WEIR_COPONG.tmaHulu);
   state.pool.h = m(N.WEIR_COPONG.tmaHilir);
   /* Target TMA kolam TIDAK disetel ulang di sini. Dulu targetnya dipasang sama
      dengan muka air yang baru saja terbaca, jadi galat kendali selalu nol dan
@@ -1403,7 +1635,9 @@ function applyDummySnapshot(minute) {
      sudah terisi 72% dan status langsung WASPADA padahal keadaannya wajar. */
   state.river.B = 30;
   state.river.Hmax = 6.0;
-  state.vUp = manningCalc(state.hUp, state.river.B, FIXED.nRiver, FIXED.S0River).V;
+  state.pool.Hmax = POOL_HMAX;   /* tanggul kolam, bukan tanggul sungai */
+  /* state.vUp dihitung SETELAH neraca tampungan hulu di bawah — dulu di sini,
+     memakai state.hUp milik tick sebelumnya. */
   /* Kebutuhan per hektar ikut keadaan hulu — lihat dummyDuty(). Normal & hujan
      1,00 l/dtk/ha (norma prototipe; 360 ha × 1,0 = 0,36 m³/dtk), kemarau 0,65
      mengikuti rencana tata tanam palawija. */
@@ -1412,50 +1646,384 @@ function applyDummySnapshot(minute) {
   /* Bukaan pintu ikut menentukan debit: rasio terhadap bukaan acuan dummy (75 cm). */
   const fr = (a) => clamp(a / aPintu, 0, 1 / (D.pintu.bukaanPersen / 100));
   const scour = state.primary.filter(p => p.role === 'scouring');
-  const flood = state.primary.filter(p => p.role !== 'scouring');
-  /* scouring memasok saluran irigasi; floodway melimpas ke hilir sungai */
-  const primFactor = scour.reduce((acc, p) => acc + fr(p.ctrl.a), 0) / Math.max(scour.length, 1);
-  const floodFactor = flood.reduce((acc, p) => acc + fr(p.ctrl.a), 0) / Math.max(flood.length, 1);
+  const flood = state.primary.filter(p => p.role === 'floodway');
+  /* scouring menguras kantong lumpur; floodway melimpas ke hilir sungai */
+  /* primFactor & floodFactor (rasio BUKAAN terhadap bukaan acuan) tidak lagi
+     dipakai menghitung debit — lihat blok kalibrasi bendung di bawah. Yang
+     dipakai rantai sekunder & tersier sekarang `pasokFactor`, rasio DEBIT. */
 
   const induk = N[dummyIndukId()];
-  state.QgateTotal = induk.debit * primFactor;
 
-  /* Debit floodway DIJEPIT ke air yang benar-benar tersedia.
+  /* ================= BENDUNG: kalibrasi bangunan & neraca tampungan hulu ======
 
-     `qLimpas` = debit sungai dikurangi yang disadap ke jaringan; itulah seluruh
-     air yang tersisa untuk dilewatkan floodway. Bukaan yang lebih lebar dari
-     bukaan acuan tidak menambah air, ia cuma menurunkan tinggi tekan yang
-     dibutuhkan — jadi `floodFactor` di atas 1 tidak boleh mengalikan debitnya.
+     Model lama menghitung debit langsung dari snapshot dikali rasio bukaan, dan
+     menaruh sisanya di `Qspill`:
 
-     Tanpa jepitan ini `fr()` mengizinkan floodFactor sampai 1/0,75 = 1,333
-     (batas atasnya memang disengaja: bukaan acuan dummy 75%, jadi pintu masih
-     punya 33% ruang di atasnya). Akibatnya pada keadaan banjir — saat pintu
-     memang mentok aMax — debit hilir terbaca 138,2 m³/dtk sementara sungai cuma
-     membawa 104,2: air keluar lebih banyak daripada yang masuk. Yang terlihat di
-     skematik: "Debit ke hilir" lebih besar daripada "Debit alami".
+       QgateTotal = induk.debit × primFactor
+       Qflood     = (Qsungai − QgateTotal) × min(floodFactor, 1)
+       Qspill     = (Qsungai − QgateTotal) − Qflood        ← SISA, bukan rumus
 
-     Bukaan di BAWAH acuan tetap mengurangi debitnya seperti sebelumnya — itu
-     memang pintu yang menahan air. */
-  const qLimpas = Math.max(0, N.WEIR_COPONG.debit - state.QgateTotal);
-  state.Qflood = qLimpas * Math.min(floodFactor, 1);
+     Konsekuensinya: menutup seluruh pintu membuat Qflood = 0 dan Qspill menelan
+     SELURUH debit sungai, jadi debit hilir tidak berubah sedikit pun. Muka air
+     hulu pun dibaca mentah dari snapshot, jadi ia juga tidak bergerak. Bendung
+     yang seluruh pintunya ditutup tidak membendung apa-apa.
 
-  /* Air yang TIDAK lewat pintu floodway melimpas di atas ambang bendung — tetap
-     sampai ke hilir, hanya tidak lewat pintu.
+     Sekarang tiap jalan keluar punya rumusnya sendiri sebagai fungsi muka air
+     hulu `h`, lalu `h` dicari dari neraca tampungan — bukan sebaliknya:
 
-     Dulu suku ini tidak ada dan `qLimpas - Qflood` hilang begitu saja. Pada
-     keadaan kemarau pintu floodway mengendap di 0,207 m (floodFactor 0,276),
-     jadi dari debit sungai 4,79 m³/dtk cuma 1,17 lewat pintu dan 0,23 sampai
-     petak: 3,17 m³/dtk — 66% debit sungai — tidak muncul di mana pun. Panel
-     Neraca Air pun tidak menangkapnya karena volume kendalinya dimulai DARI
-     pintu (Qin = QgateTotal + Qflood), jadi air yang belum masuk pintu mana pun
-     bukan bagian dari neraca itu.
-   *
-   * Ini bukan tafsiran baru: skenarioSnapshot() di SkemaIrigasiController sudah
-   * menghitungnya begitu — `$qFlood = $qHulu - $qKolam` TANPA jepitan bukaan,
-   * dengan alasan yang ditulis eksplisit di komentar langkah 4. Karena itu
-   * AWLR_HILIR pada snapshot kemarau berbunyi 4,59 m³/dtk sementara tampilan
-   * menulis 1,39. Sekarang keduanya sepakat. */
-  state.Qspill = Math.max(0, qLimpas - state.Qflood);
+       Qscouring(h) = Cs · Σa_scouring · √h        (persamaan lubang, Q ∝ a√h)
+       Qfloodway(h) = Cf · Σa_floodway · √h
+       Qmercu(h)    = Cw · b_mercu · max(0, h − h_mercu)^1,5   (ambang lebar)
+
+     Cs & Cf DIKALIBRASI TIAP TICK terhadap keadaan acuan, yaitu snapshot pada
+     bukaan acuan (75%). Dengan begitu Qkeluar(hUp0, bukaan acuan) = Qsungai
+     PERSIS, jadi tampungan setimbang tepat di muka air snapshot dan seluruh
+     angka kalibrasi normal/hujan/kemarau tetap seperti sebelumnya. Yang berubah
+     hanya perilaku saat bukaan MENYIMPANG dari acuan — dan justru itu yang dulu
+     tidak ada.
+
+     Cd, lebar daun, dan tinggi tekan hilir tidak perlu diketahui: semuanya
+     hilang dalam perbandingan terhadap keadaan acuan, pola yang sama dengan
+     yang sudah dipakai dummyGateStep() menghitung bukaan yang dibutuhkan. */
+  const hu = state.hulu;
+  hu.bMercu = state.river.B * MERCU_RASIO_B;
+  /* Mercu adalah BANGUNAN: elevasinya dari D.nodes (TMA hulu rancangan), bukan
+     dari N (potret skenario yang sedang berjalan) — kalau dari N, mercunya ikut
+     naik-turun tiap kali operator berpindah keadaan. */
+  if (!hu.hMercu) hu.hMercu = m(((D.nodes || {}).WEIR_COPONG || {}).tmaHulu || 143) * MERCU_RASIO;
+  const qMercu = (h) => MERCU_CW * hu.bMercu * Math.pow(Math.max(0, h - hu.hMercu), 1.5);
+
+  /* ---- TOPOLOGI: mengikuti bendungTopology() di SkemaIrigasiController ----
+
+       sungai hulu ─┬─> 3 pintu intake ──> KOLAM BENDUNG ──> saluran sekunder
+                    │                         └─> scouring ──> hilir
+                    ├─> 3 pintu floodway ───────────────────> hilir
+                    └─> mercu (limpasan) ───────────────────> hilir
+
+     Intake mengisi kantong lumpur; scouring mengurasnya untuk pembilasan.
+     Susunan yang sama dipakai oleh data Laravel, skematik, dan model neraca
+     supaya pintu yang digambar sebagai pengisi memang menambah tampungan. */
+  const REF = dummyBukaanAcuan(N);
+  const sec = state.secondary, secNode = N[dummySekunderId()];
+  const nGate = sec.gates.length;
+  const sqRef = Math.sqrt(Math.max(hUp0, 0.05));
+
+  /* Pembagian debit sungai PADA BUKAAN ACUAN: kolam mengambil jatahnya lebih
+     dulu (itu yang tertulis di snapshot AWLR_KOLAM), mercu melimpaskan yang
+     memang di atas ambangnya, sisanya lewat pintu floodway. */
+  const qKolamRef = induk.debit;
+  const qSpillRef = Math.min(qMercu(hUp0), Math.max(0, state.Qnat - qKolamRef));
+  const qFloodRef = Math.max(0, state.Qnat - qKolamRef - qSpillRef);
+  const Cflood = qFloodRef / Math.max(flood.length * REF.aFlood * sqRef, 1e-6);
+  const aFloodKini = flood.reduce((acc, p) => acc + p.ctrl.a, 0);
+  const qFloodAt = (h) => Cflood * aFloodKini * Math.sqrt(Math.max(h, 0));
+
+  /* ---- PINTU INTAKE ADA DI MULUT KANTONG LUMPUR ----
+
+     Susunan lapangan (dikonfirmasi operator) dan gambar skematik sepakat:
+
+       sungai hulu → 3 PINTU INTAKE → kantong lumpur ─┬─> saluran sekunder
+                                                      └─> pintu scouring → hilir
+
+     Dengan intake di mulut kolam, pengisi dan penguras jadi bangunan yang
+     BERBEDA — dan barulah TMA kolam bisa dikejar, persis pola pintu `primary`
+     pada prototipe SIMHIDRO (di sana ketiga pintu primer mengisi kolam sambil
+     mengejar targetPoolLevel).
+
+     Snapshot Laravel juga membagi debit AWLR_KOLAM ke ketiga PG_INTAKE, sehingga
+     jumlah bacaan pintu selalu sama dengan debit yang benar-benar masuk kolam. */
+  const poolRef = m(N.WEIR_COPONG.tmaHilir);
+  const sqPoolRef = Math.sqrt(Math.max(poolRef, 0.02));
+  const dhIntakeRef = Math.max(hUp0 - poolRef, 0.01);
+
+
+  const qSecRef = secNode ? secNode.debit : 0;
+  /* Jatah pembilas = yang tertulis di simpul PG_SCOURING; kalau simpulnya belum
+     ada di payload, sisa isi kolam setelah saluran sekunder mengambil bagiannya
+     — pembagian yang sama dengan skenarioSnapshot() di controller. */
+  const qScourRef = (N.PG_SCOURING || {}).debit != null
+    ? N.PG_SCOURING.debit
+    : Math.max(0, qKolamRef - qSecRef);
+  const aScourKini = scour.reduce((acc, p) => acc + p.ctrl.a, 0);
+  const Cscour = qScourRef / Math.max(REF.aScour * sqPoolRef, 1e-6);
+  /* DIJEPIT ke kapasitas bangunannya, alasan yang sama dengan jepitan pintu
+     floodway: pada keadaan banjir pintu ini melewatkan 0,666 m3/dtk terhadap
+     kapasitas 0,30 (222%) — bacaan yang tidak mungkin dicapai bangunannya.
+
+     Dampaknya terbawa jauh: yang keluar dari kolam harus diimbangi yang masuk,
+     jadi kantong lumpur terbaca melewatkan 1,026 m3/dtk terhadap kapasitasnya
+     0,80 (128%) dan berkelas WASPADA walau muka airnya tepat di tinggi operasi.
+     Sesudah dijepit, yang lewat kolam 0,30 + 0,36 = 0,66 (82%) — kembali biru.
+
+     Snapshot Laravel sendiri menulis 0,740 untuk keadaan banjir karena
+     skenarioSnapshot() menjepit floodway ke kapasitas tetapi tidak menjepit
+     scouring. Jadi angka scouring banjir bergeser 0,740 -> 0,300 di tampilan;
+     itu koreksi, bukan penyimpangan. */
+  const kapScour = (N.PG_SCOURING || {}).kapasitas || Infinity;
+  const qScourAt = (hPool) => Math.min(Cscour * aScourKini * Math.sqrt(Math.max(hPool, 0)), kapScour);
+
+  /* PINTU INTAKE — mengisi kantong lumpur dari sungai. Tinggi tekannya SELISIH
+     muka air hulu dan kolam, bukan muka air kolam saja: itulah yang membuat
+     pengisian berhenti sendiri begitu kolam menyamai sumbernya.
+
+     Dikalibrasi ke qKolamRef (0,56 = seluruh yang masuk kolam), dibagi menurut
+     porsi kapasitas tiap pintu. Bukan ke debit saluran sekunder (0,36), karena
+     0,36 itu yang KELUAR kolam, bukan yang masuk. */
+  const porsiIntake = sec.gates.map((gt, i) => {
+    const n = N['PG_INTAKE_' + (i + 1)];
+    return n && n.kapasitas != null ? n.kapasitas : 1;
+  });
+  const jumlahPorsi = porsiIntake.reduce((a, b) => a + b, 0);
+  const qIntakeRef = porsiIntake.map(q => (jumlahPorsi > 1e-9 ? qKolamRef * q / jumlahPorsi : 0));
+  const Cintake = qIntakeRef.map(q => q / Math.max(REF.aPintu * Math.sqrt(dhIntakeRef), 1e-6));
+  /* Batas total intake mengikuti kapasitas kantong lumpur (0,80 m3/dtk), lalu
+     dibagi menurut proporsi kapasitas ketiga pintu. Ini juga menjaga instalasi
+     dengan data lama tetap kompatibel walau kapasitas pintunya belum di-seed
+     ulang setelah intake dipindahkan ke hulu kolam. */
+  const kapKolam = (N[dummyIndukId()] || {}).kapasitas || Infinity;
+  const kapIntake = porsiIntake.map(q =>
+    (jumlahPorsi > 1e-9 && isFinite(kapKolam) ? kapKolam * q / jumlahPorsi : Infinity));
+  const qIntakeAt = (i, hUp, hPool) =>
+    Math.min(Cintake[i] * sec.gates[i].ctrl.a * Math.sqrt(Math.max(0, hUp - hPool)), kapIntake[i]);
+  const qIntakeTotalAt = (hUp, hPool) => sec.gates.reduce((a, gt, i) => a + qIntakeAt(i, hUp, hPool), 0);
+
+  /* KELUAR KOLAM KE SALURAN SEKUNDER — tanpa pintu. Pintu yang ada semuanya di
+     mulut kolam (intake) atau membuang ke sungai (scouring); dari kantong lumpur
+     ke saluran induk airnya mengalir bebas, jadi debitnya cuma fungsi muka air
+     kolam. Dikalibrasi ke debit saluran sekunder acuan (0,36). */
+  /* Koefisien bangunan ini TETAP — diambil dari muatan dasar D.nodes (keadaan
+     rancangan), bukan dari potret skenario yang sedang berjalan.
+
+     Snapshot per skenario tidak bisa dipakai: fTma di controller dihitung
+     sendiri-sendiri per simpul dari rasio debitnya, jadi urutan elevasinya tidak
+     terjaga. Pada keadaan kemarau ia menaruh saluran sekunder di 0,70 m
+     sementara kantong lumpur yang memasoknya cuma 0,47 m — beda tingginya
+     negatif, dan koefisien yang dikalibrasi dari situ meledak. Keadaan rancangan
+     memberi beda yang benar: kolam 1,36 m, saluran 1,00 m, selisih 0,36 m. */
+  const poolDasar = m(((D.nodes || {}).WEIR_COPONG || {}).tmaHilir || 136);
+  const secDasar = m(((D.nodes || {})[dummySekunderId()] || {}).tmaHulu || 100);
+  const qSekDasar = ((D.nodes || {})[dummySekunderId()] || {}).debit || 0.36;
+  const Csek = qSekDasar / Math.sqrt(Math.max(poolDasar - secDasar, 0.01));
+  /* Didorong SELISIH muka air kolam dan saluran, bukan muka air kolam saja.
+     Bentuk yang lama (Csek × h_kolam^1,5) membuat kolam terus mengalirkan air ke
+     saluran walau saluran sudah lebih tinggi daripada kolam — dan itu terjadi:
+     sesudah berpindah dari banjir ke kemarau, saluran sekunder terbaca 2,10 m
+     sementara kantong lumpur yang memasoknya cuma 1,00 m. Air tidak bisa
+     mengalir ke tempat yang lebih tinggi.
+
+     Dengan selisih muka air, alirannya berhenti sendiri begitu saluran menyamai
+     kolam — persis seperti pengisian kolam dari sungai di atasnya. Saluran yang
+     terlanjur penuh karena itu tidak lagi terus diisi; ia langsung terkuras
+     pintu tersier dan limpasan tanggulnya sampai turun di bawah muka air kolam. */
+  const qKeSekAt = (hPool, hSek) => Csek * Math.sqrt(Math.max(0, hPool - hSek));
+
+  /* ---- Penguras saluran sekunder & tersier ----
+
+     Sampai sebelum ini muka air kedua saluran cuma fungsi debit yang MASUK:
+
+       sec.canal.h = tmaHulu × (QsecTotal / qSecRef)^0,35
+
+     Tidak ada suku untuk yang keluar, jadi saluran itu tidak punya neraca dan
+     tidak bisa terbendung: menutup pintu tersier menurunkan saluran tersier,
+     tetapi muka air saluran sekunder di atasnya tidak bergerak sedikit pun —
+     padahal menutup pintu di ujung hilir justru menahan air di hulunya.
+
+     Sekarang keduanya punya tampungan sendiri, dengan pola yang sama seperti
+     hulu dan kolam. Jalan keluarnya dua macam:
+
+       pintu tersier  Q = C · a · √h_sekunder   (persamaan lubang, ada pintunya)
+       ambang sawah   Q = C · h_tersier^1,5     (ambang lebar, TANPA pintu —
+                                                 bangunan sadap ke petak memang
+                                                 tidak bermotor)
+
+     Keduanya dikalibrasi ke snapshot: pada bukaan acuan dan muka air acuan,
+     debitnya persis angka simpul PG_TERSIER_i dan AWLR_TERSIER_i, jadi kedua
+     saluran setimbang tepat di TMA snapshot dan angka kalibrasi tidak bergeser. */
+  const secRef = m(secNode.tmaHulu);
+  const sqSecRef = Math.sqrt(Math.max(secRef, 0.02));
+  const tertNode = (i) => N[(D.rantai[i] || {}).tersier] || {};
+  /* Debit acuan pintu tersier: dari simpul PG_TERSIER_i kalau ada, kalau tidak
+     porsinya dari debit saluran sekunder — pembagian yang sama dengan
+     controller. */
+  const qTertRef = state.tertiary.map((t, i) => {
+    const n = N['PG_TERSIER_' + (i + 1)];
+    if (n && n.debit != null) return n.debit;
+    const q = tertNode(i).debit;
+    return q != null ? q : qSecRef / Math.max(state.tertiary.length, 1);
+  });
+  const Ctert = qTertRef.map(q => q / Math.max(REF.aPintu * sqSecRef, 1e-6));
+  const qTertAt = (i, hSec) => Ctert[i] * state.tertiary[i].gate.ctrl.a * Math.sqrt(Math.max(hSec, 0));
+  const qTertTotalAt = (hSec) => state.tertiary.reduce((a, t, i) => a + qTertAt(i, hSec), 0);
+
+  /* Ambang sawah: muka air acuan saluran tersier dari simpul AWLR_TERSIER_i,
+     debit acuannya debit simpul itu sendiri. Batas bawah 0,02 m menjaga pangkat
+     1,5 tetap terhingga saat salurannya nyaris kering. */
+  const tertRef = state.tertiary.map((t, i) => Math.max(m(tertNode(i).tmaHulu || 13), 0.02));
+  const qFieldRef = state.tertiary.map((t, i) => {
+    const q = tertNode(i).debit;
+    return q != null ? q : qTertRef[i];
+  });
+  const Cfield = qFieldRef.map((q, i) => q / Math.max(Math.pow(tertRef[i], 1.5), 1e-6));
+  const qFieldAt = (i, hTert) => Cfield[i] * Math.pow(Math.max(hTert, 0), 1.5);
+
+  /* LIMPASAN TANGGUL SALURAN. Saluran yang airnya melewati tanggul membuang
+     kelebihannya keluar — ke saluran pembuang, atau meluber ke lahan.
+
+     Tanpa suku ini muka airnya memang berhenti di tanggul, tetapi hanya karena
+     dijepit saat digambar: tampungannya sendiri terus menumpuk tanpa batas.
+     Akibatnya saluran yang pernah meluap tidak pernah bisa surut lagi — pada uji
+     dengan pintu tersier ditutup, saluran sekunder mengendap di 2,10 m dan tetap
+     di situ walau pintunya dibuka kembali, karena volume yang tertimbun jauh di
+     atas yang terbaca.
+
+     Ambang lebar dengan koefisien FIXED.fieldCw dan lebar sama dengan lebar
+     salurannya. Pada keadaan normal muka air jauh di bawah tanggul (1,00 dari
+     2,00 m; 0,13 dari 0,30 m), jadi sukunya nol dan tidak ada angka kalibrasi
+     yang bergeser. */
+  const qLuapAt = (h, hMax, B) => FIXED.fieldCw * B * Math.pow(Math.max(0, h - hMax), 1.5);
+
+  /* ---- Neraca SELURUH tampungan, diintegrasi BERSAMA ----
+
+     Hulu → kolam → saluran sekunder → tiga saluran tersier → petak. Semuanya
+     terkait berantai: yang keluar dari satu ruas masuk ke ruas berikutnya.
+     Mengintegrasinya terpisah membuat air terhitung dua kali pada langkah yang
+     sama, jadi seluruhnya dimajukan di dalam satu lingkar sub-langkah. */
+  const luasHulu = state.river.B * HULU_L;
+  const luasKolam = state.river.B * FIXED.poolL;
+  sec.canal.B = 6;
+  sec.canal.Hmax = 2.0;   /* saluran sekunder prototipe */
+  const luasSec = sec.canal.B * FIXED.secL;
+  state.tertiary.forEach(t => {
+    t.canal.B = 2.5;
+    /* Tinggi tanggul saluran tersier 0,30 m, bukan 1,20 m. TMA tersier di
+       BENDUNG_PANEL 13/15/11 cm dan seluruh rentang tiga skenario cuma
+       8,2–20,8 cm; terhadap tanggul 1,20 m kolom airnya cuma mengisi 7–17%
+       kotak dan perpindahan kemarau → banjir bergerak 4 px dari 42 px. 0,30 m
+       mengikuti perbandingan saluran sekunder (tanggul 2,0 m terhadap muka air
+       operasi 1,00 m), jadi kedua saluran terbaca pada skala yang sama. */
+    t.canal.Hmax = 0.30;
+  });
+  const luasTert = state.tertiary.map(t => t.canal.B * FIXED.tertL);
+
+  if (!hu.siap) {
+    hu.S = hUp0 * luasHulu;
+    state.pool.S = poolRef * luasKolam;
+    sec.canal.S = secRef * luasSec;
+    state.tertiary.forEach((t, i) => { t.canal.S = tertRef[i] * luasTert[i]; });
+    hu.siap = true;
+  }
+  /* Sub-langkah maksimal 60 detik: pada laju putar tinggi satu tick bisa
+     mewakili beberapa menit rekaman, dan suku berpangkat 1,5 (mercu, ambang
+     sawah) tumbuh cepat — langkah Euler yang terlalu panjang membuatnya berayun
+     alih-alih mengendap. */
+  const dtTotal = Math.max(0, dt || 0);
+  let qLuapTotal = 0;   /* volume limpasan tanggul saluran, m3 sepanjang langkah */
+  const Ssebelum = hu.S + state.pool.S + sec.canal.S
+                 + state.tertiary.reduce((a, t) => a + t.canal.S, 0);
+  let sisaDt = dtTotal;
+  while (sisaDt > 0.001) {
+    const dtSub = Math.min(sisaDt, 60);
+    const hUp = hu.S / luasHulu, hPool = state.pool.S / luasKolam;
+    const hSec = sec.canal.S / luasSec;
+    /* Debit masuk kolam dijepit ke air yang cukup untuk MENYAMAKAN kedua muka
+       air dalam satu sub-langkah. Tanpa jepitan ini kolam bisa melewati muka air
+       hulu ketika bedanya sudah tipis — √(hUp−hPool) punya kemiringan tak
+       terhingga di sana — lalu berayun bolak-balik melintasi titik itu. */
+    const qIn = Math.min(qIntakeTotalAt(hUp, hPool),
+                         Math.max(0, hUp - hPool) * luasKolam / dtSub);
+    /* Dijepit ke air yang cukup MENYAMAKAN kedua muka air dalam satu sub-langkah,
+       alasan yang sama dengan jepitan pengisian kolam: √(hPool−hSek) punya
+       kemiringan tak terhingga saat bedanya tipis. */
+    const qSekIn = Math.min(qKeSekAt(hPool, hSec),
+                            Math.max(0, hPool - hSec) * luasSec / dtSub);
+    hu.S = Math.max(0.02 * luasHulu,
+                    hu.S + (state.Qnat - qIn - qFloodAt(hUp) - qMercu(hUp)) * dtSub);
+    state.pool.S = Math.max(0.02 * luasKolam,
+                            state.pool.S + (qIn - qScourAt(hPool) - qSekIn) * dtSub);
+    /* Saluran sekunder: masuk dari ketiga pintu intake, keluar lewat ketiga
+       pintu tersier dan — bila melewati tanggul — lewat limpasan. Menutup pintu
+       tersier mengurangi keluarannya, jadi muka airnya NAIK; itulah yang dulu
+       tidak bisa terjadi. */
+    const luapSec = qLuapAt(hSec, sec.canal.Hmax, sec.canal.B);
+    qLuapTotal += luapSec * dtSub;
+    /* qSekIn = keluaran kolam ke saluran induk (tanpa pintu), bukan debit pintu
+       intake — intake berada di hulu kolam. */
+    sec.canal.S = Math.max(0.02 * luasSec,
+                           sec.canal.S + (qSekIn - qTertTotalAt(hSec) - luapSec) * dtSub);
+    /* Tiap saluran tersier: masuk lewat pintunya, keluar lewat ambang sadap ke
+       petaknya. Ambang tidak berpintu, jadi keluarannya hanya bisa dikurangi
+       dengan menurunkan muka airnya sendiri. */
+    state.tertiary.forEach((t, i) => {
+      const hT = t.canal.S / luasTert[i];
+      const luapT = qLuapAt(hT, t.canal.Hmax, t.canal.B);
+      qLuapTotal += luapT * dtSub;
+      t.canal.S = Math.max(0.02 * luasTert[i],
+                           t.canal.S + (qTertAt(i, hSec) - qFieldAt(i, hT) - luapT) * dtSub);
+    });
+    sisaDt -= dtSub;
+  }
+  /* Limpasan tanggul saluran keluar dari jaringan irigasi dan kembali ke sungai
+     lewat saluran pembuang, jadi ia dihitung sebagai debit hilir — bukan hilang.
+     Rata-rata sepanjang langkah, karena tiap sub-langkah punya nilainya sendiri. */
+  state.Qluap = dtTotal > 0 ? qLuapTotal / dtTotal : 0;
+  const Ssesudah = hu.S + state.pool.S + sec.canal.S
+                 + state.tertiary.reduce((a, t) => a + t.canal.S, 0);
+  const dStotalDt = dtTotal > 0 ? (Ssesudah - Ssebelum) / dtTotal : 0;
+  state.hUp = clamp(hu.S / luasHulu, 0.02, state.river.Hmax * 1.05);
+  /* Muka air acuan disimpan untuk dummyGateStep(): lingkar kendali AUTO
+     memakainya sebagai titik nol galat, jadi pada bukaan acuan bukaan yang
+     diminta tidak bergeser sedikit pun dari sebelumnya. */
+  state.hUpAcuan = hUp0;
+  state.poolAcuan = poolRef;
+  /* Muka air acuan saluran sekunder — titik nol model balik pintu tersier di
+     dummyGateStep(), sama peran dengan poolAcuan bagi pintu intake. */
+  state.secAcuan = secRef;
+  /* Arus hulu = debit sungai dibagi luas penampangnya, BUKAN Manning.
+
+     Manning menghitung kecepatan aliran seragam yang menuruni kemiringan
+     dasarnya. Ruas ini bukan itu: ia genangan backwater di belakang bendung —
+     air TERTAHAN, dan makin tinggi muka airnya makin lambat ia bergerak.
+     Manning memberi arah yang terbalik, karena kedalaman lebih besar berarti
+     jari-jari hidraulik lebih besar dan kecepatan lebih tinggi.
+
+     Terlihat paling jelas pada keadaan kemarau, saat aturan operasi menutup
+     seluruh pintu dan muka air hulu naik ke 2,05 m:
+
+       Manning        0,814 m/dtk   (gores 1,4 detik — terbaca deras)
+       Q/(B x h)      0,078 m/dtk   (gores 4,5 detik — tenang, dan benar)
+
+     yaitu meleset 10x, dan kemarau tergambar LEBIH kencang daripada normal
+     walau debit sungainya seperenamnya. Pada normal & banjir keduanya nyaris
+     sama (0,663 vs 0,647; 1,041 vs 1,103) — di situ alirannya memang mendekati
+     seragam — jadi angka kalibrasi kedua keadaan itu praktis tidak bergeser. */
+  state.vUp = state.Qnat / (state.river.B * Math.max(state.hUp, 0.05));
+  state.pool.h = clamp(state.pool.S / luasKolam, 0.02, Math.min(state.hUp, state.river.Hmax));
+
+  /* QgateTotal = yang MASUK kolam dari sungai. Dulu ia debit pintu scouring —
+     penamaan yang ikut susunan lama; pin kolam & bacaan "Debit masuk" di
+     skematik memang menghendaki debit pengisi kolam. */
+  state.QgateTotal = qIntakeTotalAt(state.hUp, state.pool.h);
+  state.Qscour = qScourAt(state.pool.h);
+  state.Qflood = qFloodAt(state.hUp);
+  state.Qspill = qMercu(state.hUp);
+
+  /* Arus kolam = DEBIT YANG LEWAT dibagi luas penampangnya — pola yang sama
+     dengan saluran sekunder & tersier, bukan Manning seperti ruas sungai.
+
+     Kolam bendung bukan ruas sungai yang mengalir menuruni kemiringannya; ia
+     kantong lumpur yang sengaja dibuat lebar supaya air MELAMBAT dan endapan
+     sempat turun. Manning atas geometri sungai (B 30 m, n 0,034, S₀ 0,00035)
+     menjawab pertanyaan yang salah: pada TMA 1,36 m ia memberi 0,64 m/dtk,
+     sementara 0,56 m³/dtk yang benar-benar lewat penampang 30 × 1,36 = 40,8 m²
+     cuma menghasilkan 0,014 m/dtk — meleset 47 kali. Yang terlihat di layar:
+     gores air di kotak kolam berjalan secepat sungai, dan menutup pintu intake
+     tidak memperlambatnya sedikit pun karena bukaan pintu memang tidak masuk
+     hitungan Manning.
+
+     Ditulis SESUDAH state.QgateTotal, bukan sebelumnya: menaruhnya di atas
+     membuat arus kolam memakai debit tick SEBELUMNYA, dan pada panggilan
+     pertama QgateTotal masih 0 sehingga kotak kolam terbaca 0,00 m/dtk. */
+  state.vPool = state.QgateTotal / (state.river.B * Math.max(state.pool.h, 0.05));
 
   /* Debit tiap pintu floodway = bagian proporsionalnya dari state.Qflood, bukan
      hitungan sendiri.
@@ -1484,74 +2052,123 @@ function applyDummySnapshot(minute) {
   state.Qspill += Math.max(0, state.Qflood - qFloodPintu);
   state.Qflood = qFloodPintu;
   let iFlood = 0;
-  state.Qprim = state.primary.map(p => (p.role === 'scouring'
-    ? induk.debit * fr(p.ctrl.a)
-    : (qFloodTiap[iFlood++] || 0)));
-  /* pintu ditutup → air tertahan di kolam bendung.
-   *
-   * Batas atasnya muka air HULU, bukan tinggi tanggul: kolam bendung diisi dari
-   * sungai di hulunya, jadi mukanya tidak bisa lebih tinggi dari sumbernya. Tanpa
-   * batas ini keadaan banjir menulis TMA kolam 3,59 m di atas TMA hulu 3,13 m —
-   * pengali (1 + 0,28(1 − primFactor)) mencapai 1,20 justru saat pintu scouring
-   * menutup paling jauh (primFactor 0,27). Urutan itu juga yang dipakai datanya
-   * sendiri: BENDUNG_PANEL menaruh kolam 136 cm di bawah hulu 143 cm. */
-  state.pool.h = clamp(m(N.WEIR_COPONG.tmaHilir) * (1 + 0.28 * (1 - primFactor)),
-                       0.05, Math.min(state.hUp, state.river.Hmax));
-  state.vPool = manningCalc(state.pool.h, state.river.B, FIXED.nRiver, FIXED.S0River).V;
+  state.Qprim = state.primary.map(p => {
+    if (p.role === 'scouring') return state.Qscour;
+    return qFloodTiap[iFlood++] || 0;
+  });
 
-  /* Satu saluran sekunder: TMA & debitnya dibaca dari satu node, lalu debit itu
-     dibagi rata ke tiga pintu pengambilan menurut bukaan masing-masing. */
-  const sec = state.secondary, secNode = N[dummySekunderId()];
-  const nGate = sec.gates.length;
-  const fGate = sec.gates.map(gt => primFactor * fr(gt.ctrl.a));
-  const fSecAvg = fGate.reduce((a, b) => a + b, 0) / Math.max(nGate, 1);
-  sec.canal.B = 6;
-  sec.canal.Hmax = 2.0;   /* saluran sekunder prototipe */
-  sec.canal.h = clamp(m(secNode.tmaHulu) * Math.pow(Math.max(fSecAvg, 0.02), 0.35), 0.02, sec.canal.Hmax * 1.05);
+  /* Muka air kedua saluran datang dari TAMPUNGANNYA, bukan lagi dari rumus
+     pangkat atas debit masuk. Debitnya pun dihitung dari bangunannya sendiri:
+     pintu intake & pintu tersier memakai persamaan lubang, sadapan ke petak
+     memakai ambang lebar. */
+  sec.canal.h = clamp(sec.canal.S / luasSec, 0.02, sec.canal.Hmax * 1.05);
   sec.gates.forEach((gt, i) => {
     gt.aMax = m(D.pintu.bukaanMaksCm);
-    state.Qsec[i] = (secNode.debit / Math.max(nGate, 1)) * fGate[i];
+    state.Qsec[i] = qIntakeAt(i, state.hUp, state.pool.h);
   });
-  state.QsecTotal = state.Qsec.reduce((a, b) => a + b, 0);
+  /* QsecTotal = yang MENGALIR DI saluran sekunder, yaitu keluaran kolam — bukan
+     jumlah debit pintu intake, yang sekarang berada di HULU kolam dan mengisi
+     kantong lumpur. Keduanya sama besar hanya pada keadaan mapan tanpa
+     pembilasan; begitu scouring dibuka, yang lewat intake lebih besar daripada
+     yang sampai ke saluran. */
+  state.QkeSek = qKeSekAt(state.pool.h, sec.canal.h);
+  state.QsecTotal = state.QkeSek;
   state.vSec = state.QsecTotal / (sec.canal.B * Math.max(sec.canal.h, 0.05));
+
+  /* KENDALI INTAKE BERANTAI — menjaga kolam lumpur DAN saluran sekunder.
+
+     Dari kolam ke sekunder tidak ada pintu tambahan, jadi kedua TMA tidak bisa
+     dipatok secara terpisah. Kendali menghitung titik setimbang yang kompatibel:
+
+       1. debit sasaran ke sekunder = debit keluar tersier + koreksi volume
+          menuju TMA sekunder target;
+       2. TMA kolam sasaran = TMA sekunder + (Qsek/Csek)^2;
+       3. debit intake = debit keluar kolam + koreksi volume menuju TMA kolam
+          sasaran.
+
+     Dengan itu kelebihan air di salah satu tampungan selalu menghasilkan umpan
+     balik negatif. Pada Normal/Banjir titik setimbang kolam kembali sekitar
+     1,36 m dan sekunder 1,00 m; saat Kemarau kolam boleh turun ke tinggi yang
+     kompatibel dengan kebutuhan tanam yang lebih kecil, tanpa membuat sekunder
+     meluap. Slider target kolam tetap menjadi batas operasi atas. */
+  const tauSek = 900;
+  const tauKolam = 900;
+  const qKeluarSekKini = qTertTotalAt(sec.canal.h);
+  const qKoreksiSek = (sec.targetLevel - sec.canal.h) * luasSec / tauSek;
+  const kapSekunder = (N[dummySekunderId()] || {}).kapasitas || Infinity;
+  const qTargetKeSek = clamp(qKeluarSekKini + qKoreksiSek, 0, kapSekunder);
+  const hKolamKompatibel = sec.canal.h + Math.pow(qTargetKeSek / Math.max(Csek, 1e-6), 2);
+  const hTargetKolam = clamp(hKolamKompatibel, 0.05,
+    Math.min(state.targetPoolLevel, state.pool.Hmax));
+  const qKoreksiKolam = (hTargetKolam - state.pool.h) * luasKolam / tauKolam;
+  const qTargetIntake = clamp(state.Qscour + state.QkeSek + qKoreksiKolam, 0, kapKolam);
+  const CintakeTotal = Cintake.reduce((a, b) => a + b, 0);
+  state.aIntakePerlu = clamp(
+    qTargetIntake / Math.max(CintakeTotal * Math.sqrt(Math.max(state.hUp - state.pool.h, 0.01)), 1e-6),
+    0, m(D.pintu.bukaanMaksCm));
+
 
   D.rantai.forEach((r, i) => {
     const t = N[r.tersier], tert = state.tertiary[i];
-    const fTert = fSecAvg * fr(tert.gate.ctrl.a);
-
-    tert.canal.B = 2.5;
-    /* Tinggi tanggul saluran tersier 1,20 → 0,30 m.
-     *
-     * 1,20 m tidak pernah sepadan dengan airnya. TMA tersier di BENDUNG_PANEL
-     * 13/15/11 cm, dan seluruh rentang tiga skenario cuma 8,2–20,8 cm — jadi
-     * kolom airnya menempati 6,8%–17,3% kotak, dan perpindahan kemarau → banjir
-     * bergerak 4,4 px dari 42 px kotak: terbaca sebagai "tersier tidak ikut naik"
-     * padahal TMA-nya naik 2,2x. Ambang levelStatus() pun tidak pernah beranjak
-     * (kemarau malah jatuh ke kelas "kering" pada 6,8%).
-     *
-     * 0,30 m mengikuti perbandingan yang sudah dipakai saluran sekunder — di sana
-     * tanggul 2,0 m terhadap muka air operasi 1,00 m. Hasilnya kedua saluran
-     * terbaca pada skala yang sama: sekunder 50%/69%/37% dan tersier 43%/69%/27%
-     * untuk normal/banjir/kemarau. */
-    tert.canal.Hmax = 0.30;
     tert.gate.aMax = m(D.pintu.bukaanMaksCm);
-    tert.canal.h = clamp(m(t.tmaHulu) * Math.pow(Math.max(fTert, 0.02), 0.35), 0.02, tert.canal.Hmax * 1.05);
-    state.Qtert[i] = t.debit * fTert;
-    state.Qfield[i] = t.debit * fTert;
+    tert.canal.h = clamp(tert.canal.S / luasTert[i], 0.02, tert.canal.Hmax * 1.05);
+    /* Qtert = yang lewat pintu tersier (masuk saluran); Qfield = yang lewat
+       ambang ke petak (keluar saluran). Dulu keduanya angka yang sama, jadi
+       saluran tersier tidak punya selisih masuk-keluar dan tidak bisa terisi
+       atau terkuras. */
+    state.Qtert[i] = qTertAt(i, sec.canal.h);
+    state.Qfield[i] = qFieldAt(i, tert.canal.h);
 
     state.areas[i] = { name: r.namaTersier, ha: t.luas };
-    state.vTert[i] = state.Qfield[i] / (tert.canal.B * Math.max(tert.canal.h, 0.05));
+    /* Arus memakai debit MASUK, sama seperti kolam & saluran sekunder. */
+    state.vTert[i] = state.Qtert[i] / (tert.canal.B * Math.max(tert.canal.h, 0.05));
+
+    /* Pintu tersier menyeimbangkan salurannya pada TMA yang menghasilkan debit
+       kebutuhan sawah. Debit masuk sasaran juga memuat koreksi volume, sehingga
+       pintu mengisi/menguras saluran sampai aliran ke petak stabil. */
+    const req = (state.duty * t.luas) / 1000;
+    const hTargetTert = req > 0
+      ? clamp(Math.pow(req / Math.max(Cfield[i], 1e-6), 2 / 3), 0.02, tert.canal.Hmax)
+      : 0.02;
+    const qTargetTert = clamp(
+      state.Qfield[i] + (hTargetTert - tert.canal.h) * luasTert[i] / 900,
+      0, (N['PG_TERSIER_' + (i + 1)] || {}).kapasitas || Infinity);
+    state.aTersierPerlu = state.aTersierPerlu || [0, 0, 0];
+    state.aTersierPerlu[i] = clamp(
+      qTargetTert / Math.max(Ctert[i] * Math.sqrt(Math.max(sec.canal.h, 0.02)), 1e-6),
+      0, tert.gate.aMax);
   });
 
   state.totalDemand = state.areas.reduce((a, x) => a + (state.duty * x.ha) / 1000, 0);
   state.totalDelivered = state.Qfield.reduce((a, q) => a + q, 0);
-  /* neraca: pintu scouring → irigasi, pintu floodway + limpasan ambang → hilir */
-  state.Qhilir = state.Qflood + state.Qspill
-               + Math.max(0, state.QgateTotal - state.totalDelivered);
-  state.pool.S = state.pool.h * state.river.B * FIXED.poolL;
-  state.secondary.canal.S = state.secondary.canal.h * state.secondary.canal.B * FIXED.secL;
-  state.tertiary.forEach(t => t.canal.S = t.canal.h * t.canal.B * FIXED.tertL);
-  state._dStotalDt = 0;
+  /* Yang sampai hilir: tiga jalan keluar bendung yang memang menuju sungai —
+     pintu floodway, limpasan mercu, dan pintu scouring yang membilas kolam.
+     Yang lewat pintu intake TIDAK ikut: ia masuk jaringan irigasi.
+
+     Rumus lama menambahkan `max(0, QgateTotal − totalDelivered)` sebagai
+     pengganti suku scouring, yaitu sisa pasokan yang tidak sampai petak. Itu
+     tebakan yang perlu selama scouring dianggap pemasok jaringan; sekarang
+     debitnya dihitung langsung, jadi tebakannya tidak diperlukan lagi. */
+  state.Qhilir = state.Qflood + state.Qspill + state.Qscour + (state.Qluap || 0);
+  /* Kedalaman & arus ruas hilir dihitung SEKALI di sini, bukan di updateSchematic
+     seperti dulu. Peta isometrik memerlukan angka yang sama untuk laju animasi
+     pin "hilir"; selama ini ia memakai state.vPool — arus KOLAM — sehingga ruas
+     sungai di bawah bendung beranimasi mengikuti kantong lumpur, bukan mengikuti
+     104 m³/dtk yang benar-benar lewat di depannya saat banjir. */
+  state.hHilir = manningInvertH(state.Qhilir, state.river.B, FIXED.nRiver,
+                                FIXED.S0River, state.river.Hmax * 1.05);
+  state.vHilir = state.hHilir > 0.01
+    ? state.Qhilir / (state.river.B * state.hHilir) : 0;
+  /* Tampungan hulu, kolam, saluran sekunder & ketiga tersier semuanya sudah
+     dijaga lingkar neraca di atas — TIDAK ditulis ulang di sini. Menuliskannya
+     ulang dari h × luas akan membatalkan integrasinya, dan muka air saluran
+     kembali tidak bisa terbendung. */
+  /* Laju perubahan tampungan, dipakai baris dS/dt panel Neraca Air. Dulu selalu
+     nol karena tidak ada tampungan mana pun yang bergerak pada mode data dummy.
+     Sekarang seluruh rantai punya tampungan sungguhan, dan mengabaikannya
+     membuat neraca terbaca timpang justru ketika ia paling benar: menutup
+     seluruh pintu berarti air tertahan — bukan hilang. */
+  state._dStotalDt = dStotalDt;
   dummyStatusStep();
 }
 
@@ -1561,7 +2178,31 @@ function initDummyGates() {
   if (!D) return;
   const m = (cm) => cm / 100;
   const aMax = m(D.pintu.bukaanMaksCm), a0 = m(D.pintu.bukaanMaksCm * D.pintu.bukaanPersen / 100);
-  state.primary.forEach(p => { p.aMax = aMax; p.manualA = a0; p.ctrl.a = a0; p.mode = 'auto'; });
+  /* Pintu primer dipasang di BUKAAN OPERASI ACUAN keadaan yang sedang dipilih,
+     bukan di bukaan acuan dummy 75% untuk semuanya.
+
+     Koefisien pintu dikalibrasi terhadap bukaan acuan itu (lihat
+     dummyBukaanAcuan), jadi memasang pintu di tempat lain membuat tampilan
+     pertama meleset dari snapshot sebelum kendali AUTO sempat bergerak. Pada
+     keadaan kemarau bukaan acuan floodway 0,21 m; dipasang di 0,75 m ia
+     melewatkan 3,6x jatahnya, dan debit hilir terbaca 16,34 m³/dtk sementara
+     sungai cuma membawa 4,79.
+
+     Pintu scouring tetap di bukaan acuan dummy: jatah pembilasnya memang
+     tertulis pada bukaan itu di tiap keadaan. */
+  const Nref = dummyScenarioNodes() || D.nodes;
+  const R0 = dummyBukaanAcuan(Nref);
+  state.primary.forEach(p => {
+    /* Pintu pengambilan dipasang di bukaan acuan: di situlah koefisien
+       pengisian kolam dikalibrasi, jadi tampilan pertama sama persis dengan
+       snapshot sebelum kendalinya mulai bergerak. */
+    const a = clamp(p.role === 'floodway' ? R0.aFlood : R0.aScour, 0, aMax);
+    p.aMax = aMax; p.manualA = a; p.ctrl.a = a; p.mode = 'auto';
+  });
+  /* Tampungan hulu dipatok ulang ke keadaan acuan: applyDummySnapshot()
+     berikutnya mengisinya dari muka air snapshot, bukan meneruskan muka air
+     yang tertinggal dari pemutaran sebelumnya. */
+  state.hulu = { S: 0, hMercu: 0, bMercu: 0, siap: false };
   state.targetPoolLevel = m(D.nodes.WEIR_COPONG.tmaHilir);
   /* TMA rencana di HULU bendung. Diambil dari `D.nodes`, muatan dummy DASAR - bukan
      dari `N`, potret skenario yang sedang berjalan (lihat dummyApply). Itu bedanya
@@ -1580,14 +2221,26 @@ function initDummyGates() {
 }
 
 /* Pintu mode AUTO bergerak menuju sasarannya; MANUAL mengikuti slider operator.
-   Susunannya bertingkat seperti kendali bendung sungguhan:
-     · pintu primer & scouring  → menahan TMA kolam pada tinggi operasi
-     · pintu pengambilan        → menahan TMA saluran sekunder
-     · pintu tersier            → mengejar kebutuhan air petaknya sendiri
-   Jadi saat keadaan hulu berganti, ketiganya bergerak sendiri sampai debit tiap
-   petak kembali ke angka kebutuhannya (status Ideal) — selama pasokan hulu
-   memang mencukupi. Kalau tidak, pintunya berhenti di bukaan maksimum dan
-   dicatat di log, bukan diam-diam menyerah. */
+
+   DUA LAPIS yang berbeda sifatnya, dan itu disengaja:
+
+     · PINTU PRIMER (floodway & scouring) mengikuti TABEL aturan operasi per
+       keadaan hulu — OPERASI_PRIMER. Ia tidak mengejar besaran ukur apa pun; ia
+       menempati posisi yang sudah ditetapkan untuk keadaan itu. Tugasnya
+       mengatur air di SUNGAI: menahan saat kurang, melewatkan saat berlebih.
+
+     · PINTU PENGAMBILAN & TERSIER tetap KENDALI UMPAN BALIK, masing-masing
+       mengejar debit yang dibutuhkan salurannya sendiri:
+         intake i   → debit yang lewat pintunya (Qsec[i])  vs kebutuhan rantainya
+         tersier i  → debit yang sampai petaknya (Qfield[i]) vs kebutuhan petaknya
+       Tugasnya menjaga aliran ke sawah tetap pada angka kebutuhan, berapa pun
+       yang sedang terjadi di sungai. Jadi ketika aturan primer menaikkan muka
+       air kolam (kemarau, seluruh pintu tertutup), pintu pengambilan MENUTUP
+       supaya sawah tidak kebanjiran; ketika kolam turun (banjir, penguras dibuka
+       penuh), ia MEMBUKA supaya sawah tidak kekurangan.
+
+   Kalau pasokan memang tidak cukup, pintu tersier berhenti di bukaan maksimum
+   dan dicatat di log, bukan diam-diam menyerah. */
 let dummyGateSatLog = -99999;
 function dummyGateStep() {
   const step = (g, delta, lim) => {
@@ -1595,133 +2248,111 @@ function dummyGateStep() {
     g.ctrl.a = clamp(g.ctrl.a + clamp(delta, -lim, lim), 0, g.aMax);
   };
 
-  const totalReq = state.areas.reduce((a, x) => a + (state.duty * x.ha) / 1000, 0);
+  /* ---- ATURAN OPERASI PINTU PRIMER ----
 
-  /* Besaran yang dipakai dua lingkar kendali di bawah — dihitung sekali di sini.
-     `normalNodes` = potret keadaan NORMAL, dipakai sebagai acuan kalibrasi: bukaan
-     acuan (bukaanPersen, biasanya 75%) memang bukaan yang benar untuk keadaan itu. */
-  const nodesKini = state.dummyNodes || {};
-  const normalNodes = (((window.WMS_DUMMY || {}).skenario || {}).normal || {}).nodes || {};
-  const P = (window.WMS_DUMMY || {}).pintu || {};
-  const aPintu = ((P.bukaanMaksCm || 100) * (P.bukaanPersen || 75) / 100) / 100;
-  const qKolam = (nodesKini[dummyIndukId()] || {}).debit || 0;
+     Mode AUTO pintu primer sekarang membaca TABEL aturan per keadaan hulu
+     (OPERASI_PRIMER), bukan model balik hidrolika seperti sebelumnya. Ini pola
+     operasi bendung gerak yang lazim, dan operator memintanya begitu:
 
-  /* Pintu floodway melimpaskan kelebihan debit sungai ke hilir.
+       kemarau  floodway TUTUP  · scouring TUTUP   → tahan air, muka air hulu naik
+       normal   floodway KERJA  · scouring TUTUP   → lewatkan debit, hemat bilasan
+       banjir   floodway PENUH  · scouring PENUH   → lewatkan banjir sebesar mungkin
 
-     DULU pintu ini mengejar TMA kolam: `step(p, (pool.h - targetPoolLevel) * 0.6, 0.04)`.
-     Dua hal membuatnya tidak pernah terlihat bergerak saat operator kembali ke
-     keadaan normal:
+     Yang dilepas bersamanya: model balik `a = aPintu × (Qlimpas/Qlimpas_normal) ×
+     √(h_normal/h)` beserta koreksi muka air hulunya. Keduanya menjaga muka air
+     hulu tetap di muka air snapshot — justru yang TIDAK diinginkan aturan ini:
+     pada kemarau bendung memang harus membendung, dan muka air hulu memang harus
+     naik jauh di atas angka snapshot.
 
-     1. Lingkarnya TERBUKA. `pool.h` dihitung di applyDummySnapshot() dari
-        `primFactor`, dan primFactor cuma menjumlah bukaan pintu SCOURING —
-        bukaan floodway sama sekali tidak masuk ke situ (ia cuma masuk ke
-        `state.Qflood` lewat floodFactor). Jadi besaran yang dikejar floodway tidak
-        pernah menanggapi gerakan floodway itu sendiri: galatnya tidak bisa ditutup,
-        dan pintu selalu berlari sampai mentok 0 atau aMax lalu berhenti di situ.
-     2. Di keadaan NORMAL galatnya nol PERSIS, jadi pintu tidak punya alasan
-        bergerak dan tertinggal di batas tempat skenario sebelumnya meninggalkannya.
-        Nolnya bukan kebetulan: targetPoolLevel diambil dari tma_hilir dasar
-        (136 cm) dan potret normal menghasilkan tma_hilir 136,0 cm juga
-        (fTma = 1,00^0,6 = 1); pintu scouring pun mengendap tepat di aPintu
-        sehingga primFactor = 1,0 dan pengali (1 + 0,28(1 - primFactor)) jadi 1,0.
-        Hasilnya: hujan→normal pintu terparkir di 1,00 m, kemarau→normal di 0,00 m,
-        dan tidak satu pun transisi MENUJU normal yang terlihat bergerak.
+     Akibatnya snapshot bukan lagi keadaan mapan, melainkan keadaan AWAL:
+     initDummyGates() memasang pintu di bukaan acuan (di situ angka tampilan sama
+     persis dengan snapshot), lalu aturan ini menggerakkannya ke posisi operasi
+     dan seluruh angka berpindah ke keadaan mapan yang baru. Pada kemarau muka
+     air hulu naik 0,49 → ±2,06 m dan debit hilir jatuh ke nol sampai limpasan
+     mercu mengambil alih; pada normal & banjir pergeserannya kecil.
 
-     SEKARANG bukaannya dihitung dari model baliknya, pola yang sama dengan pintu
-     scouring di bawah — lihat alasan panjangnya di sana. Debit pintu di bawah daun
-     sebanding a√h (persamaan lubang: Q = Cd·b·a·√(2gh)), jadi bukaan yang
-     dibutuhkan untuk melimpaskan Qlimpas pada tinggi tekan h:
+     dummyBukaanAcuan() TETAP dipakai — tapi hanya untuk mengkalibrasi koefisien
+     pintu di applyDummySnapshot() dan memasang posisi awal. Ia tidak boleh
+     memakai bukaan aturan: pada kemarau bukaannya nol, dan nol tidak bisa jadi
+     penyebut kalibrasi.
 
-       a = aPintu × (Qlimpas / Qlimpas_normal) × √(h_normal / h)
+     Gerakannya memakai pembatas laju penuh (`aTarget − a`, dijepit ±lim per
+     langkah), bukan penguatan 0,35 seperti dulu. Terhadap sasaran TETAP,
+     penguatan pecahan membuat pintu merayap makin lambat dan tidak pernah
+     benar-benar sampai; dengan pembatas laju ia bergerak rata lalu berhenti
+     TEPAT di sasarannya. */
+  const flood = state.primary.filter(p => p.role === 'floodway');
+  const aFloodTarget = bukaanOperasi('floodway');
+  flood.forEach(p => step(p, clamp(aFloodTarget, 0, p.aMax) - p.ctrl.a, 0.04));
 
-     Qlimpas memakai selisih yang sama dengan yang dipakai menghitung debit
-     floodway di applyDummySnapshot(), yaitu debit sungai dikurangi debit yang
-     masuk kolam — supaya bukaan dan angka debit yang tertulis bercerita sama.
+  /* Pintu scouring mengikuti tabel yang sama. Ia menguras kolam untuk membilas
+     endapan, jadi menutupnya pada keadaan normal & kemarau berarti air kolam
+     disimpan untuk irigasi alih-alih dibuang ke hilir — dan pada banjir dibuka
+     penuh, saat air memang berlebih dan endapan paling banyak terbawa.
 
-     Cd dan lebar daun tidak perlu diketahui: keduanya hilang dalam perbandingan
-     terhadap keadaan normal. Hasilnya bebas skala — stabil di ketiga keadaan — dan
-     tiap keadaan mendapat bukaan yang jelas berbeda, jadi pintunya benar-benar
-     menempuh jaraknya di kedua arah:
-       kemarau ≈ 0,21 m  ·  normal = 0,75 m  ·  banjir mentok aMax 1,00 m
-     Banjir memang mentok: bukaan yang dibutuhkan ±1,87 m, di atas bukaan maksimum
-     pintunya — itu cerita yang benar untuk keadaan banjir, bukan kebuntuan kendali.
-
-     CATATAN: sesudah perubahan ini tidak ada lagi pintu yang mengejar
-     state.targetPoolLevel pada mode data dummy. Setelan "Target TMA kolam" di
-     Konfigurasi tinggal menggambar garis acuan kolam di skematik (setSkAcuan
-     'Pool'); ia tetap dipakai kendali PI sungguhan di stepSimulation(). */
-  const flood = state.primary.filter(p => p.role !== 'scouring');
-  const huluNormal = normalNodes.WEIR_COPONG || normalNodes.AWLR_HULU || {};
-  const kolamNormal = normalNodes[dummyIndukId()] || {};
-  const qLimpasNormal = Math.max(0, (huluNormal.debit || 0) - (kolamNormal.debit || 0));
-  /* Batas bawah 0,05 m pada tinggi tekan: √h ada di penyebut, dan rekaman kemarau
-     sempat menyentuh TMA sangat rendah — tanpa batas ini bukaan yang diminta
-     meledak. */
-  const hNormal = Math.max((huluNormal.tmaHulu || 0) / 100, 0.05);
-  const qLimpas = Math.max(0, state.Qnat - qKolam);
-  const aFlood = qLimpasNormal > 0.0001
-    ? aPintu * (qLimpas / qLimpasNormal) * Math.sqrt(hNormal / Math.max(state.hUp, 0.05))
-    : aPintu;
-  /* Penguatan 0,35 & pembatas laju 0,04 m per langkah — penguatannya sama dengan
-     pintu scouring, lajunya tetap seperti floodway sebelumnya. */
-  flood.forEach(p => step(p, (clamp(aFlood, 0, p.aMax) - p.ctrl.a) * 0.35, 0.04));
-
-  /* Tiap lingkar kendali memegang SATU besaran ukur sendiri, dan ketiganya
-     bersusun dari hulu ke hilir:
-       scouring  → debit masuk jaringan (QgateTotal)
-       intake i  → debit yang lewat pintunya sendiri (Qsec[i])
-       tersier i → debit yang sampai petaknya (Qfield[i])
-     Dua percobaan sebelumnya gagal justru karena melanggar aturan itu. Yang
-     pertama mengikat scouring ke TMA kolam: menutupnya malah menaikkan TMA
-     (air tertahan) sehingga ia menutup lebih jauh lagi — umpan balik positif,
-     debit sawah runtuh ke 0,000 m³/dtk. Yang kedua mengikat pintu pengambilan
-     ke TMA saluran sekunder, padahal pada keadaan banjir tinggi 1,00 m hanya
-     tercapai bila debitnya jauh di bawah kebutuhan — kedua sasaran itu tidak
-     bisa dipenuhi bersamaan, dan pintunya menutup sampai 0,04 m. */
+     Lajunya 0,03 m per langkah, lebih lambat dari floodway 0,04: pintu penguras
+     lebih kecil dan tidak perlu bergerak secepat pintu banjir. */
   const scour = state.primary.find(p => p.role === 'scouring');
-  /* Jatah scouring = selisih debit kolam & saluran sekunder pada keadaan
-     normal; sisanya memang untuk membilas endapan, bukan untuk sawah. */
-  const jatahScour = Math.max(0, ((normalNodes.AWLR_KOLAM || {}).debit || 0) - ((normalNodes.AWLR_SEKUNDER || {}).debit || 0));
-  const targetPasok = totalReq + jatahScour;
-  if (scour) {
-    /* Langkahnya dihitung dalam satuan BUKAAN, bukan langsung dari galat debit.
+  if (scour) step(scour, clamp(bukaanOperasi('scouring'), 0, scour.aMax) - scour.ctrl.a, 0.03);
 
-       Rumus lama `(targetPasok − QgateTotal)/targetPasok × 0,5` memakai
-       penguatan tetap 0,5 terhadap galat relatif, padahal kepekaan debit
-       terhadap bukaan berubah drastis antar keadaan:
-         QgateTotal = debit_kolam × bukaan/aPintu
-         penguatan lingkar = 0,5 × (debit_kolam/aPintu) / targetPasok
-       Normal   : 0,5 × (0,56/0,75)/0,56  = 0,67  → stabil
-       Kemarau  : 0,5 × (0,31/0,75)/0,43  = 0,47  → stabil
-       Banjir   : 0,5 × (2,07/0,75)/0,56  = 2,47  → DI ATAS BATAS 2
-       Integrator diskret dengan penguatan >2 tidak mengendap, ia berayun
-       membesar sampai ditahan pembatas laju ±0,03 m — hasilnya bukaan
-       melompat naik-turun tiap tick (260 ms). Karena Qsec dan Qfield sebanding
-       dengan bukaan pintu ini, seluruh jaringan di bawahnya ikut bergetar:
-       itulah "kejang-kejang" yang hanya muncul pada skenario banjir.
 
-       Sekarang bukaan yang dibutuhkan dihitung dari model baliknya, lalu pintu
-       bergerak ke sana dengan penguatan tetap 0,35 dan pembatas laju yang sama.
-       Penguatannya jadi bebas skala — stabil di ketiga keadaan — dan pintunya
-       tetap terlihat bergerak bertahap, tidak melompat. */
-    /* aPintu & qKolam dihoist ke kepala fungsi — lingkar floodway memakai keduanya. */
-    const aPerlu = qKolam > 0.0001
-      ? clamp(targetPasok * aPintu / qKolam, 0, scour.aMax)
-      : scour.aMax;
-    step(scour, (aPerlu - scour.ctrl.a) * 0.35, 0.03);
-  }
+  /* ---- PINTU PENGAMBILAN & TERSIER: menjaga aliran ke sawah ----
 
+     Keduanya memakai MODEL BALIK, bukan penguatan terhadap galat debit seperti
+     sebelumnya. Alasannya kestabilan.
+
+     Rumus lama `(req − Q)/req × penguatan` menghasilkan galat relatif yang bisa
+     sangat besar: saat operator berpindah ke keadaan banjir, saluran sekunder
+     menerima 1,332 m³/dtk terhadap kebutuhan 0,360 — galat relatifnya −2,7,
+     jadi langkahnya mentok pembatas laju ±0,015 m dan pintu berlari pada laju
+     maksimum sepanjang perjalanan 0,75 → 0,20 m. Pintu yang berlari penuh
+     melewati titik setimbangnya sebelum galatnya sempat berbalik: pemenuhan
+     sawah menukik dari 370% ke 77% (status "Kurang") sebelum akhirnya pulih ke
+     100% — kartu petak berkedip merah padahal air justru berlimpah.
+
+     Model baliknya sama seperti yang dulu dipakai pintu primer. Debit lewat
+     bawah daun sebanding a√h, jadi bukaan yang melewatkan kebutuhan rantai:
+
+       intake i  : a = aPintu × (req_i / q_intake_acuan_i) × √(h_kolam_acuan / h_kolam)
+       tersier i : a = aPintu × (req_i / q_tersier_acuan_i) / f_sekunder
+
+     Pada bukaan acuan hasilnya aPintu persis, jadi keadaan normal tidak
+     bergeser. Pintu lalu bergerak ke sana dengan pembatas laju yang sama —
+     rata, tanpa melampaui, dan berhenti tepat di sasarannya.
+
+     √(h_acuan/h) itulah yang membuat pintu menanggapi aturan primer: saat
+     kemarau menutup seluruh pintu dan muka air kolam naik 0,47 → 2,03 m, tinggi
+     tekannya melonjak dan bukaan yang dibutuhkan MENGECIL — pintu menutup
+     sendiri supaya sawah tidak kelebihan air. */
   const sec = state.secondary;
-  sec.gates.forEach((gt, i) => {
-    const reqRantai = (state.duty * state.areas[i].ha) / 1000;
-    step(gt, (reqRantai - state.Qsec[i]) / Math.max(reqRantai, 0.01) * 0.03, 0.015);
+  /* PINTU INTAKE — sasarannya MUKA AIR KANTONG LUMPUR, bukan debit petak.
+
+     Pintu ini berdiri di mulut kolam, jadi dialah satu-satunya yang menentukan
+     berapa banyak air masuk. Menutupnya menurunkan muka air kolam, membukanya
+     menaikkan — umpan balik negatif, dan sasarannya bisa dikejar.
+
+     Debit ke petak TIDAK diurus di sini melainkan oleh pintu tersier di
+     hilirnya. Susunan bertingkat itu yang membuat keduanya bisa dipenuhi
+     sekaligus: kolam yang stabil di tinggi operasi memberi pasokan yang stabil
+     ke saluran induk, lalu pintu tersier membagi-baginya menurut kebutuhan tiap
+     petak. Selama intake juga memikul sasaran debit petak, keduanya bertabrakan
+     dan salah satu selalu meleset.
+
+     Bukaan yang diminta dihitung applyDummySnapshot() dari model baliknya
+     (state.aIntakePerlu). */
+  sec.gates.forEach((gt) => {
+    const aPerlu = state.aIntakePerlu != null
+      ? clamp(state.aIntakePerlu, 0, gt.aMax) : gt.aMax;
+    step(gt, aPerlu - gt.ctrl.a, 0.015);
   });
 
   let kurang = false, mentok = false;
   for (let i = 0; i < 3; i++) {
     const req = (state.duty * state.areas[i].ha) / 1000;
     const g = state.tertiary[i].gate;
-    step(g, (req - state.Qfield[i]) / Math.max(req, 0.01) * 0.05, 0.03);
+    const aPerluT = state.aTersierPerlu && state.aTersierPerlu[i] != null
+      ? clamp(state.aTersierPerlu[i], 0, g.aMax) : g.aMax;
+    step(g, aPerluT - g.ctrl.a, 0.03);
     if (g.mode === 'auto' && state.Qfield[i] < req * 0.85) {
       kurang = true;
       if (g.ctrl.a >= g.aMax - 0.005) mentok = true;
@@ -1743,7 +2374,10 @@ function dummyAutoSettle(detik) {
   let sisa = Math.round((detik || 6) * 1000 / 80);
   dummySettle = setInterval(() => {
     dummyGateStep();
-    applyDummySnapshot(dummyMinute);
+    /* 120 detik hidraulik per bingkai: waktu rekaman tetap tidak maju, tetapi
+       tampungan besar (terutama kantong lumpur) diberi cukup waktu untuk benar-
+       benar mencapai titik stabil selama animasi kendali dua belas detik. */
+    applyDummySnapshot(dummyMinute, 120);
     render();
     if (--sisa <= 0) { clearInterval(dummySettle); dummySettle = null; }
   }, 80);
@@ -1773,7 +2407,9 @@ let dummyStatusTerakhir = 'NORMAL';
 const STATUS_URUT = ['NORMAL', 'WASPADA', 'SIAGA', 'AWAS'];
 function dummyStatusStep() {
   const hMax = state.river.Hmax || 1;
-  const rTma = Math.max(state.hUp / hMax, state.pool.h / hMax);
+  /* Tiap ruas dibandingkan dengan tanggulnya SENDIRI: hulu dengan tanggul sungai,
+     kolam dengan tanggul kolam. Lihat POOL_HMAX. */
+  const rTma = Math.max(state.hUp / hMax, state.pool.h / (state.pool.Hmax || hMax));
   const stTma = rTma >= 0.95 ? 'AWAS' : rTma >= 0.80 ? 'SIAGA' : rTma >= 0.60 ? 'WASPADA' : 'NORMAL';
 
   const kapSungai = ((state.dummyNodes || {}).WEIR_COPONG || {}).kapasitas || 0;
@@ -1792,10 +2428,16 @@ function dummyStatusStep() {
   }
 }
 
-/* Hitung ulang seluruh panel dari posisi pintu saat ini (dipakai saat dijeda). */
+/* Hitung ulang seluruh panel dari posisi pintu saat ini (dipakai saat dijeda).
+
+   `dt` 30 detik rekaman per panggilan: operator yang menggeser slider bukaan
+   saat pemutaran dijeda harus melihat muka air hulu menanggapinya, bukan diam
+   sampai tombol Jalankan ditekan. Satu geseran slider memicu banyak kejadian
+   `input`, jadi menutup pintu sampai habis sudah cukup untuk memperlihatkan
+   hulu mulai naik dan hilir mulai turun. */
 function dummyRefresh() {
   dummyGateStep();
-  applyDummySnapshot(dummyMinute);
+  applyDummySnapshot(dummyMinute, 30);
   render();
 }
 
@@ -1850,21 +2492,25 @@ function seedDummyCharts() {
      menit dengan RUMUS YANG SAMA yang dipakai applyDummySnapshot(). Kalau dihitung
      dengan cara lain, garis histori dan nilai berjalan akan bertemu di titik yang
      berbeda tepat pada menit terakhir, dan sambungannya terlihat melompat.
-       sungai  : Manning atas TMA-nya (B 30 m, n 0,034, S₀ 0,00035)
-       saluran : Q / (lebar × TMA), dengan TMA berbatas bawah 0,05 m */
-  const arusSungai = (id, kolom) => {
-    const d = (H[id] || {})[kolom || 'tma'];
-    if (!d) return null;
-    return labels.map((_, i) => +manningCalc(d[i] / 100, state.river.B, FIXED.nRiver, FIXED.S0River).V.toFixed(3));
-  };
-  const arusSaluran = (id, B) => {
-    const dh = (H[id] || {}).tma, dq = (H[id] || {}).debit;
+     SEMUA ruas kini memakai rumus yang sama: Q / (lebar × TMA), dengan TMA
+     berbatas bawah 0,05 m. Manning dilepas dari sini bersamaan dengan
+     dilepasnya dari state.vUp & state.vPool — ruas hulu dan kolam bendung
+     keduanya genangan di belakang bendung, bukan aliran seragam yang menuruni
+     kemiringan, dan Manning memberi arah terbalik untuk keduanya (makin tinggi
+     muka air karena dibendung, makin cepat menurut Manning). Alasan lengkapnya
+     di state.vUp pada applyDummySnapshot().
+
+     Kolomnya bisa dipilih karena TMA kolam tersimpan di kolom tmaHilir simpul
+     AWLR_KOLAM, bukan di tma. */
+  const arusRuas = (id, B, kolom) => {
+    const dh = (H[id] || {})[kolom || 'tma'], dq = (H[id] || {}).debit;
     if (!dh || !dq) return null;
     return labels.map((_, i) => +(+dq[i] / (B * Math.max(dh[i] / 100, 0.05))).toFixed(3));
   };
+  const arusSaluran = (id, B) => arusRuas(id, B, 'tma');
   fill(chartArusMain, [
-    arusSungai('AWLR_HULU') || datar(state.vUp, 3),
-    arusSungai('AWLR_KOLAM', 'tmaHilir') || datar(state.vPool, 3),
+    arusRuas('AWLR_HULU', state.river.B, 'tma') || datar(state.vUp, 3),
+    arusRuas('AWLR_KOLAM', state.river.B, 'tmaHilir') || datar(state.vPool, 3),
   ]);
   fill(chartArusSub, [
     arusSaluran(dummySekunderId(), state.secondary.canal.B) || datar(state.vSec, 3),
@@ -1901,6 +2547,7 @@ function render() {
   updateIsoLabels();
   updateIsoWaterColors();
   updateIsoLeaves();
+  updatePetakTip();
   renderPosPop();
   updateFormulaTab();
   updateCharts();
@@ -2080,7 +2727,7 @@ function buildConfigTab() {
         <div class="assumption-box">Luas penampang basah saat ini = B × TMA (dihitung otomatis tiap saat). Kekasaran Manning n=${FIXED.nRiver}, kemiringan dasar S₀=${FIXED.S0River} (asumsi tetap, sungai alami).</div>
       </div>
       <div class="cfg-card"><h4>Target Kolam Bendung</h4>
-        ${numField('Target TMA kolam (mode Auto)', 'cfgTargetPool', state.targetPoolLevel, 0.1, 0.5, state.river.Hmax, ' m')}
+        ${numField('Target TMA kolam (mode Auto)', 'cfgTargetPool', state.targetPoolLevel, 0.1, 0.5, state.pool.Hmax, ' m')}
         <div class="assumption-box">Panjang kolam diasumsikan tetap ${FIXED.poolL} m.</div>
       </div>
       <div class="cfg-card"><h4>Kondisi Awal</h4>
@@ -2198,7 +2845,7 @@ function buildConfigTab() {
   // ---- wire live updates ----
   el('cfgRiverB').addEventListener('input', e => state.river.B = clamp(parseFloat(e.target.value) || 1, 5, 100));
   el('cfgRiverHmax').addEventListener('input', e => state.river.Hmax = clamp(parseFloat(e.target.value) || 1, 2, 15));
-  el('cfgTargetPool').addEventListener('input', e => state.targetPoolLevel = clamp(parseFloat(e.target.value) || 0.5, 0.5, state.river.Hmax));
+  el('cfgTargetPool').addEventListener('input', e => state.targetPoolLevel = clamp(parseFloat(e.target.value) || 0.5, 0.5, state.pool.Hmax));
   /* Kotak duty hanya ada saat data nyata dipakai; pada mode dummy angkanya
      dibaca dari skenario (dummyDuty()) dan ditampilkan sebagai bacaan hidup. */
   const dutyInput = el('cfgDuty');
@@ -2236,10 +2883,10 @@ function modeToggleHtml(role, current) {
 
 function buildControlTab() {
   const wrap = el('controlBody');
-  let html = `<div class="cfg-section-title"><span class="n">P</span> Pintu Primer — 3 Floodway (ke hilir) + Scouring (ke saluran)</div>
+  let html = `<div class="cfg-section-title"><span class="n">P</span> Pintu Primer — 3 Floodway + Scouring (keduanya ke hilir)</div>
     <div class="field" style="max-width:420px;">
       <label>Target TMA kolam (mode Auto) <b id="lblTargetPool">${state.targetPoolLevel.toFixed(2)} m</b></label>
-      <input type="range" id="sliderTargetPool" min="0.5" max="${state.river.Hmax}" step="0.05" value="${state.targetPoolLevel}">
+      <input type="range" id="sliderTargetPool" min="0.5" max="${state.pool.Hmax}" step="0.05" value="${state.targetPoolLevel}">
     </div>
     <div class="grid3" id="ctrlPrimaryGrid"></div>
     <div class="cfg-section-title"><span class="n">S</span> Pintu Pengambilan — 3 unit menuju satu Saluran Sekunder</div>
@@ -2574,6 +3221,13 @@ function buildFormulaTab() {
     </div>
 
     <div class="formula-card">
+      <h3>3b. Limpasan Mercu &amp; Tampungan Hulu Bendung</h3>
+      <p>Air yang tidak lewat pintu tidak lenyap: ia tertahan di hulu bendung sampai muka airnya melewati mercu, lalu melimpas ke hilir. Inilah yang membuat menutup seluruh pintu menaikkan muka air hulu dan menurunkan debit hilir — sampai limpasan mercu mengambil alih.</p>
+      <div class="formula-box">Q<sub>mercu</sub> = C<sub>w</sub>·b<sub>mercu</sub>·max(0, h<sub>hulu</sub>−h<sub>mercu</sub>)<sup>3/2</sup> &nbsp;|&nbsp; dS<sub>hulu</sub>/dt = Q<sub>sungai</sub> − (Q<sub>scouring</sub>+Q<sub>floodway</sub>+Q<sub>mercu</sub>)</div>
+      <div class="formula-live">C<sub>w</sub>=${MERCU_CW}, b<sub>mercu</sub>=<b id="fMercuB">-</b> m, h<sub>mercu</sub>=<b id="fMercuH">-</b> m, h<sub>hulu</sub>=<b id="fMercuHu">-</b> m → Q=<b id="fMercuQ">-</b> m³/s</div>
+    </div>
+
+    <div class="formula-card">
       <h3>4. Ambang Lebar Menuju Petak Sawah</h3>
       <p>Air dari saluran tersier masuk ke petak sawah melalui bangunan sadap bebas (tidak bermotor) — dimodelkan sebagai ambang lebar sederhana.</p>
       <div class="formula-box">Q<sub>sawah</sub> = C<sub>w</sub>·b·h<sup>3/2</sup></div>
@@ -2582,7 +3236,7 @@ function buildFormulaTab() {
 
     <div class="formula-card" style="grid-column:1/-1;">
       <h3>5. Neraca Air Total (Uji Konservasi Massa)</h3>
-      <p>Memastikan seluruh debit sungai di hulu bendung sama dengan jumlah yang tersalur ke 3 sawah, debit ke hilir, dan laju perubahan tampungan total seluruh jaringan (kolam + saluran sekunder + 3 saluran tersier).</p>
+      <p>Memastikan seluruh debit sungai di hulu bendung sama dengan jumlah yang tersalur ke 3 sawah, debit ke hilir, dan laju perubahan tampungan total (tampungan hulu bendung + kolam + saluran sekunder + 3 saluran tersier). Menutup pintu membuat dS/dt melonjak positif — air tertahan di hulu, bukan hilang — lalu kembali ke nol setelah muka airnya setimbang di atas mercu.</p>
       <p class="note">Volume kendalinya dimulai dari SUNGAI, bukan dari pintu. Dulu debit masuk dihitung <i>scouring + floodway</i>, jadi air sungai yang tidak masuk pintu mana pun berada di luar neraca — dan pada keadaan kemarau 3,17 m³/dtk (66% debit sungai) memang hilang tanpa membuat selisihnya bergerak. Dengan Q<sub>sungai</sub> sebagai pembilang, kebocoran seperti itu langsung terbaca di baris Selisih.</p>
       <div class="formula-box">Q<sub>sungai hulu</sub> = ΣQ<sub>sawah</sub> + Q<sub>hilir</sub> + dS<sub>total</sub>/dt</div>
       <table class="data-table">
@@ -2591,6 +3245,7 @@ function buildFormulaTab() {
         <tr><td>Debit ke hilir</td><td id="fBalHilir">-</td></tr>
         <tr><td style="padding-left:22px;">— lewat 3 pintu floodway</td><td id="fBalFlood">-</td></tr>
         <tr><td style="padding-left:22px;">— melimpas di atas ambang bendung</td><td id="fBalSpill">-</td></tr>
+        <tr><td style="padding-left:22px;">— lewat pintu scouring (pembilas kolam)</td><td id="fBalScour">-</td></tr>
         <tr><td>dS<sub>total</sub>/dt</td><td id="fBalDs">-</td></tr>
         <tr><td><b>Selisih neraca</b></td><td id="fBalErr">-</td></tr>
       </table>
@@ -2635,6 +3290,12 @@ function updateFormulaTab() {
   el('fWeirH').textContent = state.tertiary[0].canal.h.toFixed(2);
   el('fWeirQ').textContent = state.Qfield[0].toFixed(3);
 
+  const hu = state.hulu || {};
+  el('fMercuB').textContent = (hu.bMercu || 0).toFixed(1);
+  el('fMercuH').textContent = (hu.hMercu || 0).toFixed(2);
+  el('fMercuHu').textContent = state.hUp.toFixed(2);
+  el('fMercuQ').textContent = (state.Qspill || 0).toFixed(2);
+
   const dStotalDt = state._dStotalDt || 0;
   /* Volume kendali dimulai dari SUNGAI, bukan dari pintu — lihat catatan di
      kartu Neraca Air. Dengan Qnat sebagai pembilang, air sungai yang tidak masuk
@@ -2646,6 +3307,7 @@ function updateFormulaTab() {
   el('fBalHilir').textContent = state.Qhilir.toFixed(2) + ' m³/s';
   el('fBalFlood').textContent = (state.Qflood || 0).toFixed(2) + ' m³/s';
   el('fBalSpill').textContent = (state.Qspill || 0).toFixed(2) + ' m³/s';
+  el('fBalScour').textContent = (state.Qscour || 0).toFixed(3) + ' m³/s';
   el('fBalDs').textContent = dStotalDt.toFixed(2) + ' m³/s';
   const errEl = el('fBalErr');
   errEl.textContent = err.toFixed(2) + ' m³/s';
@@ -2852,7 +3514,7 @@ function gulirKeMenit(target, selesai) {
     }
     dummyMinute += Math.sign(tujuan - dummyMinute);
     dummyGateStep();                    /* pintu ikut menyesuaikan sepanjang jalan */
-    applyDummySnapshot(dummyMinute);
+    applyDummySnapshot(dummyMinute, 60);
     render();
   }, 70);
 }
@@ -2869,6 +3531,10 @@ function setScenario(name, label) {
   const j = dummyJendela((DUMMY_SCENARIO[name] || {}).key);
   const peralihan = ((window.WMS_DUMMY || {}).histori || {}).peralihanMenit || 0;
   if (!j) {
+    /* Tanpa jendela rekaman keadaan berganti seketika, jadi tampungan hulu
+       dipatok ulang ke muka air acuan keadaan yang baru — tidak ada masa
+       peralihan yang bisa dilaluinya. */
+    state.hulu.siap = false;
     applyDummySnapshot(dummyMinute);
     render();
     seedDummyCharts();
@@ -2879,13 +3545,15 @@ function setScenario(name, label) {
     /* Kendali AUTO dibiarkan bekerja sesaat supaya pintu terlihat mengejar
        kebutuhan petak di keadaan yang baru, bukan diam sampai tombol
        Jalankan ditekan. */
-    dummyAutoSettle(8);
+    dummyAutoSettle(12);
   });
 }
 
 function resetSimulation() {
+  const scenarioAktif = state.scenario;
   const fresh = freshState();
   Object.keys(fresh).forEach(k => { state[k] = fresh[k]; });
+  tandaiSkenario(scenarioAktif);
   state.pool.S = state.pool.h * state.river.B * FIXED.poolL;
   state.secondary.canal.S = state.secondary.canal.h * state.secondary.canal.B * FIXED.secL;
   state.tertiary.forEach(t => t.canal.S = t.canal.h * t.canal.B * FIXED.tertL);
@@ -2893,13 +3561,12 @@ function resetSimulation() {
   el('logList').innerHTML = '';
   [chartLevelMain, chartLevelSub, chartDebitMain, chartDebitField, chartArusMain, chartArusSub].forEach(c => { c.data.labels = []; c.data.datasets.forEach(d => d.data = []); c.update('none'); });
   buildConfigTab(); buildControlTab(); buildSawahCards(); buildGateStatus();
-  ['scNormal', 'scFlood', 'scDrought'].forEach(id => el(id).classList.remove('on'));
-  el('scNormal').classList.add('on');
   if (NO_DATA) {
     /* Reset mengembalikan kursor ke awal jendela keadaan yang SEDANG dipilih,
        bukan memaksa kembali ke Normal — pilihan operator dihormati. */
     dummyMinute = dummyRentangPutar().mulai;
     initDummyGates();
+    terapkanOperasiPrimerLangsung();
     applyDummySnapshot(dummyMinute);
   }
   pushLog(NO_DATA ? 'Pemutaran dikembalikan ke awal jendela keadaan yang dipilih.' : 'Simulasi direset ke kondisi awal (parameter default).', 'info');
@@ -2921,11 +3588,13 @@ function tick() {
        Masa peralihan di awal jendela dilewati supaya tiap putaran tidak
        mengulang lerengnya. */
     const r = dummyRentangPutar();
-    dummyMinute += Math.max(1, Math.round(state.speed / 4));
+    const langkahMenit = Math.max(1, Math.round(state.speed / 4));
+    dummyMinute += langkahMenit;
     if (dummyMinute > r.akhir || dummyMinute < r.mulai) dummyMinute = r.mulai;
     state.simTime += 60;
     dummyGateStep();
-    applyDummySnapshot(dummyMinute);
+    /* Waktu rekaman yang berlalu — dipakai neraca tampungan hulu. */
+    applyDummySnapshot(dummyMinute, langkahMenit * 60);
   } else {
     for (let i = 0; i < state.speed; i++) stepSimulation();
   }
@@ -2933,15 +3602,17 @@ function tick() {
 }
 
 function boot() {
-  initDummyGates();
   dummyMinute = dummySpan();
   tandaiSkenario(dummySkenarioDiMenit(dummyMinute));
+  initDummyGates();
+  terapkanOperasiPrimerLangsung();
   applyDummySnapshot(dummyMinute);
   buildSchematic();
   buildIsoMap();
   initIsoMapControls();
   initIsoWater();
   initMapTabs();
+  initCollapsiblePanels();
   buildSawahCards();
   buildGateStatus();
   buildConfigTab();
@@ -3394,29 +4065,315 @@ function initPinDrag() {
 
 function setPinEdit(on) {
   pinEdit = on;
+  if (on && petakEdit) setPetakEdit(false);
   const scroll = el('isoScroll'), wrap = el('isoMapPanel'), btn = el('mapEditPins');
   scroll.classList.toggle('pin-edit', on);
   wrap.classList.toggle('pin-edit-on', on);
   btn.classList.toggle('on', on);
-  el('mapPinsReset').style.display = on ? '' : 'none';
-  el('mapPinsCopy').style.display = on ? '' : 'none';
-  if (on) closePosPop();
+  tampilTombolSalin();
+  if (on) { closePosPop(); tutupPetakTip(); }
 }
 
 function copyPinCoords() {
   const txt = Object.keys(ISO_POS).map(k =>
     `  ${k}: [${Math.round(ISO_POS[k][0])}, ${Math.round(ISO_POS[k][1])}],`).join('\n');
-  const out = 'const ISO_POS = {\n' + txt + '\n};';
-  const btn = el('mapPinsCopy'), old = btn.textContent;
-  const done = () => { btn.textContent = '✓ Tersalin'; setTimeout(() => { btn.textContent = old; }, 1400); };
-  if (navigator.clipboard) navigator.clipboard.writeText(out).then(done, () => console.log(out));
-  else { console.log(out); done(); }
+  salinKeClipboard('const ISO_POS = {\n' + txt + '\n};', el('mapPinsCopy'));
+}
+
+/* =========================================================================
+   PETAK SAWAH DI PETA ISOMETRIK
+   -------------------------------------------------------------------------
+   Ilustrasi isometriknya raster, jadi petak sawahnya cuma gambar — tidak ada
+   yang bisa disorot atau diklik. Blok ini menaruh POLIGON tak terlihat di atas
+   petaknya, pada lapisan SVG yang sama dengan pin pos (#isoSvg, viewBox
+   1300x731). Menyorotnya memunculkan bacaan petak itu: luas, TMA saluran
+   tersier yang mengairinya, arus, dan debit terhadap kebutuhannya.
+
+   Poligon, bukan persegi: petak pada gambar isometrik berbentuk jajaran genjang
+   miring, dan persegi pembungkusnya selalu memakan jalan, sungai, atau rumpun
+   pohon di sebelahnya — bacaan muncul saat kursor jelas-jelas tidak di sawah.
+
+   Digambar SEBELUM pin supaya pin tetap di atas: SVG tidak punya z-index,
+   urutan simpul yang menentukan (lihat angkatPinKeDepan). Jadi pin tidak pernah
+   terhalang poligon, dan klik pin tetap sampai ke pin.
+
+   ANGKA DI BAWAH TAKSIRAN AWAL, dibaca dari ilustrasinya. Rapikan lewat tombol
+   "▱ Petak" di peta — tarik titik sudutnya, klik di luar petak untuk menambah
+   sudut, klik kanan pada sudut untuk membuangnya — lalu "⧉ Salin Koordinat"
+   menuliskan blok pengganti untuk ditempel ke sini. Selama belum ditempel,
+   hasil geseran tersimpan di localStorage peramban yang dipakai menggambar. */
+const ISO_PETAK_DEFAULT = {
+  ter0: [[274, 199], [332, 196], [340, 233], [278, 242]],
+  ter1: [[222, 299], [302, 286], [318, 360], [232, 373]],
+  ter2: [[350, 291], [437, 300], [430, 364], [330, 360]],
+};
+const ISO_PETAK = JSON.parse(JSON.stringify(ISO_PETAK_DEFAULT));
+const PETAK_POS_KEY = 'wmsIsoPetak';
+let petakEdit = false, petakAktif = 'ter0', petakDrag = null;
+/* Petak yang bacaannya sedang tampil, atau null kalau tidak ada. Dibuka dan
+   ditutup dengan klik — lihat penyimak 'click' di initPetakSawah(). */
+let petakTip = null;
+
+const petakIndex = (id) => Math.max(0, Math.min(2, parseInt(String(id).slice(3), 10) || 0));
+
+function loadPetakPos() {
+  try {
+    const s = JSON.parse(localStorage.getItem(PETAK_POS_KEY) || '{}');
+    Object.keys(s).forEach(k => {
+      if (ISO_PETAK[k] && Array.isArray(s[k]) && s[k].length >= 3) {
+        ISO_PETAK[k] = s[k].map(p => [+p[0], +p[1]]);
+      }
+    });
+  } catch (e) {}
+}
+function savePetakPos() {
+  const o = {};
+  Object.keys(ISO_PETAK).forEach(k => { o[k] = ISO_PETAK[k].map(p => [Math.round(p[0]), Math.round(p[1])]); });
+  try { localStorage.setItem(PETAK_POS_KEY, JSON.stringify(o)); } catch (e) {}
+}
+function resetPetakPos() {
+  Object.keys(ISO_PETAK_DEFAULT).forEach(k => { ISO_PETAK[k] = ISO_PETAK_DEFAULT[k].map(p => p.slice()); });
+  try { localStorage.removeItem(PETAK_POS_KEY); } catch (e) {}
+  buildIsoMap(); updateIsoLabels(); updateIsoWaterColors(); layoutIsoLabels(true);
+}
+function copyPetakCoords() {
+  const txt = Object.keys(ISO_PETAK).map(k =>
+    '  ' + k + ': [' + ISO_PETAK[k].map(p => '[' + Math.round(p[0]) + ', ' + Math.round(p[1]) + ']').join(', ') + '],').join('\n');
+  salinKeClipboard('const ISO_PETAK_DEFAULT = {\n' + txt + '\n};', el('mapPinsCopy'));
+}
+
+/* Penyalin bersama koordinat pin & petak: satu tombol yang sama dipakai kedua
+   mode, jadi umpan balik "✓ Tersalin"-nya juga satu tempat. */
+function salinKeClipboard(teks, btn) {
+  const old = btn ? btn.textContent : '';
+  const done = () => { if (!btn) return; btn.textContent = '✓ Tersalin'; setTimeout(() => { btn.textContent = old; }, 1400); };
+  if (navigator.clipboard) navigator.clipboard.writeText(teks).then(done, () => { console.log(teks); done(); });
+  else { console.log(teks); done(); }
+}
+
+/* Markup satu petak. Titik sudutnya hanya digambar saat mode gambar menyala —
+   di luar itu poligonnya benar-benar tak terlihat sampai disorot. */
+function petakMarkup(id) {
+  const pts = ISO_PETAK[id].map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const i = petakIndex(id);
+  const nama = (state.areas[i] || {}).name || String(i + 1);
+  const aktif = petakEdit && id === petakAktif ? ' aktif' : '';
+  let sudut = '';
+  if (petakEdit) {
+    sudut = ISO_PETAK[id].map((p, k) =>
+      `<circle class="petak-vtx" data-petak="${id}" data-idx="${k}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4.5"/>`).join('');
+  }
+  return `<g class="iso-petak${aktif}" data-petak="${id}">`
+    + `<polygon class="petak-area" points="${pts}"><title>Petak ${nama}</title></polygon>${sudut}</g>`;
+}
+
+/* ---- bacaan yang muncul saat petak disorot ---- */
+/* Angkanya diambil dari sumber yang SAMA dengan kartu petak di bawah peta dan
+   dengan skematik — termasuk irrigationStatus(). Kalau bacaannya dihitung
+   sendiri di sini, satu petak bisa terbaca "Kurang" di peta tapi "Cukup" di
+   kartunya, dan tidak ada cara menebak mana yang benar. */
+function petakTipIsi(id) {
+  const i = petakIndex(id);
+  const a = state.areas[i] || { name: String(i + 1), ha: 0 };
+  const req = (state.duty * a.ha) / 1000;
+  const q = state.Qfield[i] || 0;
+  const st = irrigationStatus(q, req);
+  const pers = req > 0.0001 ? (q / req) * 100 : 100;
+  const baris = (label, nilai) => `<div class="petak-tip-baris"><span>${label}</span><b>${nilai}</b></div>`;
+  return `<div class="petak-tip-kepala">Petak ${a.name}<span class="petak-tip-status ${st.cls}">${st.label}</span></div>`
+    + baris('Luas', (+a.ha || 0).toFixed(0) + ' ha')
+    + baris('TMA saluran', state.tertiary[i].canal.h.toFixed(2) + ' m')
+    + baris('Arus', (state.vTert[i] || 0).toFixed(2) + ' m/dtk')
+    + baris('Debit', q.toFixed(3) + ' / ' + req.toFixed(3) + ' m³/dtk')
+    + baris('Terpenuhi', pers.toFixed(0) + '%');
+}
+
+/* Letak kotak bacaan dihitung terhadap .map-wrap, BUKAN terhadap panggung peta:
+   panggungnya ikut diperbesar transform zoom, jadi apa pun yang ditaruh di
+   dalamnya ikut membesar-mengecil. Kotak bacaan harus tetap seukuran tulisan
+   antarmuka pada tingkat zoom berapa pun. */
+function petakTipLetak(cx, cy) {
+  const tip = el('petakTip'), wrap = el('isoMapPanel');
+  if (!tip || !wrap) return;
+  const r = wrap.getBoundingClientRect();
+  const w = tip.offsetWidth || 190, h = tip.offsetHeight || 130;
+  let x = cx - r.left + 16, y = cy - r.top + 16;
+  if (x + w > r.width - 8) x = cx - r.left - w - 16;
+  if (y + h > r.height - 8) y = cy - r.top - h - 16;
+  tip.style.left = Math.max(8, x) + 'px';
+  tip.style.top = Math.max(8, y) + 'px';
+}
+function bukaPetakTip(id, cx, cy) {
+  const tip = el('petakTip');
+  if (!tip) return;
+  petakTip = { id };
+  tip.innerHTML = petakTipIsi(id);
+  tip.classList.add('on');
+  petakTipLetak(cx, cy);
+  tandaiPetakTerbuka(id);
+}
+function tutupPetakTip() {
+  petakTip = null;
+  const tip = el('petakTip');
+  if (tip) tip.classList.remove('on');
+  tandaiPetakTerbuka(null);
+}
+/* Petak yang bacaannya sedang terbuka diberi warna: tanpa itu, kotak bacaan yang
+   melayang di dekat kursor tidak menunjuk petak mana pun — di tiga petak yang
+   berdempetan, yang mana yang sedang dibaca jadi tebakan. */
+function tandaiPetakTerbuka(id) {
+  document.querySelectorAll('.iso-petak').forEach(g => {
+    g.classList.toggle('terbuka', !!id && g.dataset.petak === id);
+  });
+}
+/* Dipanggil tiap render(): angkanya berjalan terus selama simulasi jalan, jadi
+   bacaan yang sedang terbuka ikut diperbarui — bukan beku pada saat dibuka. */
+function updatePetakTip() {
+  if (!petakTip) return;
+  const tip = el('petakTip');
+  if (tip) tip.innerHTML = petakTipIsi(petakTip.id);
+}
+
+/* ---- mode gambar petak ---- */
+function setPetakEdit(on) {
+  petakEdit = on;
+  if (on && pinEdit) setPinEdit(false);        /* dua mode ubah tidak menyala bersamaan */
+  const scroll = el('isoScroll'), wrap = el('isoMapPanel'), btn = el('mapPetakEdit');
+  scroll.classList.toggle('petak-edit', on);
+  wrap.classList.toggle('petak-edit-on', on);
+  btn.classList.toggle('on', on);
+  tampilTombolSalin();
+  if (on) tutupPetakTip();
+  petakHintTeks();
+  buildIsoMap(); updateIsoLabels(); updateIsoWaterColors(); layoutIsoLabels(true);
+}
+/* Tombol "Posisi Awal" & "Salin Koordinat" dipakai bersama oleh kedua mode
+   ubah: yang menyala saat itu yang menentukan sasarannya. Lebih baik daripada
+   dua pasang tombol yang menumpuk di sudut peta yang sudah penuh. */
+function tampilTombolSalin() {
+  const ada = pinEdit || petakEdit;
+  el('mapPinsReset').style.display = ada ? '' : 'none';
+  el('mapPinsCopy').style.display = ada ? '' : 'none';
+}
+function petakHintTeks() {
+  const h = el('petakEditHint');
+  if (!h) return;
+  const i = petakIndex(petakAktif);
+  const nama = (state.areas[i] || {}).name || (i + 1);
+  h.textContent = 'Mode gambar petak — petak aktif: ' + nama
+    + '. Tarik titik sudut untuk memindahkannya, klik petak lain untuk memilihnya, '
+    + 'klik di luar petak untuk menambah sudut, klik kanan pada sudut untuk membuangnya.';
+}
+
+/* Sudut baru disisipkan pada RUAS TERDEKAT, bukan ditempel di ujung daftar.
+   Kalau ditempel di ujung, menambah satu titik di dekat sisi kiri akan menarik
+   garis melintasi seluruh petak — bentuknya jadi kacau dan harus disusun ulang
+   dari awal. */
+function sisipSudut(id, x, y) {
+  const p = ISO_PETAK[id];
+  let best = 0, bestD = Infinity;
+  for (let i = 0; i < p.length; i++) {
+    const a = p[i], b = p[(i + 1) % p.length];
+    const vx = b[0] - a[0], vy = b[1] - a[1];
+    const L2 = vx * vx + vy * vy || 1e-9;
+    const t = clamp(((x - a[0]) * vx + (y - a[1]) * vy) / L2, 0, 1);
+    const dx = a[0] + t * vx - x, dy = a[1] + t * vy - y;
+    const d = dx * dx + dy * dy;
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  p.splice(best + 1, 0, [x, y]);
+  savePetakPos();
+}
+
+function initPetakSawah() {
+  const svg = el('isoSvg');
+  if (!svg) return;
+  let turunX = 0, turunY = 0;
+
+  svg.addEventListener('pointerdown', (e) => {
+    turunX = e.clientX; turunY = e.clientY;
+    if (!petakEdit) return;
+    const v = e.target.closest ? e.target.closest('.petak-vtx') : null;
+    if (!v) return;
+    e.stopPropagation(); e.preventDefault();
+    petakDrag = { id: v.dataset.petak, idx: +v.dataset.idx, el: v, moved: false };
+    petakAktif = petakDrag.id;
+    petakHintTeks();
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!petakDrag) return;
+    const p = isoClientToVB(e.clientX, e.clientY);
+    const x = clamp(p.x, 2, 1298), y = clamp(p.y, 2, 729);
+    ISO_PETAK[petakDrag.id][petakDrag.idx] = [x, y];
+    petakDrag.el.setAttribute('cx', x.toFixed(1));
+    petakDrag.el.setAttribute('cy', y.toFixed(1));
+    const poly = petakDrag.el.parentNode.querySelector('.petak-area');
+    if (poly) poly.setAttribute('points', ISO_PETAK[petakDrag.id].map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '));
+    petakDrag.moved = true;
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!petakDrag) return;
+    if (petakDrag.moved) savePetakPos();
+    petakDrag = null;
+  });
+
+  /* BACAAN DIBUKA DENGAN KLIK, BUKAN DENGAN SOROT.
+     Mula-mula ia terbuka begitu kursor menyentuh poligonnya. Itu salah untuk peta
+     ini: batas poligonnya digambar dengan tangan di atas ilustrasi raster, jadi
+     tepinya tidak pernah persis batas petak yang tergambar — kursor yang masih di
+     jalan atau di rumpun pohon di sebelahnya sudah memunculkan bacaan petak, dan
+     kotaknya melintas-lintas sendiri tiap kali kursor menyeberangi peta. Dengan
+     klik, bacaan hanya muncul kalau memang diminta, dan tepian poligon yang
+     kurang rapi tidak lagi terasa. Sekalian, satu perilaku yang sama untuk tetikus
+     dan layar sentuh — layar sentuh tidak mengenal sorot sama sekali.
+
+     Klik yang datang sesudah kursor bergeser jauh diabaikan: itu tarikan geser
+     peta yang kebetulan berakhir di atas petak, bukan klik pada petaknya. */
+  svg.addEventListener('click', (e) => {
+    if (Math.abs(e.clientX - turunX) + Math.abs(e.clientY - turunY) > 5) return;
+    const g = e.target.closest ? e.target.closest('.iso-petak') : null;
+    if (!petakEdit) {
+      if (e.target.closest && e.target.closest('.iso-pin')) return;
+      if (!g) { tutupPetakTip(); return; }          /* klik di luar petak menutupnya */
+      if (petakTip && petakTip.id === g.dataset.petak) tutupPetakTip();
+      else bukaPetakTip(g.dataset.petak, e.clientX, e.clientY);
+      return;
+    }
+    if (e.target.closest && e.target.closest('.petak-vtx')) return;
+    if (g && g.dataset.petak !== petakAktif) {          /* pilih petak lain */
+      petakAktif = g.dataset.petak;
+      petakHintTeks();
+      buildIsoMap(); updateIsoLabels(); layoutIsoLabels(true);
+      return;
+    }
+    const p = isoClientToVB(e.clientX, e.clientY);
+    sisipSudut(petakAktif, clamp(p.x, 2, 1298), clamp(p.y, 2, 729));
+    buildIsoMap(); updateIsoLabels(); layoutIsoLabels(true);
+  });
+
+  /* Klik kanan pada sudut membuangnya. Tiga sudut batas bawahnya — di bawah itu
+     poligonnya bukan bidang lagi, cuma garis. */
+  svg.addEventListener('contextmenu', (e) => {
+    if (!petakEdit) return;
+    const v = e.target.closest ? e.target.closest('.petak-vtx') : null;
+    if (!v) return;
+    e.preventDefault();
+    const id = v.dataset.petak;
+    if (ISO_PETAK[id].length <= 3) return;
+    ISO_PETAK[id].splice(+v.dataset.idx, 1);
+    savePetakPos();
+    buildIsoMap(); updateIsoLabels(); layoutIsoLabels(true);
+  });
 }
 
 function buildIsoMap() {
   const svg = el('isoSvg');
   loadPinPos();
-  let out = '';
+  loadPetakPos();
+  /* Petak digambar lebih dulu supaya seluruh pin berada di atasnya. */
+  let out = Object.keys(ISO_PETAK).map(petakMarkup).join('');
   Object.keys(ISO_POS).forEach(id => {
     const [x, y, icon, tip, up] = ISO_POS[id];
     out += pinMarkerXY(id, x, y, icon, tip, 62, up || y < 140);
@@ -3471,18 +4428,22 @@ function updateIsoWaterColors() {
   };
   const lvl = (s) => LEVEL_DOT[s] || LEVEL_DOT.normal;
 
-  /* Kelas tiap pos dari dua ukuran — lihat reachStatus(). Debitnya diambil per pos
-     terhadap kapasitas bangunannya sendiri, bukan satu angka untuk semuanya. */
+  /* Kelas tiap pos dari DEBIT terhadap kapasitas bangunannya sendiri — dasar yang
+     sama dengan warna air di peta dan dengan skematik. Lihat waterParams(). */
   const T = state.thresholds, N = state.dummyNodes || {};
   const kap = (id) => (N[id] || {}).kapasitas || 0;
 
-  ring('hulu', lvl(reachStatus(state.hUp, state.river.Hmax, T.river,
-                               state.Qnat, kap('WEIR_COPONG'))));
+  ring('hulu', lvl(debitStatus(state.Qnat, kap('WEIR_COPONG'))));
 
   /* Pin primer & kolam sama-sama membaca kolam bendung: debitnya yang masuk lewat
      pintu primer, muka airnya TMA kolam. */
-  const poolSt = lvl(reachStatus(state.pool.h, state.river.Hmax, T.river,
-                                 state.QgateTotal, kap('AWLR_KOLAM')));
+  /* Pin kolam DAN pin sekunder memakai kelas yang sama dengan airnya di peta —
+     satu kelas untuk satu badan air. Lihat alasannya di waterParams(); pin dan
+     airnya harus bercerita sama. */
+  const sJaringanPin = LEVEL_URUT[Math.max(
+    LEVEL_URUT.indexOf(debitStatus(state.QgateTotal, kap('AWLR_KOLAM'))),
+    LEVEL_URUT.indexOf(debitStatus(state.QsecTotal, kap('AWLR_SEKUNDER'))))];
+  const poolSt = lvl(sJaringanPin);
   ring('primer', poolSt); ring('kolam', poolSt);
 
   /* Pin hilir dapat kelasnya SENDIRI, tidak lagi ikut kolam. Yang diukur pos itu
@@ -3490,14 +4451,13 @@ function updateIsoWaterColors() {
      kapasitas 35 — dan itulah satu-satunya tempat keadaan banjir di sisi sungai
      benar-benar terbaca. Ikut kolam membuatnya melaporkan 0,56 m³/dtk yang lewat
      pintu scouring, bukan 103,87 yang lewat di depannya. */
-  ring('hilir', lvl(reachStatus(state.pool.h, state.river.Hmax, T.river,
-                                state.Qhilir, kap('AWLR_HILIR'))));
+  ring('hilir', lvl(debitStatus(state.Qhilir, kap('AWLR_HILIR'))));
 
   /* satu pin sekunder = satu saluran sekunder yang disuplai tiga pintu.
      Pos AWGC (pintu) dan pos AWLR (muka air) berdiri di RUAS YANG SAMA, jadi
      kelasnya pun sama — yang beda cuma apa yang dibacanya. */
-  const sekSt = lvl(reachStatus(state.secondary.canal.h, state.secondary.canal.Hmax, T.sec,
-                                state.QsecTotal, kap('AWLR_SEKUNDER')));
+  /* Sekunder memakai kelas gabungan yang sama dengan kolam — lihat sJaringanPin. */
+  const sekSt = lvl(sJaringanPin);
   ring('sek', sekSt); ring('awlrSek', sekSt);
 
   /* Pin tersier memakai levelStatus() — besaran yang SAMA dengan lima pin di atas.
@@ -3526,8 +4486,8 @@ function updateIsoWaterColors() {
    * berpindah warna. Status pemenuhan petak tetap terbaca di kartu petak dan kotak
    * sawah skematik — tempat pastel itu memang bekerja. */
   for (let i = 0; i < 3; i++) {
-    const st = lvl(reachStatus(state.tertiary[i].canal.h, state.tertiary[i].canal.Hmax,
-                               T.tert[i], state.Qfield[i], kap('AWLR_TERSIER_' + (i + 1))));
+    /* Dari DEBIT saja, sedasar dengan ruas lain di peta & dengan skematik. */
+    const st = lvl(debitStatus(state.Qfield[i], kap('AWLR_TERSIER_' + (i + 1))));
     ring('ter' + i, st); ring('awlrTer' + i, st);
   }
 }
@@ -3957,9 +4917,28 @@ const water = { ready: false, regions: [], phase: {}, last: 0, ripple: null, tmp
  * dasar saluran yang tersingkap, kelas ini harus keluar dari keluarga biru, bukan
  * cuma dironai. Tangga peringatan (0,50-0,66) masih menyisakan biru yang cukup untuk
  * terbaca sebagai air. */
-const WATER_COLOR = { kering: '#b0925f', normal: '#7ecdee', waspada: '#ffe600', siaga: '#ff6a00', bahaya: '#cc1010' };
+/* Warna air peta isometrik: tiap kelas dicampur ke WATER_BASE menurut WATER_TINT.
+ *
+ * Kelas `waspada` dulu KUNING MURNI (#ffe600) pada tint 0,50, dan campuran itu
+ * MENGHIJAU: kuning (255,230,0) + air biru (142,214,242) di tengah-tengah
+ * menghasilkan rgb(199,222,121) — hijau lumut, bukan peringatan. Paling kentara
+ * pada keadaan kemarau, saat kantong lumpur terisi 74% tanggulnya dan seluruh
+ * kolamnya tergambar hijau seperti air tergenang lumut.
+ *
+ * Kelas lain tidak kena karena warnanya oranye/merah/coklat, yang tidak
+ * menghijau bila dicampur biru. Jadi yang diganti cuma satu: amber #f2b21c pada
+ * tint 0,78 → rgb(220,186,75). Ia sewarna dengan titik pin `waspada`
+ * (LEVEL_DOT #c9971a) sehingga air dan pin bercerita sama, dan tetap jelas
+ * berbeda dari tetangganya di tangga kelas:
+ *
+ *     kering   rgb(169,160,124)   abu-coklat
+ *     waspada  rgb(220,186,75)    amber emas
+ *     siaga    rgb(208,151,102)   oranye
+ *     bahaya   rgb(183,83,93)     merah
+ */
+const WATER_COLOR = { kering: '#b0925f', normal: '#7ecdee', waspada: '#f2b21c', siaga: '#ff6a00', bahaya: '#cc1010' };
 const WATER_BASE = '#8ed6f2';
-const WATER_TINT = { kering: 0.80, normal: 0, waspada: 0.50, siaga: 0.58, bahaya: 0.66 };
+const WATER_TINT = { kering: 0.80, normal: 0, waspada: 0.78, siaga: 0.58, bahaya: 0.66 };
 
 function makeRipplePattern(size, freq, contrast) {
   const s = size, c = document.createElement('canvas');
@@ -4430,24 +5409,71 @@ function initIsoWater() {
 /* Warna & kecepatan tiap badan air diambil langsung dari state simulasi. */
 function waterParams() {
   const col = (s) => mixColor(WATER_BASE, WATER_COLOR[s] || WATER_COLOR.normal, WATER_TINT[s] || 0);
-  /* Kelas tiap ruas dari dua ukuran — TMA terhadap tanggul DAN debit terhadap
-     kapasitas bangunannya; lihat reachStatus(). Kapasitasnya per simpul, bukan satu
-     angka untuk seluruh peta. */
+  /* WARNA AIR PETA MEMAKAI DASAR YANG SAMA DENGAN SKEMATIK: kelas dari DEBIT
+     terhadap kapasitas bangunannya, tanpa ukuran muka air.
+
+     Skematik menilai tiap ruas dari alirannya saja (lihat flowStateOf), sementara
+     peta dulu memakai reachStatus yang mencampur debit DAN muka air. Dua tampilan
+     yang menggambarkan jaringan yang sama karena itu bisa bercerita beda: ruas
+     yang alirannya wajar tetap tergambar kuning atau merah di peta hanya karena
+     mukanya sedang tinggi.
+
+     Muka air tidak hilang dari tampilan — di skematik ia terbaca dari tinggi kolom
+     airnya, di peta dari angka pada pin. Yang dilepas cuma perannya menentukan
+     warna. */
   const T = state.thresholds, N = state.dummyNodes || {};
   const kap = (id) => (N[id] || {}).kapasitas || 0;
 
-  const sHulu  = reachStatus(state.hUp, state.river.Hmax, T.river, state.Qnat, kap('WEIR_COPONG'));
-  const sKolam = reachStatus(state.pool.h, state.river.Hmax, T.river, state.QgateTotal, kap('AWLR_KOLAM'));
+  const sHulu  = debitStatus(state.Qnat, kap('WEIR_COPONG'));
   /* Ruas hilir memakai debit yang benar-benar lewat di depannya (Qhilir), bukan yang
      masuk kolam. Di situlah keadaan banjir terbaca di sisi sungai: 103,87 m³/dtk
      terhadap kapasitas 35. */
-  const sHilir = reachStatus(state.pool.h, state.river.Hmax, T.river, state.Qhilir, kap('AWLR_HILIR'));
-  const sSek   = reachStatus(state.secondary.canal.h, state.secondary.canal.Hmax, T.sec,
-                             state.QsecTotal, kap('AWLR_SEKUNDER'));
+  const sHilir = debitStatus(state.Qhilir, kap('AWLR_HILIR'));
+  /* KANTONG LUMPUR & SALURAN SEKUNDER SATU KELAS — dihitung sekali, dipakai
+     keduanya, jadi warnanya berubah bersamaan ke arah mana pun.
+
+     Keduanya satu badan air: kantong lumpur pangkal saluran induk, dan airnya
+     mengalir langsung ke saluran sekunder tanpa terputus. Mewarnainya berbeda
+     membuat satu aliran yang sama terbaca sebagai dua keadaan — pada keadaan
+     kemarau kolam tergambar KUNING sementara saluran tepat di hilirnya BIRU,
+     padahal air yang sama baru saja lewat.
+
+     Yang dilepas: ukuran MUKA AIR kolam. Ia mengikuti muka air hulu dan tidak
+     bisa ditindaklanjuti operator — sudah terukur, bukaan pintu intake hanya
+     menggesernya antara 73% dan 76% — jadi memperingatkannya cuma menghasilkan
+     warna yang tidak bisa ditanggapi. Aturan kemarau menahan hulu di 2,05 m
+     justru supaya pengambilan tetap dapat air; kolam ikut ke 2,00 m, dan itu
+     tanda bendung bekerja, bukan tanda bahaya.
+
+     Yang DIPERTAHANKAN: debit kolam terhadap kapasitasnya. Itu yang menentukan
+     apakah air sempat tenang cukup lama untuk mengendapkan lumpur, dan itu bisa
+     ditanggapi dengan menutup pintu.
+
+     Kelasnya yang TERBERAT di antara debit kolam dan kelas saluran sekunder,
+     lalu dipakai KEDUANYA. Sebelumnya cuma kolam yang mengikuti sekunder, tidak
+     sebaliknya — jadi kalau debit kolam yang memburuk, kolam berubah warna
+     sementara saluran tepat di hilirnya tetap biru. Sekarang peringatan dari
+     sisi mana pun langsung terbaca di seluruh badan air itu. */
+  const sJaringan = LEVEL_URUT[Math.max(
+    LEVEL_URUT.indexOf(debitStatus(state.QgateTotal, kap('AWLR_KOLAM'))),
+    LEVEL_URUT.indexOf(debitStatus(state.QsecTotal, kap('AWLR_SEKUNDER'))))];
+  const sKolam = sJaringan, sSek = sJaringan;
+  /* Tiap ruas beranimasi menurut arusnya SENDIRI.
+
+     Dulu `hilir` dan `kolam` sama-sama memakai state.vPool — dan vPool sendiri
+     Manning atas geometri sungai, yang tidak menanggapi bukaan pintu mana pun.
+     Akibatnya ruas sungai di bawah bendung beranimasi mengikuti kantong lumpur,
+     bukan mengikuti debit yang benar-benar lewat di depannya; pada keadaan
+     banjir itu 104 m³/dtk yang tergambar selambat kolam.
+
+     Pengali 0,45 pada `kolam` ikut dilepas. Itu peredam buatan untuk menutupi
+     vPool yang kebesaran 47x; sesudah vPool dihitung dari debit/penampang,
+     angkanya sudah benar dengan sendirinya dan kolam memang jadi ruas paling
+     lambat di seluruh peta — sebagaimana kantong lumpur seharusnya. */
   const P = {
     hulu:  { color: col(sHulu),  speed: state.vUp },
-    hilir: { color: col(sHilir), speed: state.vPool },
-    kolam: { color: col(sKolam), speed: state.vPool * 0.45 },
+    hilir: { color: col(sHilir), speed: state.vHilir != null ? state.vHilir : state.vPool },
+    kolam: { color: col(sKolam), speed: state.vPool },
     sek:   { color: col(sSek),   speed: state.vSec },
   };
   /* Saluran intake TIDAK boleh ikut `hilir` lagi. Dulu boleh, karena `hilir` sendiri
@@ -4461,8 +5487,7 @@ function waterParams() {
   P.sekutara = P.sek;   /* ruas sekunder yang sama, hanya arahnya yang beda */
   for (let i = 0; i < 3; i++) {
     P['ter' + i] = {
-      color: col(reachStatus(state.tertiary[i].canal.h, state.tertiary[i].canal.Hmax,
-                             T.tert[i], state.Qfield[i], kap('AWLR_TERSIER_' + (i + 1)))),
+      color: col(debitStatus(state.Qfield[i], kap('AWLR_TERSIER_' + (i + 1)))),
       speed: state.vTert[i],
     };
   }
@@ -4659,6 +5684,76 @@ const MAP_PANE_NOTES = {
   skema: 'tinggi kolom air = TMA terhadap tinggi tanggul ruas itu, daun pintu mengikuti bukaan aktual',
 };
 
+/* ---------------- Kartu yang bisa dilipat ----------------
+
+   Tiap `.panel.collapsible` mendapat tombol panah di kepalanya, dan seluruh
+   kepalanya jadi daerah klik untuk menutup / membuka isinya. Dipasang dari sini
+   supaya markup di Blade tinggal menambahkan satu kelas — tidak ada tombol atau
+   penangan yang perlu ditulis ulang tiap kali ada kartu baru yang perlu dilipat.
+
+   Kepala panel bisa memuat kontrol lain (tombol, tab, tautan). Klik pada
+   kontrol semacam itu TIDAK ikut melipat panel — kalau ikut, menekan "Kontrol
+   Pintu" akan menutup kartunya sekalian. Itulah gunanya penyaringan `closest`
+   di bawah.
+
+   Keadaan buka/tutup diingat per browser lewat localStorage, dengan kunci dari
+   `data-panel-key`. Panel tanpa kunci tetap bisa dilipat, hanya tidak diingat.
+   Akses localStorage dibungkus try/catch: di jendela penyamaran atau saat
+   penyimpanan situs diblokir, membacanya bisa melempar galat — kartunya tetap
+   harus bekerja, cuma tanpa ingatan. */
+const PANEL_LIPAT_KEY = 'wmsPanelTertutup';
+
+function panelTertutupTersimpan() {
+  try {
+    const o = JSON.parse(localStorage.getItem(PANEL_LIPAT_KEY) || '{}');
+    return (o && typeof o === 'object') ? o : {};
+  } catch (e) { return {}; }
+}
+function simpanPanelTertutup(kunci, tertutup) {
+  if (!kunci) return;
+  try {
+    const o = panelTertutupTersimpan();
+    if (tertutup) o[kunci] = 1; else delete o[kunci];
+    localStorage.setItem(PANEL_LIPAT_KEY, JSON.stringify(o));
+  } catch (e) {}
+}
+
+function initCollapsiblePanels() {
+  const tersimpan = panelTertutupTersimpan();
+
+  document.querySelectorAll('.panel.collapsible').forEach(panel => {
+    const head = panel.querySelector(':scope > .panel-head');
+    const judul = head && head.querySelector('h2');
+    if (!head || !judul || head.querySelector('.panel-toggle')) return;
+
+    const kunci = panel.dataset.panelKey || '';
+    const tombol = document.createElement('button');
+    tombol.type = 'button';
+    tombol.className = 'panel-toggle';
+    /* Panah tunggal yang berputar 90° saat tertutup (lihat wms.css) — satu
+       bentuk untuk dua keadaan, jadi tidak ada ikon yang perlu ditukar. */
+    tombol.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+    judul.appendChild(tombol);
+
+    const terapkan = (tertutup, simpan) => {
+      panel.classList.toggle('collapsed', tertutup);
+      tombol.setAttribute('aria-expanded', String(!tertutup));
+      tombol.title = tertutup ? 'Buka kartu' : 'Tutup kartu';
+      tombol.setAttribute('aria-label', (tertutup ? 'Buka' : 'Tutup') + ' kartu ' + judul.textContent.trim());
+      if (simpan) simpanPanelTertutup(kunci, tertutup);
+    };
+    terapkan(!!(kunci && tersimpan[kunci]), false);
+
+    head.addEventListener('click', (e) => {
+      /* Kontrol lain di kepala panel mengurus dirinya sendiri. Tombol panahnya
+         SENDIRI dikecualikan dari daftar ini — ia memang harus melipat. */
+      if (e.target.closest('a, input, select, textarea, .panel-tabs') ) return;
+      if (e.target.closest('button') && !e.target.closest('.panel-toggle')) return;
+      terapkan(!panel.classList.contains('collapsed'), true);
+    });
+  });
+}
+
 function initMapTabs() {
   const tabs = el('mapTabs'), card = el('mapPanelCard');
   if (!tabs || !card) return;
@@ -4691,9 +5786,13 @@ function initIsoMapControls() {
   el('mapZoomOut').addEventListener('click', () => { isoZoom.scale /= 1.18; applyIsoZoom(); });
   el('mapReset').addEventListener('click', resetIsoView);
   el('mapEditPins').addEventListener('click', () => setPinEdit(!pinEdit));
-  el('mapPinsReset').addEventListener('click', resetPinPos);
-  el('mapPinsCopy').addEventListener('click', copyPinCoords);
+  el('mapPetakEdit').addEventListener('click', () => setPetakEdit(!petakEdit));
+  /* Satu pasang tombol untuk dua mode — sasarannya mode yang sedang menyala.
+     Lihat tampilTombolSalin(). */
+  el('mapPinsReset').addEventListener('click', () => (petakEdit ? resetPetakPos() : resetPinPos()));
+  el('mapPinsCopy').addEventListener('click', () => (petakEdit ? copyPetakCoords() : copyPinCoords()));
   initPinDrag();
+  initPetakSawah();
   el('mapLabelToggle').addEventListener('click', (e) => {
     const svg = el('isoSvg');
     svg.classList.toggle('labels-on');

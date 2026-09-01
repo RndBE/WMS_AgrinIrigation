@@ -136,6 +136,59 @@
   .panel-head .head-right{display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end;}
   .panel-body{padding:16px;}
 
+  /* ---------- PANEL YANG BISA DILIPAT ----------
+     Kepala panel jadi tombol: diklik untuk menutup atau membuka isinya. Dipasang
+     lewat kelas .collapsible pada .panel; tanpa kelas itu panel berperilaku
+     seperti biasa, jadi panel yang sudah ada tidak terpengaruh.
+
+     Kepalanya memakai <button> di dalam h2 agar tetap terjangkau papan ketik dan
+     pembaca layar (aria-expanded dikelola initCollapsiblePanels di simhidro.js).
+     Kontrol lain di kepala yang sama — mis. tombol "Kontrol Pintu" — tetap bisa
+     ditekan tanpa ikut melipat panel; lihat penanganannya di JS. */
+  .panel.collapsible > .panel-head{cursor:pointer; user-select:none;}
+  .panel.collapsible > .panel-head:hover h2{color:var(--teal);}
+  .panel-toggle{appearance:none; border:0; background:transparent; padding:0; margin:0 0 0 8px;
+    font:inherit; color:var(--text-3); cursor:pointer; display:inline-flex; align-items:center;
+    line-height:1; border-radius:4px;}
+  .panel-toggle:focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
+  .panel-toggle svg{width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.2;
+    stroke-linecap:round; stroke-linejoin:round; transition:transform .18s ease;}
+  .panel.collapsed .panel-toggle svg{transform:rotate(-90deg);}
+  .panel.collapsible > .panel-head:hover .panel-toggle{color:var(--teal);}
+  /* Ditutup: isi disembunyikan dan garis pemisah kepala ikut hilang supaya
+     panel terbaca sebagai satu batang utuh, bukan kotak kosong bergaris. */
+  .panel.collapsed > .panel-head{border-bottom:0;}
+  .panel.collapsed > .panel-body{display:none;}
+  @media (prefers-reduced-motion: reduce){
+    .panel-toggle svg{transition:none;}
+  }
+
+  /* ---------- PANTAUAN CCTV ----------
+     Gambar saja — bacaan alatnya sudah punya tempat di kartu Pos Telemetri.
+
+     auto-fit + minmax membuat jumlah kolomnya mengikuti lebar yang tersedia
+     tanpa breakpoint sendiri: empat kolom di layar lebar, turun sendiri jadi dua
+     lalu satu. 260px batas bawah yang masih menyisakan gambar terbaca. */
+  .cctv-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;}
+  .cctv-item{margin:0; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; background:#fff;}
+  /* Bingkai berbanding tetap 16:9 supaya baris kartu tetap rata walau gambar
+     yang ditaruh operator beda-beda ukurannya; object-fit:cover memangkas
+     kelebihannya alih-alih menggepengkan gambarnya. */
+  .cctv-frame{position:relative; aspect-ratio:16/9; background:#eef3f9;}
+  .cctv-frame img{width:100%; height:100%; object-fit:cover; display:block;}
+  .cctv-kosong{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:5px; color:var(--text-3); font-size:11.5px; text-align:center; padding:10px;}
+  .cctv-kosong-ikon{font-size:24px; line-height:1; opacity:.5;}
+  .cctv-kosong code{font-size:10.5px; color:var(--text-3); background:#e6edf5; padding:2px 6px; border-radius:4px;}
+  .cctv-cap{display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    padding:9px 11px; border-top:1px solid var(--line);}
+  .cctv-nama{font-weight:700; font-size:12.5px; color:var(--text-1);}
+  .cctv-waktu{font-size:11px; color:var(--text-3); font-variant-numeric:tabular-nums;}
+  /* Pranala didorong ke ujung kanan supaya sejajar di seluruh baris, berapa pun
+     panjang nama posnya. */
+  .cctv-tautan{margin-left:auto; font-size:11.5px; font-weight:600; color:var(--teal); text-decoration:none;}
+  .cctv-tautan:hover{text-decoration:underline;}
+
   /* ---------- TAB DALAM KARTU ---------- */
   /* Penukar pane di dalam satu panel (mis. Isometrik / Skematik). Sengaja
      dibuat kecil bergaya pil supaya tidak tertukar dengan .navtab di atas. */
@@ -238,10 +291,15 @@
   .pos-actions button svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2;}
   .map-controls{position:absolute; right:12px; bottom:12px; display:flex; flex-direction:column; gap:6px; align-items:flex-end;}
   .map-controls button{width:34px; height:34px; padding:0; justify-content:center; font-size:15px; background:rgba(242,242,243,.92); backdrop-filter:blur(2px);}
+  /* Tombol BERTULISAN lebarnya mengikuti tulisannya; yang berlambang saja tetap
+     kotak 34x34 seperti zoom & atur ulang di atasnya. Tombol bertulisan yang
+     ketinggalan dari daftar ini akan tetap 34 px, tulisannya membungkus jadi dua
+     baris, dan tombolnya terlihat rusak sendiri di antara yang lain. */
   .map-controls button#mapLabelToggle,
   .map-controls button#mapEditPins,
+  .map-controls button#mapPetakEdit,
   .map-controls button#mapPinsReset,
-  .map-controls button#mapPinsCopy{width:auto; padding:0 10px; font-size:11px;}
+  .map-controls button#mapPinsCopy{width:auto; padding:0 10px; font-size:11px; white-space:nowrap;}
   .map-controls button#mapLabelToggle.on,
   .map-controls button#mapEditPins.on{background:var(--teal); border-color:var(--teal); color:#fff;}
   .iso-scroll.pin-edit .iso-pin{cursor:grab;}
@@ -251,6 +309,58 @@
     padding:6px 10px; font-size:11px; letter-spacing:.02em; background:rgba(242,242,243,.94); backdrop-filter:blur(2px);
     border:1px solid var(--color-accent, #5980a6); color:var(--text-1, #1d1f20);}
   .iso-scroll.pin-edit + .pin-edit-hint, .map-wrap.pin-edit-on .pin-edit-hint{display:flex;}
+
+  /* ---------- PETAK SAWAH YANG BISA DISOROT ----------
+     Poligonnya TAK TERLIHAT sampai disorot: peta ini ilustrasi, dan garis tepi
+     yang menyala terus di atas tiga petak membuat gambarnya terbaca seperti
+     denah kavling. Yang perlu terlihat cuma bahwa petak itu bisa disorot —
+     itu sudah dikerjakan kursor pointer dan warna tipis saat kursor di atasnya.
+     `fill:transparent`, bukan `fill:none`: yang `none` tidak menerima peristiwa
+     tetikus sama sekali sehingga poligonnya tidak akan pernah tersorot. */
+  .petak-area{fill:transparent; stroke:none; cursor:pointer; stroke-linejoin:round;}
+  /* Sorot cuma menggariskan tepinya — TIDAK memunculkan bacaan. Batas poligonnya
+     digambar tangan di atas ilustrasi raster, jadi tepinya tidak persis batas
+     petak yang tergambar; kalau sorot langsung memunculkan bacaan, kotaknya ikut
+     muncul saat kursor sebenarnya masih di jalan atau di pepohonan sebelahnya.
+     Garis tepi tipis ini cukup untuk memberitahu "di sini bisa diklik". */
+  .iso-petak:hover .petak-area{fill:rgba(79,157,74,.10); stroke:#2f6b2c; stroke-width:1.2;}
+  .iso-petak.terbuka .petak-area{fill:rgba(79,157,74,.26); stroke:#2f6b2c; stroke-width:1.8;}
+  .map-wrap.petak-edit-on .petak-area{fill:rgba(43,108,176,.10); stroke:#2b6cb0; stroke-width:1.2; stroke-dasharray:5 4;}
+  .map-wrap.petak-edit-on .iso-petak.aktif .petak-area{fill:rgba(240,160,32,.16); stroke:#f0a020; stroke-width:2; stroke-dasharray:none;}
+  .petak-vtx{fill:#fff; stroke:#2b6cb0; stroke-width:1.8; cursor:grab;}
+  .iso-petak.aktif .petak-vtx{stroke:#f0a020; stroke-width:2.2;}
+  .petak-edit-hint{position:absolute; left:12px; top:12px; right:12px; z-index:6; display:none;
+    padding:6px 10px; font-size:11px; line-height:1.45; letter-spacing:.02em;
+    background:rgba(242,242,243,.94); backdrop-filter:blur(2px);
+    border:1px solid #f0a020; color:var(--text-1);}
+  .map-wrap.petak-edit-on .petak-edit-hint{display:block;}
+  .map-controls button#mapPetakEdit.on{background:#f0a020; border-color:#f0a020; color:#fff;}
+
+  /* Kotak bacaan petak. Tidak memakai .pos-pop: yang itu kartu pos telemetri
+     dengan tombol aksi dan lebar tetap 238 px, sedangkan ini bacaan singkat
+     yang mengikuti kursor dan harus sekecil mungkin supaya tidak menutupi
+     petak yang sedang dibaca. pointer-events dimatikan supaya kotaknya sendiri
+     tidak pernah merebut sorot dari poligon di bawahnya — kalau merebut,
+     bacaan akan berkedip mati-hidup terus saat kursor bergerak pelan. */
+  .petak-tip{
+    position:absolute; z-index:7; display:none; width:186px; padding:9px 11px 8px;
+    background:#fff; border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:0 6px 18px rgba(31,36,48,.16); pointer-events:none;
+    font-size:11.5px; color:var(--text-2);
+  }
+  .petak-tip.on{display:block;}
+  .petak-tip-kepala{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size:13px; font-weight:700; color:var(--text-1); padding-bottom:6px; margin-bottom:5px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .petak-tip-status{font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:3px;}
+  .petak-tip-status.ideal{background:#e7f7ed; color:#12793a;}
+  .petak-tip-status.cukup{background:#fef5e3; color:#96650a;}
+  .petak-tip-status.kurang{background:#fdeceb; color:#a81d13;}
+  .petak-tip-status.lebih{background:#eaf2fb; color:#1f4fa6;}
+  .petak-tip-baris{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:1.5px 0;}
+  .petak-tip-baris b{font-weight:600; color:var(--text-1); font-variant-numeric:tabular-nums;}
   .flow-line{stroke-dasharray:9 7; animation:flow-move linear infinite;}
   .iso-flow{stroke:#eaf6ff; stroke-width:2.4; stroke-dasharray:11 9; opacity:.8; animation:flow-move 3s linear infinite;}
   .iso-flow.slow{animation-duration:4.6s;}

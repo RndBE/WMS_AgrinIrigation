@@ -1,9 +1,9 @@
 <div class="view {{ $activeView === 'dashboard' ? 'active' : '' }}" id="view-dashboard">
   <div class="summary-row">
     <div class="sumcard"><div class="lbl">Debit Alami Hulu</div><div class="val"><span id="sumQnat">0.0</span><span class="unit">m³/dtk</span></div></div>
-    <div class="sumcard accent"><div class="lbl">Debit Masuk (Pintu Scouring)</div><div class="val"><span id="sumQgate">0.0</span><span class="unit">m³/dtk</span></div></div>
+    <div class="sumcard accent"><div class="lbl">Debit Masuk Kolam (3 Intake)</div><div class="val"><span id="sumQgate">0.0</span><span class="unit">m³/dtk</span></div></div>
     <div class="sumcard brass"><div class="lbl">Total Tersalur ke Sawah</div><div class="val"><span id="sumQirigasi">0.0</span><span class="unit">m³/dtk</span></div></div>
-    <div class="sumcard"><div class="lbl">Debit ke Hilir (Floodway)</div><div class="val"><span id="sumQhilir">0.0</span><span class="unit">m³/dtk</span></div></div>
+    <div class="sumcard"><div class="lbl">Debit ke Hilir (Floodway + Scouring)</div><div class="val"><span id="sumQhilir">0.0</span><span class="unit">m³/dtk</span></div></div>
     <div class="sumcard"><div class="lbl">Pemenuhan Rata-rata</div><div class="val"><span id="sumEfisiensi">0</span><span class="unit">%</span></div></div>
   </div>
 
@@ -46,6 +46,14 @@
           </div>
         </div>
         <div class="pin-edit-hint">Mode geser titik aktif — tarik pin ke posisi baru. Posisi tersimpan otomatis di browser.</div>
+        {{-- Petunjuk mode gambar petak. Isinya ditulis petakHintTeks() di
+             simhidro.js karena menyebut nama petak yang sedang dipilih. --}}
+        <div class="petak-edit-hint" id="petakEditHint"></div>
+        {{-- Bacaan petak sawah saat kursor menyorotnya. Ditaruh di .map-wrap,
+             BUKAN di dalam .iso-stage: panggung peta ikut diperbesar transform
+             zoom, dan kotak bacaan harus tetap seukuran tulisan antarmuka.
+             Isinya dibangun petakTipIsi() tiap kali disorot & tiap tick. --}}
+        <div class="petak-tip" id="petakTip"></div>
         <div class="pos-pop" id="posPop">
           <button class="pos-close" id="posClose" title="Tutup">×</button>
           <div class="pos-title" id="posTitle">Pos</div>
@@ -66,6 +74,7 @@
           <button id="mapReset" title="Atur ulang tampilan">⟳</button>
           <button id="mapLabelToggle" title="Tampilkan/sembunyikan label">🏷 Label</button>
           <button id="mapEditPins" title="Geser titik pos secara manual">✥ Geser Titik</button>
+          <button id="mapPetakEdit" title="Ubah batas petak sawah yang bisa diklik">▱ Batas Petak</button>
           <button id="mapPinsReset" title="Kembalikan posisi titik ke bawaan" style="display:none;">↺ Posisi Awal</button>
           <button id="mapPinsCopy" title="Salin koordinat titik" style="display:none;">⧉ Salin Koordinat</button>
         </div>
@@ -98,7 +107,17 @@
     <div class="panel-body" id="gateStatusBody"></div>
   </div>
 
-  <div class="panel">
+  {{--
+    Kartu ini bisa DILIPAT: kepalanya diklik untuk menutup atau membuka tabelnya.
+    Tabel pos telemetri tumbuh sepanjang jumlah alat terpasang dan mendorong
+    seluruh isi beranda ke bawah, padahal isinya jarang perlu dilihat terus.
+
+    Kelas .collapsible yang menyalakannya (lihat wms.css), tombol panah &
+    penanganan kliknya dipasang initCollapsiblePanels() di simhidro.js — jadi
+    kartu lain tinggal ditambahi kelas yang sama kalau nanti perlu dilipat juga.
+    Keadaan buka/tutupnya diingat per browser lewat localStorage.
+  --}}
+  <div class="panel collapsible" data-panel-key="posTelemetri">
     <div class="panel-head">
       <h2>Pos Telemetri Terdaftar</h2>
       <span class="note">{{ $loggers->count() }} alat tertaut node skema — sumber data seeder</span>
@@ -135,6 +154,58 @@
             @endforelse
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  {{--
+    Pantauan CCTV — GAMBAR SAJA, tanpa tabel parameter.
+
+    Bacaan alat (arus, suhu, tegangan) sudah punya tempatnya sendiri di kartu Pos
+    Telemetri di atas dan di tab Kontrol Pintu; mengulangnya di sini cuma membuat
+    satu angka punya dua rumah yang bisa berbeda isi. Yang ditambahkan kartu ini
+    adalah hal yang tidak bisa diberikan angka: rupa bangunannya.
+
+    Gambarnya BERKAS STATIS di public/assets/cctv, ditaruh manual — belum ada
+    pengambilan otomatis dari IPCAM. Daftar posnya SkemaIrigasiController::CCTV_POS,
+    dan keberadaan tiap berkas sudah diperiksa cctvPos() sehingga di sini tinggal
+    menggambar. Pos yang berkasnya belum ada tampil sebagai bingkai kosong
+    bertuliskan nama berkas yang ditunggu, bukan ikon gambar rusak.
+  --}}
+  <div class="panel collapsible" data-panel-key="cctv">
+    <div class="panel-head">
+      <h2>Pantauan CCTV — Bangunan Bendung</h2>
+      <span class="note">{{ collect($cctv)->where('ada', true)->count() }} dari {{ count($cctv) }} pos bergambar — berkas statis di <code>public/{{ \App\Http\Controllers\SkemaIrigasiController::CCTV_DIR }}</code></span>
+    </div>
+    <div class="panel-body">
+      <div class="cctv-grid">
+        @foreach ($cctv as $pos)
+          <figure class="cctv-item">
+            <div class="cctv-frame">
+              @if ($pos['ada'])
+                {{-- loading="lazy": empat gambar kamera berukuran penuh tidak
+                     perlu menahan tampilnya beranda, apalagi saat kartunya
+                     sedang terlipat. --}}
+                <img src="{{ $pos['url'] }}" alt="CCTV {{ $pos['nama'] }}" loading="lazy" decoding="async">
+              @else
+                <div class="cctv-kosong">
+                  <span class="cctv-kosong-ikon" aria-hidden="true">▣</span>
+                  <span>Belum ada gambar</span>
+                  <code>{{ $pos['path'] }}</code>
+                </div>
+              @endif
+            </div>
+            <figcaption class="cctv-cap">
+              <span class="cctv-nama">{{ $pos['nama'] }}</span>
+              @if ($pos['waktu'])
+                <span class="cctv-waktu" title="Waktu ubah berkas gambar">{{ $pos['waktu'] }}</span>
+              @endif
+              @if ($pos['node'])
+                <a class="cctv-tautan" href="{{ route('kontrol.detail', $pos['node']) }}">Detail pintu →</a>
+              @endif
+            </figcaption>
+          </figure>
+        @endforeach
       </div>
     </div>
   </div>

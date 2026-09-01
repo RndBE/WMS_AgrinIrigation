@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="csrf-token" content="{{ csrf_token() }}" />
 <title>{{ $title ?? 'Monitoring Water Management System' }} — DI Leuwigoong</title>
+{{-- Ikon tab peramban. Sebelumnya public/favicon.ico ada tapi isinya 0 byte dan
+     tidak pernah dideklarasikan di sini, jadi peramban memakai ikon bawaannya
+     (bola dunia). @aset menambahkan cap waktu ubah berkasnya, supaya ikon lama
+     yang sudah tersimpan di peramban tidak dipakai lagi sesudah gambarnya diganti.
+     Gambarnya lambang "be", diambil dari be-inventory (public/images/title.ico). --}}
+<link rel="icon" href="@aset('favicon.ico')" sizes="any">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">

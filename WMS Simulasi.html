@@ -1,0 +1,3007 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SIMHIDRO — Daerah Irigasi Cikandang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="dummy-skema.js"></script>
+<style>
+  :root{
+    --bg-deep:#f5f7fb; --bg-panel:#ffffff; --bg-panel-2:#ffffff; --bg-input:#ffffff;
+    --line:#e3e7ee; --line-soft:#edf0f5;
+    --navy:#262f7f; --navy-dark:#1c2464; --gold:#f7c31c;
+    --teal:#2b6cb0; --teal-dim:#1f4fa6; --water-top:#9fc3d8; --water-bot:#46708f;
+    --brass:#c1a878; --brass-dim:#8f7c52;
+    --field:#4f9d4a; --field-dim:#dff0dc;
+    --text-1:#1f2430; --text-2:#5a6472; --text-3:#6b7482;
+    --ok:#12793a; --warn:#96650a; --danger:#a81d13; --danger-bright:#c02718;
+    --radius:4px;
+    --font-display:'Source Sans 3', system-ui, sans-serif; --font-body:'Source Sans 3', system-ui, sans-serif; --font-mono:'Source Sans 3', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg-deep);
+    color:var(--text-1); font-family:var(--font-body); min-height:100vh; line-height:1.5;
+    font-variant-numeric:tabular-nums;
+  }
+  ::selection{background:color-mix(in srgb, var(--teal) 30%, transparent);}
+  .app{max-width:1500px; margin:0 auto; padding:0 0 50px;}
+  .wrap{padding:0 16px;}
+
+  /* ---------- KOP INSTANSI ---------- */
+  .gov-head{
+    display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;
+    background:#fff; border-bottom:3px solid var(--gold); padding:11px 18px;
+  }
+  .gov-lockup{display:flex; align-items:center; gap:13px;}
+  .brand-mark{
+    width:52px; height:44px; flex-shrink:0; background:var(--gold);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .brand-mark svg{width:30px; height:30px;}
+  .gov-text{font-weight:700; font-size:12.5px; line-height:1.35; letter-spacing:.01em; color:var(--text-1); text-transform:uppercase;}
+  .gov-user{display:flex; align-items:center; gap:11px;}
+  .gov-user .mark{width:34px; height:30px; background:var(--gold); display:flex; align-items:center; justify-content:center;}
+  .gov-user .mark svg{width:20px; height:20px;}
+  .gov-user .t{font-size:13.5px; font-weight:600; color:var(--text-1); line-height:1.25;}
+  .gov-user .r{font-size:11.5px; color:var(--text-3); letter-spacing:.06em;}
+
+  /* ---------- NAV BIRU ---------- */
+  .gov-nav{
+    display:flex; align-items:stretch; gap:2px; background:var(--navy);
+    padding:0 12px; flex-wrap:wrap;
+  }
+  .gov-nav .spacer{flex:1;}
+  .gov-nav button{
+    background:transparent; border:none; border-radius:0; color:#dfe3f5;
+    padding:13px 15px; font-size:13.5px; font-weight:600; font-family:var(--font-body);
+    display:inline-flex; align-items:center; gap:8px; position:relative;
+  }
+  .gov-nav button svg{width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.7;}
+  .gov-nav button:hover{color:#fff; background:var(--navy-dark);}
+  .gov-nav button.active{color:#fff;}
+  .gov-nav button.active::after{content:''; position:absolute; left:12px; right:12px; bottom:0; height:3px; background:var(--gold);}
+  .page-title{font-size:23px; font-weight:700; color:var(--text-1); padding:16px 0 12px;}
+
+  .search-box{
+    display:flex; align-items:center; gap:7px; background:#fff; border:1px solid var(--line);
+    border-radius:var(--radius); padding:7px 12px; min-width:230px;
+  }
+  .search-box input{background:transparent; border:none; outline:none; color:var(--text-1); font-size:12.5px; width:100%; font-family:var(--font-body);}
+  .search-box svg{width:14px; height:14px; flex-shrink:0; opacity:.6;}
+
+  .weather-chip{
+    display:flex; align-items:center; gap:9px; padding:5px 12px; border:1px solid var(--line);
+    border-radius:var(--radius); background:#fff;
+  }
+  .weather-chip .wicon{font-size:19px; line-height:1;}
+  .weather-chip .wtemp{font-size:15px; font-weight:600; color:var(--text-1);}
+  .weather-chip .wmeta{font-size:10px; color:var(--text-2); line-height:1.3;}
+
+  .topbar-right{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+
+  button{
+    font-family:var(--font-body); cursor:pointer; border-radius:var(--radius); border:1px solid #cbd5e1;
+    background:#fff; color:var(--text-1); padding:7px 13px; font-size:13px; font-weight:600;
+    transition:.15s border-color, .15s background, .15s color; display:inline-flex; align-items:center; gap:6px;
+  }
+  button:hover{border-color:var(--teal); color:var(--teal);}
+  button:focus-visible, select:focus-visible, input:focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
+  button.primary{background:var(--teal-dim); border-color:var(--teal-dim); color:#fff;}
+  button.primary:hover{background:#173f85; color:#fff;}
+  button.on{background:var(--teal); border-color:var(--teal); color:#fff;}
+  button.on:hover{background:var(--teal-dim); color:#fff;}
+  select{font-family:var(--font-mono); font-size:12px; background:var(--bg-input); color:var(--text-1); border:1px solid var(--line); border-radius:0; padding:6px 9px;}
+
+  .status-pill{display:flex; align-items:center; gap:7px; padding:6px 12px; border-radius:var(--radius); font-size:12.5px; font-weight:700; letter-spacing:.04em; border:1px solid var(--line); background:#fff;}
+  .status-pill .dot{width:8px; height:8px; border-radius:50%; background:var(--ok);}
+  .status-pill.warn .dot{background:var(--warn);}
+  .status-pill.danger .dot{background:var(--danger-bright); box-shadow:0 0 8px var(--danger-bright); animation:pulse-dot 1.1s infinite;}
+  .status-pill.siaga .dot{background:var(--warn); box-shadow:0 0 8px var(--warn); animation:pulse-dot 1.4s infinite;}
+  @keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .clock{font-size:12.5px; color:var(--text-2); padding:6px 11px; border:1px solid var(--line); border-radius:var(--radius); background:#fff; white-space:nowrap;}
+  .clock b{color:var(--text-1); font-weight:600;}
+
+  /* ---------- NAV TABS ---------- */
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---------- SUMMARY ---------- */
+  .summary-row{display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-bottom:10px;}
+  @media (max-width:1000px){.summary-row{grid-template-columns:repeat(2,1fr);}}
+  .sumcard{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:15px 14px; text-align:center;}
+  .sumcard .lbl{font-size:13px; color:var(--teal); text-transform:none; letter-spacing:0; font-weight:600;}
+  .sumcard .val{font-size:22px; font-weight:700; color:var(--text-1); margin-top:5px;}
+  .sumcard .val span.unit{font-size:14px; color:var(--text-1); font-weight:700; margin-left:4px;}
+  .sumcard.accent .val, .sumcard.brass .val{color:var(--text-1);}
+
+  /* ---------- PANEL ---------- */
+  .panel{background:#fff; border:1px solid var(--line); border-top:3px solid var(--ok); border-radius:var(--radius); margin-bottom:12px; overflow:hidden;}
+  .panel-head{display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; gap:8px;}
+  .panel-head h2{font-family:var(--font-display); font-size:15.5px; font-weight:700; margin:0; color:var(--text-1);}
+  .panel-head .note{font-size:11.5px; color:var(--text-3);}
+  .panel-body{padding:16px;}
+  .group-card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:13px 16px; margin-bottom:12px;}
+  .group-card b{font-size:16px; font-weight:700; color:var(--text-1);}
+  .group-card span{font-size:14px; color:var(--text-2);}
+
+  .schematic-scroll{overflow-x:auto; overflow-y:hidden; padding:4px 0 2px;
+    background:
+      repeating-linear-gradient(0deg, #e3e9f2 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(90deg, #e3e9f2 0 1px, transparent 1px 26px),
+      #f8fafc;
+  }
+  .schematic-scroll svg{display:block; min-width:1200px; width:100%; height:auto;}
+
+  .map-wrap{position:relative; overflow:hidden; background:#e6efe0; user-select:none;}
+  .iso-scroll{width:100%; height:560px; overflow:hidden; cursor:grab; touch-action:none; position:relative;}
+  .iso-scroll.grabbing{cursor:grabbing;}
+  .iso-stage{position:absolute; inset:0; transform-origin:center center; transition:transform .12s ease-out; background:#e6efe0;}
+  #isoBase{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; -webkit-user-drag:none;}
+  #isoWater{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
+  .iso-scroll svg{display:block; position:absolute; inset:0; width:100%; height:100%;}
+  #isoZoomLayer{transform-origin:center center; transition:transform .12s ease-out;}
+  .iso-pin{cursor:pointer;}
+  .iso-pin circle.pin-ring{fill:#1f4fa6; stroke:#132f63; stroke-width:1.4;}
+  .iso-pin:hover circle.pin-ring{fill:#2b6cb0;}
+  .iso-pin text.pin-num{fill:#fff; font-family:var(--font-mono); font-size:12px; font-weight:700; text-anchor:middle;}
+  .pin-leader{stroke:#1d1f20; stroke-width:1; stroke-dasharray:3 2; opacity:0.5;}
+  .pin-leader-dot{fill:#1d1f20; opacity:0.5;}
+  .iso-label{font-family:var(--font-mono); font-size:11px; fill:#1d1f20; text-anchor:middle; opacity:0; transition:opacity .15s;}
+  .iso-label-bg{fill:#f5f5f8; opacity:0; transition:opacity .15s; stroke:#b7b7ba; stroke-width:1;}
+  .labels-on .iso-label, .labels-on .iso-label-bg{opacity:0.92;}
+  .pos-pop{
+    position:absolute; z-index:6; width:238px; background:#fff; border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:0 6px 20px rgba(31,36,48,.18); padding:13px 14px 12px; display:none;
+  }
+  .pos-pop.on{display:block;}
+  .pos-pop .pos-title{font-size:15.5px; font-weight:700; color:var(--text-1); padding-right:20px;}
+  .pos-close{
+    position:absolute; top:8px; right:8px; width:22px; height:22px; padding:0; justify-content:center;
+    border:none; background:transparent; color:var(--text-3); font-size:15px; border-radius:0;
+  }
+  .pos-close:hover{color:var(--text-1); background:#f1f4f8;}
+  .pos-chips{display:flex; gap:6px; flex-wrap:wrap; padding:9px 0 11px;}
+  .pos-chip{
+    display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; color:var(--text-2);
+    background:#f1f4f8; border-radius:3px; padding:3px 8px;
+  }
+  .pos-chip .dot{width:7px; height:7px; border-radius:50%; background:var(--ok);}
+  .pos-tiles{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+  .pos-tile{background:#f1f4f8; border-radius:3px; padding:8px 10px;}
+  .pos-tile b{display:block; font-size:17px; font-weight:700; color:var(--text-1); line-height:1.15;}
+  .pos-tile span{font-size:11px; color:var(--text-3);}
+  .pos-time{font-size:11.5px; color:var(--text-3); padding:11px 0 10px;}
+  .pos-actions{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .pos-actions button{justify-content:center; font-size:12.5px; padding:6px 8px; color:var(--teal); border-color:#bcd4ee;}
+  .pos-actions button:hover{background:#eaf2fb;}
+  .pos-actions button svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2;}
+  .map-controls{position:absolute; right:12px; bottom:12px; display:flex; flex-direction:column; gap:6px; align-items:flex-end;}
+  .map-controls button{width:34px; height:34px; padding:0; justify-content:center; font-size:15px; background:rgba(242,242,243,.92); backdrop-filter:blur(2px);}
+  .map-controls button#mapLabelToggle,
+  .map-controls button#mapEditPins,
+  .map-controls button#mapPinsReset,
+  .map-controls button#mapPinsCopy{width:auto; padding:0 10px; font-size:11px;}
+  .map-controls button#mapLabelToggle.on,
+  .map-controls button#mapEditPins.on{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .iso-scroll.pin-edit .iso-pin{cursor:grab;}
+  .iso-scroll.pin-edit .iso-pin.dragging{cursor:grabbing;}
+  .iso-scroll.pin-edit .iso-pin circle.pin-ring{stroke:#f0a020; stroke-width:2.6;}
+  .pin-edit-hint{position:absolute; left:12px; top:12px; z-index:6; display:none; align-items:center; gap:8px;
+    padding:6px 10px; font-size:11px; letter-spacing:.02em; background:rgba(242,242,243,.94); backdrop-filter:blur(2px);
+    border:1px solid var(--color-accent, #5980a6); color:var(--text-1, #1d1f20);}
+  .iso-scroll.pin-edit + .pin-edit-hint, .map-wrap.pin-edit-on .pin-edit-hint{display:flex;}
+  .flow-line{stroke-dasharray:9 7; animation:flow-move linear infinite;}
+  .iso-flow{stroke:#eaf6ff; stroke-width:2.4; stroke-dasharray:11 9; opacity:.8; animation:flow-move 3s linear infinite;}
+  .iso-flow.slow{animation-duration:4.6s;}
+  @keyframes flow-move{to{stroke-dashoffset:-64;}}
+  @media (prefers-reduced-motion: reduce){ .flow-line{animation:none;} }
+  .gate-label{font-family:var(--font-mono); font-size:10.5px; fill:var(--text-2);}
+  .gate-value{font-family:var(--font-mono); font-size:12px; font-weight:600; fill:var(--text-1);}
+  .lane-title{font-family:var(--font-display); font-size:12px; font-weight:700; fill:var(--text-1);}
+  /* skema pembagian air: kanal bergaya pipa dengan gelembung aliran */
+  .sk-name{font-family:var(--font-body); font-size:11.5px; font-weight:700; fill:#1f2430;}
+  .sk-code{font-family:var(--font-body); font-size:8.5px; font-weight:700; fill:#1f2430;}
+  .sk-cm{font-family:var(--font-body); font-size:8.5px; font-weight:700; fill:#41506a;}
+  .sk-read{font-family:var(--font-body); font-size:10px; font-weight:600; fill:#41506a;}
+  .sk-t1{font-family:var(--font-body); font-size:13px; font-weight:700; fill:#1f4fa6; letter-spacing:.04em;}
+  .sk-t2{font-family:var(--font-body); font-size:21px; font-weight:700; fill:#5b2a86; letter-spacing:.01em;}
+  .bub-h{animation:bub-h 2.4s linear infinite;}
+  .bub-v{animation:bub-v 2.4s linear infinite;}
+  @keyframes bub-h{to{transform:translateX(26px);}}
+  @keyframes bub-v{to{transform:translateY(26px);}}
+  .sk-dots{animation:sk-dots 2.4s linear infinite;}
+  @keyframes sk-dots{to{stroke-dashoffset:-26;}}
+  .sk-name,.sk-read,.sk-cm{paint-order:stroke; stroke:#f8fafc; stroke-width:2.6px; stroke-linejoin:round;}
+  @media (prefers-reduced-motion: reduce){ .bub-h,.bub-v,.sk-dots{animation:none;} }
+
+  /* ---------- TABS INNER CONTENT ---------- */
+  .subtabs-nav{display:flex; gap:2px; padding:8px 8px 0; flex-wrap:wrap;}
+  .tab-btn{background:transparent; border:1px solid transparent; border-bottom:none; color:var(--text-2); padding:8px 14px; font-size:12px; font-weight:500; border-radius:0 8px 0 0;}
+  .tab-btn:hover{color:var(--text-1);}
+  .tab-btn.active{color:var(--text-1); background:var(--bg-panel-2); border-color:var(--line);}
+  .tab-panels{padding:15px; border-top:1px solid var(--line);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* ---------- CONFIG / CONTROL CARDS ---------- */
+  .cfg-section-title{font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--text-1); margin:20px 0 10px; display:flex; align-items:center; gap:8px;}
+  .cfg-section-title:first-child{margin-top:0;}
+  .cfg-section-title .n{background:var(--teal-dim); color:#fff; border-radius:3px; padding:1px 8px; font-size:12px; font-weight:700;}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .grid2{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
+  @media (max-width:1000px){.grid3{grid-template-columns:1fr;} .grid2{grid-template-columns:1fr;}}
+  .cfg-card, .ctrl-card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:13px 15px;}
+  .cfg-card h4, .ctrl-card h3{font-family:var(--font-display); font-size:14.5px; font-weight:700; margin:0 0 10px; color:var(--text-1); display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .maks-badge{display:inline-block; font-size:11.5px; font-weight:600; color:var(--teal); border:1px solid var(--teal); border-radius:3px; padding:1px 8px;}
+  .ctrl-top{display:grid; grid-template-columns:210px minmax(0,1fr); gap:14px; align-items:center; margin-bottom:10px;}
+  .mini-elev{border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; background:#fff;}
+  .mini-elev .cap{font-size:10.5px; color:var(--teal); text-align:center; padding:3px; border-bottom:1px solid var(--line); font-weight:600;}
+  .mini-elev svg{display:block; width:100%; height:auto;}
+  .ctrl-readout{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+  .ctrl-readout div{background:#f1f4f8; border-radius:3px; padding:6px 9px;}
+  .ctrl-readout b{display:block; font-size:16px; font-weight:700; color:var(--text-1); line-height:1.15;}
+  .ctrl-readout span{font-size:10.5px; color:var(--text-3);}
+  .ctrl-dev{
+    display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-2);
+    border-left:3px solid var(--ok); background:#f8fafc; padding:6px 10px; margin-bottom:10px;
+  }
+  .ctrl-dev.chase{border-left-color:var(--warn);}
+  .ctrl-dev.stuck{border-left-color:var(--danger); color:#a81d13; font-weight:600;}
+  .ctrl-field.off{opacity:.38; pointer-events:none;}
+  .ctrl-field .tagmode{font-size:10px; font-weight:700; letter-spacing:.06em; color:var(--text-3);}
+  .lamp-row{display:flex; gap:10px; justify-content:center; padding-top:10px;}
+  .lamp{width:44px; text-align:center;}
+  .lamp .plate{border:1px solid var(--line); border-radius:3px 3px 0 0; font-size:11px; font-weight:700; color:var(--text-1); background:#fff;}
+  .lamp .bulb{
+    height:34px; border:1px solid #2b3242; border-top:none; border-radius:0 0 14px 14px;
+    display:flex; align-items:center; justify-content:center; background:#2b3242;
+  }
+  .lamp .bulb span{
+    width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:9px; font-weight:700; color:#fff;
+  }
+  .elev-card{border:1px solid var(--line); border-radius:var(--radius); margin-top:10px; overflow:hidden;}
+  .elev-card .cap{font-size:12.5px; color:var(--teal); text-align:center; padding:6px; border-bottom:1px solid var(--line); font-weight:600;}
+  .elev-card svg{display:block; width:100%; max-width:360px; height:auto; margin:0 auto;}
+  .mode-toggle{display:flex; gap:5px;}
+  .mode-toggle button{padding:3px 9px; font-size:10.5px;}
+  .field{margin-bottom:10px;}
+  .field label{display:flex; justify-content:space-between; font-size:12.5px; color:var(--text-2); margin-bottom:5px;}
+  .field label b{color:var(--text-1); font-weight:600;}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+  input[type=range]{width:100%; accent-color:var(--teal); height:4px; cursor:pointer;}
+  input[type=number]{
+    width:100%; background:var(--bg-input); border:1px solid var(--line); border-radius:0; color:var(--text-1);
+    font-family:var(--font-mono); font-size:12px; padding:6px 8px;
+  }
+  .scenario-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;}
+  .assumption-box{
+    font-size:12.5px; color:var(--text-2); background:#f8fafc;
+    border:1px solid var(--line); border-left:3px solid var(--teal); border-radius:0 var(--radius) var(--radius) 0;
+    padding:10px 12px; margin-top:8px; line-height:1.6;
+  }
+
+  /* ---------- IRRIGATION / SAWAH CARDS ---------- */
+  .sawah-card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px;}
+  .status-badge{font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:3px; display:inline-block;}
+  .status-badge.ideal{background:#e7f7ed; color:#12793a; border:1px solid #b3e2c5;}
+  .status-badge.cukup{background:#fef5e3; color:#96650a; border:1px solid #f6ddab;}
+  .status-badge.kurang{background:#fdeceb; color:#a81d13; border:1px solid #f5c2be;}
+  .status-badge.lebih{background:#eaf2fb; color:#1f4fa6; border:1px solid #bcd4ee;}
+
+  /* ---------- CHARTS ---------- */
+  .chart-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:1000px){.chart-grid{grid-template-columns:1fr;}}
+  .chart-box{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:13px 15px 9px;}
+  .chart-box h3{font-family:var(--font-display); font-size:14.5px; font-weight:700; margin:0 0 8px; color:var(--text-1);}
+  .chart-box canvas{max-height:220px;}
+
+  /* ---------- FORMULA ---------- */
+  .formula-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:1000px){.formula-grid{grid-template-columns:1fr;}}
+  .formula-card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px;}
+  .formula-card h3{font-family:var(--font-display); font-size:15px; font-weight:700; margin:0 0 8px; color:var(--text-1);}
+  .formula-card p{font-size:12px; color:var(--text-2); margin:0 0 8px;}
+  .formula-box{font-family:ui-monospace, monospace; font-size:12.5px; background:#f8fafc; border:1px solid var(--line); border-radius:var(--radius); padding:10px 12px; margin-bottom:8px; color:var(--text-1); overflow-x:auto; white-space:nowrap;}
+  .formula-live{font-family:var(--font-mono); font-size:11px; color:var(--text-3); border-left:2px solid var(--teal-dim); padding-left:9px;}
+  .formula-live b{color:var(--teal); font-weight:600;}
+  table.data-table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  table.data-table th{
+    text-align:left; padding:9px 10px; background:#f8fafc; border-bottom:1px solid var(--line);
+    color:var(--text-3); font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.07em;
+  }
+  table.data-table td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line-soft);}
+  table.data-table tbody tr:hover{background:#f8fafc;}
+  .balance-ok{color:var(--ok); font-weight:600;} .balance-bad{color:var(--warn); font-weight:600;}
+
+  /* ---------- LOG ---------- */
+  .log-list{font-size:13px; max-height:420px; overflow-y:auto; display:flex; flex-direction:column-reverse;}
+  .log-entry{padding:6px 9px; border-bottom:1px solid var(--line-soft); display:flex; gap:9px;}
+  .log-entry .t{color:var(--text-3); flex-shrink:0;}
+  .log-entry.info .msg{color:var(--text-2);} .log-entry.ok .msg{color:var(--ok);}
+  .log-entry.warn .msg{color:var(--warn);} .log-entry.danger .msg{color:var(--danger-bright);}
+
+  .footnote{font-size:11px; color:var(--text-3); padding:12px 4px 0; line-height:1.6;}
+  .footnote b{color:var(--text-2);}
+  .highlight-flash{animation:flashbg 1.1s ease;}
+  @keyframes flashbg{0%{background:rgba(89,128,166,.28);} 100%{background:transparent;}}
+
+  ::-webkit-scrollbar{height:9px; width:9px;}
+  ::-webkit-scrollbar-track{background:var(--bg-input);}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:0;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--teal-dim);}
+
+  /* ---------- SHELL: TOP BAR · SIDEBAR · FOOTER ---------- */
+  .railbar{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 0 12px;
+  }
+  .railbar .spacer{flex:1;}
+  .shell{display:block;}
+  .content{min-width:0;}
+  .footer{border-top:1px solid var(--line); margin-top:18px; padding:14px 16px 0; background:#fff;}
+  .map-wrap{background:#eef2f6;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- KOP INSTANSI -->
+  <header class="gov-head">
+    <div class="gov-lockup">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1f2430" stroke-width="1.8" stroke-linecap="round">
+          <path d="M2 8h20"/><path d="M2 16h20"/><path d="M8 5v6"/><path d="M16 5v6"/><path d="M5 19h14"/>
+        </svg>
+      </div>
+      <div class="gov-text">
+        <div>Kementerian Pekerjaan Umum</div>
+        <div>Direktorat Jenderal Sumber Daya Air</div>
+        <div>Balai Besar Wilayah Sungai Cimanuk Cisanggarung</div>
+      </div>
+    </div>
+    <div class="gov-user">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1f2430" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6"/></svg>
+      </div>
+      <div>
+        <div class="t">Monitoring Water Management System</div>
+        <div class="r">ADMIN · Pengamat Pengairan</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAV -->
+  <nav class="gov-nav" id="navTabs">
+    <button class="navtab active" data-view="dashboard">
+      <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>Beranda
+    </button>
+    <button class="navtab" data-view="kontrol">
+      <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M6 3v6"/><path d="M6 15v6"/><path d="M18 3v10"/><path d="M18 19v2"/><rect x="3.4" y="9" width="5.2" height="6" rx="1"/><rect x="15.4" y="13" width="5.2" height="6" rx="1"/></svg>Kontrol Pintu
+    </button>
+    <button class="navtab" data-view="konfigurasi">
+      <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M4 7h9"/><path d="M17 7h3"/><path d="M4 17h4"/><path d="M12 17h8"/><circle cx="15" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>Konfigurasi Sistem
+    </button>
+    <button class="navtab" data-view="tren">
+      <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-5 3 3 4-6"/></svg>Tren Data
+    </button>
+    <button class="navtab" data-view="rumus">
+      <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M6 20c2 0 2.5-1.5 3-5s1-11 3-11c1.2 0 1.8.7 2 1.4"/><path d="M6 10h9"/></svg>Rumus &amp; Analisis
+    </button>
+    <button class="navtab" data-view="log">
+      <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>Log Sistem
+    </button>
+    <span class="spacer"></span>
+    <button id="downloadBtn" title="Unduh data sensor &amp; konfigurasi saat ini">
+      <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><path d="M5 20h14"/></svg>Unduh
+    </button>
+  </nav>
+
+  <div class="wrap">
+  <div class="page-title" id="pageTitle">Beranda</div>
+
+  <!-- RAIL KENDALI -->
+  <div class="railbar">
+    <div class="weather-chip" id="weatherChip">
+      <span class="wicon" id="wIcon">☀️</span>
+      <div><div class="wtemp"><span id="wTemp">28</span>°C</div><div class="wmeta" id="wDesc">Cerah · Angin 5.9 km/h</div></div>
+    </div>
+    <div class="status-pill" id="statusPill"><span class="dot"></span><span id="statusText">NORMAL</span></div>
+    <div class="clock">T-sim: <b id="simClock">00:00:00</b></div>
+    <div class="spacer"></div>
+    <select id="speedSelect" title="Kecepatan simulasi">
+      <option value="1">1×</option><option value="4" selected>4×</option><option value="12">12×</option><option value="60">60×</option>
+    </select>
+    <button id="playPauseBtn" class="primary">▶ Jalankan</button>
+    <button id="resetBtn">↺ Reset</button>
+  </div>
+
+  <div class="shell">
+
+    <main class="content">
+
+  <!-- ================= DASHBOARD VIEW ================= -->
+  <div class="view active" id="view-dashboard">
+    <div class="summary-row">
+      <div class="sumcard"><div class="lbl">Debit Alami Hulu</div><div class="val"><span id="sumQnat">0.0</span><span class="unit">m³/dtk</span></div></div>
+      <div class="sumcard accent"><div class="lbl">Debit Masuk (Pintu Scouring)</div><div class="val"><span id="sumQgate">0.0</span><span class="unit">m³/dtk</span></div></div>
+      <div class="sumcard brass"><div class="lbl">Total Tersalur ke Sawah</div><div class="val"><span id="sumQirigasi">0.0</span><span class="unit">m³/dtk</span></div></div>
+      <div class="sumcard"><div class="lbl">Debit ke Hilir (Floodway)</div><div class="val"><span id="sumQhilir">0.0</span><span class="unit">m³/dtk</span></div></div>
+      <div class="sumcard"><div class="lbl">Pemenuhan Rata-rata</div><div class="val"><span id="sumEfisiensi">0</span><span class="unit">%</span></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Peta Jaringan — Bendung, Sekunder, Tersier &amp; Sawah</h2>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="note">klik pin untuk melihat data pos</span>
+          <div class="mode-toggle">
+            <button id="viewIsoBtn" class="on">Peta Isometrik</button>
+            <button id="viewSchematicBtn">Diagram Skematik</button>
+          </div>
+        </div>
+      </div>
+      <div class="map-wrap" id="isoMapPanel">
+        <div class="iso-scroll" id="isoScroll">
+          <div class="iso-stage" id="isoStage">
+            <canvas id="isoWater"></canvas>
+            <img id="isoBase" src="assets/iso-map-holes.png" alt="Peta isometrik DI Leuwigoong" draggable="false">
+            <svg id="isoSvg" viewBox="0 0 1300 731" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+        </div>
+        <div class="pin-edit-hint">Mode geser titik aktif — tarik pin ke posisi baru. Posisi tersimpan otomatis di browser.</div>
+        <div class="pos-pop" id="posPop">
+          <button class="pos-close" id="posClose" title="Tutup">×</button>
+          <div class="pos-title" id="posTitle">Pos</div>
+          <div class="pos-chips">
+            <span class="pos-chip"><span class="dot"></span>Terhubung</span>
+            <span class="pos-chip">SD Card OK</span>
+          </div>
+          <div class="pos-tiles" id="posTiles"></div>
+          <div class="pos-time" id="posTime">—</div>
+          <div class="pos-actions">
+            <button id="posAnalisa"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-5 3 3 4-6"/></svg>Analisa</button>
+            <button id="posLokasi"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M21 4L3 11l8 2 2 8z"/></svg>Lokasi</button>
+          </div>
+        </div>
+        <div class="map-controls">
+          <button id="mapZoomIn" title="Perbesar">+</button>
+          <button id="mapZoomOut" title="Perkecil">−</button>
+          <button id="mapReset" title="Atur ulang tampilan">⟳</button>
+          <button id="mapLabelToggle" title="Tampilkan/sembunyikan label">🏷 Label</button>
+          <button id="mapEditPins" title="Geser titik pos secara manual">✥ Geser Titik</button>
+          <button id="mapPinsReset" title="Kembalikan posisi titik ke bawaan" style="display:none;">↺ Posisi Awal</button>
+          <button id="mapPinsCopy" title="Salin koordinat titik" style="display:none;">⧉ Salin Koordinat</button>
+        </div>
+      </div>
+      <div class="schematic-scroll" id="schematicPanel" style="display:none;"><svg id="hmiSvg" viewBox="0 0 1500 760" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Status Kebutuhan Irigasi per Petak Sawah</h2><span class="note">Ideal / Cukup / Kurang dihitung dari debit aktual vs kebutuhan</span></div>
+      <div class="panel-body" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;" id="sawahCards"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Status Pintu Air — Intake Bendung</h2>
+        <button id="gotoKontrolBtn" class="primary">⚙ Kontrol Pintu</button>
+      </div>
+      <div class="panel-body" id="gateStatusBody"></div>
+    </div>
+
+  </div>
+
+  <!-- ================= KONTROL PINTU VIEW ================= -->
+  <div class="view" id="view-kontrol">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Skenario Kondisi Sumber Hulu</h2>
+        <span class="note">input hidrograf untuk menguji respons kendali seluruh jaringan</span>
+      </div>
+      <div class="panel-body" id="kontrolBodyWrap">
+        <p style="font-size:13.5px;color:var(--text-2);margin:0 0 12px;">Memodelkan kondisi debit alami sungai hulu. Pilihan skenario nonaktif selama tampilan memakai data dummy statis.</p>
+        <div class="scenario-row">
+          <button id="scNormal" class="on">Normal</button>
+          <button id="scFlood">Hujan / Banjir</button>
+          <button id="scDrought">Kering / Kemarau</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Kendali 9 Pintu — Primer, Sekunder &amp; Tersier</h2>
+        <span class="note">mode Auto mengikuti target; Manual mengunci bukaan pada nilai operator</span>
+      </div>
+      <div class="panel-body" id="controlBody"></div>
+    </div>
+  </div>
+
+  <!-- ================= KONFIGURASI VIEW ================= -->
+  <div class="view" id="view-konfigurasi">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Konfigurasi Sistem — Dimensi Pintu, Penampang &amp; Kebutuhan Sawah</h2>
+        <span class="note">nilai mengikuti data dummy statis</span>
+      </div>
+      <div class="panel-body" id="configBody"></div>
+    </div>
+  </div>
+
+  <!-- ================= TREN VIEW ================= -->
+  <div class="view" id="view-tren">
+    <div class="panel"><div class="panel-body">
+      <div class="chart-grid">
+        <div class="chart-box"><h3>TMA — Sungai Utama (Hulu &amp; Kolam Bendung)</h3><canvas id="chartLevelMain"></canvas></div>
+        <div class="chart-box"><h3>TMA — Saluran Sekunder &amp; Tersier</h3><canvas id="chartLevelSub"></canvas></div>
+        <div class="chart-box"><h3>Debit Pintu Primer &amp; Total ke Sawah</h3><canvas id="chartDebitMain"></canvas></div>
+        <div class="chart-box"><h3>Debit Tersalur per Petak Sawah</h3><canvas id="chartDebitField"></canvas></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ================= RUMUS VIEW ================= -->
+  <div class="view" id="view-rumus">
+    <div class="panel"><div class="panel-body" id="rumusBody"></div></div>
+  </div>
+
+  <!-- ================= LOG VIEW ================= -->
+  <div class="view" id="view-log">
+    <div class="panel">
+      <div class="panel-head"><h2>Log Sistem</h2></div>
+      <div class="panel-body"><div class="log-list" id="logList"></div></div>
+    </div>
+  </div>
+
+    </main>
+  </div>
+  </div>
+
+  <footer class="footer">
+  <p class="footnote">
+    <b>Catatan model:</b> simulasi ini memakai model hidrolika tereduksi (lumped-parameter) untuk tujuan edukasi/perencanaan awal:
+    penampang saluran disederhanakan persegi panjang; pintu air memakai persamaan aliran bawah (orifice bebas/tenggelam);
+    routing antar-segmen memakai tampungan non-linear (nonlinear-reservoir routing); pelimpahan ke petak sawah memakai persamaan ambang lebar (broad-crested weir).
+    Panjang saluran (kolam ±300 m, sekunder ±300 m, tersier ±200 m) diasumsikan tetap — lebar, tinggi tanggul, dan dimensi pintu dapat diatur di tab
+    <b>Konfigurasi Sistem</b>. Untuk desain rinci/kajian banjir nyata, gunakan model hidrolika 1D/2D penuh (mis. HEC-RAS) dengan data topografi terukur.
+    Peta jaringan tersedia dalam dua tampilan: <b>Peta Isometrik</b> dan <b>Diagram Skematik</b> bergaya mimik — keduanya dibangun dari state simulasi yang sama.
+  </p>
+  </footer>
+
+</div>
+<script>
+/* =========================================================================
+   SIMHIDRO v2 — 3 Pintu Primer, Kolam Bendung, 3 Rantai Sekunder-Tersier-Sawah
+   ========================================================================= */
+const g = 9.81;
+
+function manningCalc(h, B, n, S0) {
+  if (h <= 0.001) return { Q: 0, V: 0, A: 0, P: 0, R: 0 };
+  const A = B * h, P = B + 2 * h, R = A / P;
+  const V = (1 / n) * Math.pow(R, 2 / 3) * Math.sqrt(S0);
+  return { Q: V * A, V, A, P, R };
+}
+function manningInvertH(Q, B, n, S0, hMax) {
+  let lo = 0, hi = hMax;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (manningCalc(mid, B, n, S0).Q < Q) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+function gateDischarge(hUp, hDown, a, b, Cd) {
+  if (a <= 0.0005 || hUp <= 0.01) return { Q: 0, regime: '-' };
+  const aEff = Math.min(a, hUp);
+  let dh, regime;
+  if (hDown < 0.67 * hUp) { dh = Math.max(hUp - aEff / 2, 0.01); regime = 'bebas'; }
+  else { dh = Math.max(hUp - hDown, 0); regime = 'tenggelam'; }
+  return { Q: Cd * b * aEff * Math.sqrt(2 * g * dh), regime };
+}
+function fieldWeirQ(h, Cw, b) { return h <= 0.001 ? 0 : Cw * b * Math.pow(h, 1.5); }
+function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+
+// PI + anti-windup (conditional integration) + rate limiter fisik pada bukaan pintu
+function piStep(err, ctrl, gains, aMax, dt) {
+  const rawCmd = gains.Kp * err + gains.Ki * ctrl.i;
+  const satHigh = rawCmd > aMax && err > 0;
+  const satLow = rawCmd < 0 && err < 0;
+  if (!satHigh && !satLow) ctrl.i += err * dt;
+  ctrl.i = clamp(ctrl.i, -200, 200);
+  const cmd = clamp(gains.Kp * err + gains.Ki * ctrl.i, 0, aMax);
+  ctrl.a += clamp(cmd - ctrl.a, -gains.rate * dt, gains.rate * dt);
+  return ctrl.a;
+}
+
+/* ---------------- Konstanta tetap (asumsi teknis, ditampilkan sbg info) ---------------- */
+const FIXED = {
+  nRiver: 0.034, S0River: 0.00035,      // kekasaran & kemiringan sungai utama
+  poolL: 300, secL: 300, tertL: 200,     // panjang segmen (m) — asumsi tetap
+  CdPrimary: 0.68, CdSecondary: 0.62, CdTertiary: 0.62,
+  fieldCw: 1.7, fieldB: 1.5,              // ambang lebar menuju petak sawah
+};
+const G_BIG = { Kp: 0.8, Ki: 0.02, rate: 0.02 };     // gain pintu pengendali TMA (primer & sekunder)
+const G_SMALL = { Kp: 0.12, Ki: 0.03, rate: 0.0015 }; // gain pintu pengendali debit (tersier)
+const DT = 5;
+
+/* ---------------- State ---------------- */
+function freshState() {
+  return {
+    running: false, speed: 4, simTime: 0, scenario: 'normal',
+    Qnat: 30, QnatTarget: 30,
+
+    river: { B: 30, Hmax: 6 },           // penampang sungai utama (hulu & kolam berbagi geometri sama)
+    targetPoolLevel: 2.5,
+    pool: { h: 2.0, S: 0 },
+
+    /* Pintu primer bendung: tiga floodway melimpaskan ke hilir sungai,
+       satu pintu scouring memasok saluran (menuju pintu sekunder/intake). */
+    primary: [
+      { name: 'Floodway 1', role: 'floodway', b: 8, aMax: 3.0, mode: 'auto', manualA: 1.2, ctrl: { i: 0, a: 1.2 } },
+      { name: 'Floodway 2', role: 'floodway', b: 8, aMax: 3.0, mode: 'auto', manualA: 1.2, ctrl: { i: 0, a: 1.2 } },
+      { name: 'Floodway 3', role: 'floodway', b: 8, aMax: 3.0, mode: 'auto', manualA: 1.2, ctrl: { i: 0, a: 1.2 } },
+      { name: 'Scouring', role: 'scouring', b: 6, aMax: 3.0, mode: 'auto', manualA: 1.2, ctrl: { i: 0, a: 1.2 } },
+    ],
+
+    secondary: [
+      { canal: { B: 6, Hmax: 2, h: 1.0, S: 0 }, gate: { b: 2.5, aMax: 1.2, mode: 'auto', manualA: 0.1, ctrl: { i: 0.5, a: 0.1 } }, targetLevel: 1.0 },
+      { canal: { B: 6, Hmax: 2, h: 1.0, S: 0 }, gate: { b: 2.5, aMax: 1.2, mode: 'auto', manualA: 0.1, ctrl: { i: 0.5, a: 0.1 } }, targetLevel: 1.0 },
+      { canal: { B: 6, Hmax: 2, h: 1.0, S: 0 }, gate: { b: 2.5, aMax: 1.2, mode: 'auto', manualA: 0.1, ctrl: { i: 0.5, a: 0.1 } }, targetLevel: 1.0 },
+    ],
+
+    tertiary: [
+      { canal: { B: 2.5, Hmax: 1.2, h: 0.3, S: 0 }, gate: { b: 1.2, aMax: 0.8, mode: 'auto', manualA: 0.05, ctrl: { i: 0.5, a: 0.05 } } },
+      { canal: { B: 2.5, Hmax: 1.2, h: 0.3, S: 0 }, gate: { b: 1.2, aMax: 0.8, mode: 'auto', manualA: 0.05, ctrl: { i: 0.5, a: 0.05 } } },
+      { canal: { B: 2.5, Hmax: 1.2, h: 0.3, S: 0 }, gate: { b: 1.2, aMax: 0.8, mode: 'auto', manualA: 0.05, ctrl: { i: 0.5, a: 0.05 } } },
+    ],
+
+    areas: [
+      { name: 'Sawah Blok 1', ha: 120 },
+      { name: 'Sawah Blok 2', ha: 150 },
+      { name: 'Sawah Blok 3', ha: 90 },
+    ],
+    duty: 1.0, // l/dtk/ha — kebutuhan air per hektar
+
+    thresholds: {
+      river: defaultThresholds(),
+      sec: [defaultThresholds(), defaultThresholds(), defaultThresholds()],
+      tert: [defaultThresholds(0.08), defaultThresholds(0.08), defaultThresholds(0.08)],
+    },
+
+    // hasil hitung tiap tick
+    hUp: 1.2, vUp: 0, QgateTotal: 0, Qhilir: 0, vPool: 0,
+    Qsec: [0, 0, 0], vSec: [0, 0, 0],
+    Qtert: [0, 0, 0], vTert: [0, 0, 0],
+    Qfield: [0, 0, 0],
+    allocFactor: 1, totalDemand: 0, totalDelivered: 0,
+    status: 'NORMAL', _dStotalDt: 0,
+  };
+}
+const state = freshState();
+state.pool.S = state.pool.h * state.river.B * FIXED.poolL;
+state.secondary.forEach(s => s.canal.S = s.canal.h * s.canal.B * FIXED.secL);
+state.tertiary.forEach(t => t.canal.S = t.canal.h * t.canal.B * FIXED.tertL);
+
+let lastStatus = 'NORMAL';
+let lastSatLog = -99999;
+
+/* ---------------- Log ---------------- */
+function fmtClock(sec) {
+  sec = Math.floor(sec);
+  const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  const pad = (x) => String(x).padStart(2, '0');
+  return (d > 0 ? d + 'h ' : '') + `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+function pushLog(msg, level = 'info') {
+  const list = document.getElementById('logList');
+  if (!list) return;
+  const div = document.createElement('div');
+  div.className = 'log-entry ' + level;
+  div.innerHTML = `<span class="t">${fmtClock(state.simTime)}</span><span class="msg">${msg}</span>`;
+  list.appendChild(div);
+  while (list.children.length > 150) list.removeChild(list.firstChild);
+}
+
+/* ---------------- Satu langkah simulasi ---------------- */
+function stepSimulation() {
+  const dt = DT;
+  state.simTime += dt;
+
+  const t = state.simTime;
+  if (state.scenario === 'normal') state.QnatTarget = 30 + 6 * Math.sin(t / 3000);
+  else if (state.scenario === 'flood') state.QnatTarget = 110 + 12 * Math.sin(t / 1400);
+  else if (state.scenario === 'drought') state.QnatTarget = 5 + 1 * Math.sin(t / 4000);
+  state.Qnat += (state.QnatTarget - state.Qnat) * 0.01 + (Math.random() - 0.5) * 0.5;
+  state.Qnat = Math.max(1.2, state.Qnat);
+
+  const hUp = manningInvertH(state.Qnat, state.river.B, FIXED.nRiver, FIXED.S0River, state.river.Hmax);
+  const vUp = manningCalc(hUp, state.river.B, FIXED.nRiver, FIXED.S0River).V;
+  state.hUp = hUp; state.vUp = vUp;
+
+  const Sbefore = state.pool.S + state.secondary.reduce((a, s) => a + s.canal.S, 0) + state.tertiary.reduce((a, t) => a + t.canal.S, 0);
+
+  // pintu primer -> kolam (kendali TMA kolam)
+  let QgateTotal = 0, Qscour = 0, Qflood = 0;
+  for (let k = 0; k < state.primary.length; k++) {
+    const pg = state.primary[k];
+    const err = state.targetPoolLevel - state.pool.h;
+    let a;
+    if (pg.mode === 'auto') a = piStep(err, pg.ctrl, G_BIG, pg.aMax, dt);
+    else { pg.ctrl.a += clamp(clamp(pg.manualA, 0, pg.aMax) - pg.ctrl.a, -G_BIG.rate * dt, G_BIG.rate * dt); a = pg.ctrl.a; }
+    const Qk = gateDischarge(hUp, state.pool.h, a, pg.b, FIXED.CdPrimary).Q;
+    QgateTotal += Qk;
+    if (pg.role === 'scouring') Qscour += Qk; else Qflood += Qk;
+  }
+  state.QgateTotal = QgateTotal;
+  state.Qscour = Qscour;
+  state.Qflood = Qflood;
+
+  // estimasi alokasi adaptif (pasokan vs total kebutuhan sawah)
+  const targetQfield = state.areas.map(a => (state.duty * a.ha) / 1000);
+  const totalDemand = targetQfield.reduce((a, b) => a + b, 0);
+  let allocFactor = 1;
+  if (QgateTotal < totalDemand * 1.2 && totalDemand > 0) allocFactor = clamp((QgateTotal * 0.9) / totalDemand, 0.1, 1);
+  const prevAlloc = state.allocFactor;
+  state.allocFactor = allocFactor;
+  if (allocFactor < 0.98 && prevAlloc >= 0.98) pushLog(`Pasokan pintu primer tak cukup untuk total kebutuhan sawah — alokasi adaptif diaktifkan (${(allocFactor * 100).toFixed(0)}%).`, 'warn');
+  else if (allocFactor >= 0.98 && prevAlloc < 0.98) pushLog('Pasokan kembali mencukupi — alokasi irigasi dikembalikan ke 100% target.', 'ok');
+  state.totalDemand = totalDemand;
+
+  // pintu sekunder menarik dari kolam (kendali TMA saluran sekunder)
+  const Qsec = [0, 0, 0];
+  for (let i = 0; i < 3; i++) {
+    const sg = state.secondary[i].gate;
+    const err = state.secondary[i].targetLevel - state.secondary[i].canal.h;
+    let a;
+    if (sg.mode === 'auto') a = piStep(err, sg.ctrl, G_BIG, sg.aMax, dt);
+    else { sg.ctrl.a += clamp(clamp(sg.manualA, 0, sg.aMax) - sg.ctrl.a, -G_BIG.rate * dt, G_BIG.rate * dt); a = sg.ctrl.a; }
+    Qsec[i] = gateDischarge(state.pool.h, state.secondary[i].canal.h, a, sg.b, FIXED.CdSecondary).Q;
+  }
+
+  // neraca kolam
+  const poolManning = manningCalc(state.pool.h, state.river.B, FIXED.nRiver, FIXED.S0River);
+  state.pool.S += (QgateTotal - Qsec.reduce((a, b) => a + b, 0) - poolManning.Q) * dt;
+  state.pool.S = Math.max(0, state.pool.S);
+  state.pool.h = Math.min(state.river.Hmax * 1.05, state.pool.S / (state.river.B * FIXED.poolL));
+  state.Qhilir = poolManning.Q;
+  state.vPool = poolManning.V;
+  state.Qsec = Qsec;
+
+  // pintu tersier menarik dari saluran sekunder (kendali DEBIT ke sawah — loop utama irigasi)
+  const Qtert = [0, 0, 0];
+  for (let i = 0; i < 3; i++) {
+    const tg = state.tertiary[i].gate;
+    Qtert[i] = gateDischarge(state.secondary[i].canal.h, state.tertiary[i].canal.h, tg.ctrl.a, tg.b, FIXED.CdTertiary).Q;
+  }
+  // update saluran sekunder (in=Qsec, out=Qtert)
+  for (let i = 0; i < 3; i++) {
+    const c = state.secondary[i].canal;
+    c.S += (Qsec[i] - Qtert[i]) * dt;
+    c.S = Math.max(0, c.S);
+    c.h = Math.min(c.Hmax * 1.05, c.S / (c.B * FIXED.secL));
+  }
+
+  // debit ke sawah via ambang lebar (weir bebas, tak terkendali langsung)
+  const Qfield = [0, 0, 0];
+  for (let i = 0; i < 3; i++) Qfield[i] = fieldWeirQ(state.tertiary[i].canal.h, FIXED.fieldCw, FIXED.fieldB);
+  // update saluran tersier (in=Qtert, out=Qfield)
+  for (let i = 0; i < 3; i++) {
+    const c = state.tertiary[i].canal;
+    c.S += (Qtert[i] - Qfield[i]) * dt;
+    c.S = Math.max(0, c.S);
+    c.h = Math.min(c.Hmax * 1.05, c.S / (c.B * FIXED.tertL));
+  }
+
+  // kendali pintu tersier (bukaan utk step berikutnya, berdasar error debit saat ini)
+  const targetQfieldArr = targetQfield;
+  for (let i = 0; i < 3; i++) {
+    const tg = state.tertiary[i].gate;
+    const targetEff = targetQfieldArr[i] * allocFactor;
+    const err = targetEff - Qfield[i];
+    if (tg.mode === 'auto') piStep(err, tg.ctrl, G_SMALL, tg.aMax, dt);
+    else tg.ctrl.a += clamp(clamp(tg.manualA, 0, tg.aMax) - tg.ctrl.a, -G_SMALL.rate * dt, G_SMALL.rate * dt);
+  }
+
+  state.Qtert = Qtert;
+  state.Qfield = Qfield;
+  state.totalDelivered = Qfield.reduce((a, b) => a + b, 0);
+
+  const Safter = state.pool.S + state.secondary.reduce((a, s) => a + s.canal.S, 0) + state.tertiary.reduce((a, t) => a + t.canal.S, 0);
+  state._dStotalDt = (Safter - Sbefore) / dt;
+
+  // sensor arus (kontinuitas Q/A) pada saluran sekunder & tersier
+  for (let i = 0; i < 3; i++) {
+    const As = state.secondary[i].canal.B * state.secondary[i].canal.h;
+    state.vSec[i] = As > 0.01 ? Qtert[i] / As : 0;
+    const At = state.tertiary[i].canal.B * state.tertiary[i].canal.h;
+    state.vTert[i] = At > 0.01 ? Qfield[i] / At : 0;
+  }
+
+  // status siaga (berbasis TMA maks relatif thd tanggul, kolam & sungai utama)
+  const maxRatio = Math.max(hUp / state.river.Hmax, state.pool.h / state.river.Hmax);
+  let status = 'NORMAL';
+  if (maxRatio >= 0.95) status = 'AWAS'; else if (maxRatio >= 0.80) status = 'SIAGA'; else if (maxRatio >= 0.60) status = 'WASPADA';
+  state.status = status;
+  if (status !== lastStatus) {
+    const lvl = status === 'AWAS' ? 'danger' : (status === 'SIAGA' || status === 'WASPADA') ? 'warn' : 'ok';
+    pushLog(`Status sistem berubah: ${lastStatus} → ${status} (TMA maks ${(maxRatio * 100).toFixed(0)}% dari tanggul).`, lvl);
+    lastStatus = status;
+  }
+  if (state.simTime - lastSatLog > 600 && state.pool.h < state.targetPoolLevel - 0.2 &&
+      state.primary.every(p => p.mode === 'auto' && p.ctrl.a >= p.aMax - 0.05)) {
+    pushLog('Ketiga pintu primer sudah bukaan maksimum namun TMA kolam masih di bawah target — pasokan sungai alami terbatas.', 'warn');
+    lastSatLog = state.simTime;
+  }
+}
+
+/* status kebutuhan irigasi: Ideal / Cukup / Kurang / Lebih */
+function irrigationStatus(actual, required) {
+  if (required <= 0.0001) return { label: 'Ideal', cls: 'ideal', r: 1 };
+  const r = actual / required;
+  if (r < 0.85) return { label: 'Kurang', cls: 'kurang', r };
+  if (r < 0.97) return { label: 'Cukup', cls: 'cukup', r };
+  if (r <= 1.10) return { label: 'Ideal', cls: 'ideal', r };
+  return { label: 'Lebih', cls: 'lebih', r };
+}
+
+/* ---------------- Klasifikasi status warna TMA (kering/normal/waspada/siaga/bahaya) ---------------- */
+function defaultThresholds(kering) { return { kering: kering != null ? kering : 0.15, waspada: 0.60, siaga: 0.80, bahaya: 0.95 }; }
+function levelStatus(h, hmax, th) {
+  const r = hmax > 0 ? h / hmax : 0;
+  if (r < th.kering) return 'kering';
+  if (r < th.waspada) return 'normal';
+  if (r < th.siaga) return 'waspada';
+  if (r < th.bahaya) return 'siaga';
+  return 'bahaya';
+}
+const LEVEL_LABEL = { kering: 'Kering', normal: 'Normal', waspada: 'Waspada', siaga: 'Siaga', bahaya: 'Bahaya' };
+const FIELD_STATUS_COLOR = { kurang: '#dbb08f', cukup: '#e6d79a', ideal: '#9dc48a', lebih: '#cbd97e' };
+
+/* =========================================================================
+   SVG SCHEMATIC — dibangun sekali, lalu elemen di-update tiap tick
+   ========================================================================= */
+/* Skema pembagian air bergaya diagram jaringan irigasi: kanal digambar
+   sebagai pipa membulat dengan gelembung aliran, pintu sebagai label kuning
+   bernomor, bukaan aktual sebagai lencana hijau, dan ujung saluran sebagai
+   kotak putih. Kecepatan gelembung mengikuti arus hasil simulasi. */
+const SK = {
+  light: '#a8d7f5', lightEdge: '#67b2e4', dark: '#1877d2', darkEdge: '#0d5aa7',
+  gold: '#f5c518', goldEdge: '#b8901c', green: '#3fbf6a', greenEdge: '#1d7a3f',
+  boxEdge: '#2b6cb0',
+};
+
+/* Pipa kanal mengikuti polyline titik; gelembung aliran digambar sebagai
+   garis putus-putus bulat yang bergerak sepanjang pipa. */
+/* Jaringan digambar berlapis agar sambungan cabang menyatu, bukan patah:
+   semua garis tepi dulu, lalu semua isi, baru gelembung — per tingkat warna. */
+const SKB = { l: ['', '', ''], d: ['', '', ''] };
+
+function skPipe(id, pts, w, dark) {
+  const fill = dark ? SK.dark : SK.light, edge = dark ? SK.darkEdge : SK.lightEdge;
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ');
+  const c = 'fill="none" stroke-linecap="round" stroke-linejoin="round"';
+  const b = SKB[dark ? 'd' : 'l'];
+  b[0] += `<path d="${d}" ${c} stroke="${edge}" stroke-width="${(w + 2.4).toFixed(1)}"/>`;
+  b[1] += `<path d="${d}" ${c} stroke="${fill}" stroke-width="${w}"/>`;
+  b[2] += `<path id="${id}" class="sk-dots" d="${d}" ${c} stroke="#fff" stroke-opacity="0.62"
+    stroke-width="${(w * 0.44).toFixed(1)}" stroke-dasharray="0.1 26"/>`;
+  return '';
+}
+
+/* Titik cabang: sambungan pipa + penanda lingkaran bertitik di tengah
+   (pipa biasa hanya bertanda lingkaran polos dari gelembung aliran). */
+let SK_JOINTS = '';
+function skJoint(cx, cy, w, dark) {
+  SKB[dark ? 'd' : 'l'][1] += `<circle cx="${cx}" cy="${cy}" r="${(w / 2).toFixed(1)}" fill="${dark ? SK.dark : SK.light}"/>`;
+  SK_JOINTS += `<circle cx="${cx}" cy="${cy}" r="7.6" fill="#fff" stroke="${dark ? SK.darkEdge : SK.lightEdge}" stroke-width="1.7"/>
+    <circle cx="${cx}" cy="${cy}" r="2.8" fill="${SK.darkEdge}"/>`;
+  return '';
+}
+
+/* Lebar pipa per tingkat saluran: primer tebal, sekunder sedang, tersier tipis. */
+const SKW = { prim: 19, sec: 12, tert: 7 };
+
+/* Simpul pintu: lingkaran kecil pada kanal + stub tersier ke label kode kuning. */
+function skGate(cx, cy, code, dx, dy) {
+  const lx = cx + dx, ly = cy + dy;
+  const tw = SKW.tert;
+  return `<path d="M${cx} ${cy} L${lx} ${ly}" fill="none" stroke-linecap="round" stroke="${SK.lightEdge}" stroke-width="${tw + 2.2}"/>
+    <path d="M${cx} ${cy} L${lx} ${ly}" fill="none" stroke-linecap="round" stroke="${SK.light}" stroke-width="${tw}"/>
+    <circle cx="${cx}" cy="${cy}" r="4.2" fill="#fff" stroke="${SK.darkEdge}" stroke-width="1.3"/>
+    <rect x="${lx - 24}" y="${ly - 7}" width="48" height="14" rx="2" fill="${SK.gold}" stroke="${SK.goldEdge}" stroke-width="1"/>
+    <text x="${lx}" y="${ly + 3.6}" text-anchor="middle" class="sk-code">${code}</text>`;
+}
+
+/* Pembacaan bukaan pintu / tinggi muka air (tanpa penanda warna). */
+function skBadge(id, cx, cy, dy) {
+  return `<text id="${id}" x="${cx}" y="${cy + (dy || 20)}" text-anchor="middle" class="sk-cm">0 cm</text>`;
+}
+
+function skEndBox(cx, cy, id) {
+  return `<rect ${id ? `id="${id}" ` : ''}x="${cx - 10}" y="${cy - 10}" width="20" height="20" fill="#fff" stroke="${SK.boxEdge}" stroke-width="1.6"/>`;
+}
+
+/* Pemetaan sistem simulasi (3 sekunder + 3 tersier) ke jaringan nyata DI Leuwigoong. */
+const SK_MAP = [
+  { sec: 'Parigi Secondary Canal', tert: 'Ranca Ucing Secondary Canal' },
+  { sec: 'Cikananga Secondary Canal', tert: 'Sawah Bera Sec. Canal' },
+  { sec: 'Ciduga Sec. Canal', tert: 'Leuwi Goong Sec. Canal' },
+];
+
+function buildSchematic() {
+  const svg = document.getElementById('hmiSvg');
+  const MY = 97, MW = SKW.prim, W = SKW.sec;
+  let out = '', top = '';
+  SKB.l = ['', '', '']; SKB.d = ['', '', '']; SK_JOINTS = '';
+
+  out += `<text x="750" y="24" text-anchor="middle" class="sk-t1">SKEMA PEMBAGIAN AIR IRIGASI</text>
+    <text x="750" y="50" text-anchor="middle" class="sk-t2">DAERAH LEUWIGOONG</text>`;
+
+  /* ---- Copong Weir + saluran induk ---- */
+  out += `<text x="122" y="72" text-anchor="end" class="sk-name">COPONG WEIR</text>
+    <rect x="127" y="75" width="46" height="44" fill="${SK.dark}" stroke="${SK.darkEdge}" stroke-width="2"/>
+    <rect x="139" y="86" width="22" height="22" fill="#fff"/>`;
+  /* diagonal digambar lebih dulu agar tersembunyi di bawah saluran induk */
+  out += skPipe('skKarian', [[318, MY], [150, 238]], MW, true);
+  out += skPipe('skMain', [[169, MY], [655, MY]], MW, true);
+
+  [[205, 'BGP.1'], [258, 'BGP.2'], [318, 'BGP.3']].forEach(([x, code]) => {
+    top += skGate(x, MY, code, 0, -30);
+  });
+  top += skBadge('skPrimAll', 240, MY, 22);
+  out += `<text transform="translate(178,251) rotate(-40)" class="sk-name">Copong Kanan Main Canal</text>`;
+
+  /* ---- kanal kiri ---- */
+  skJoint(150, 238, SKW.sec, false);
+  out += skPipe('skKiri', [[150, 238], [150, 527]], W, false);
+  [[238, 'BCP.Ko.1'], [464, 'BCP.Ko.5'], [520, 'BCP.Ko.6']].forEach(([y, code]) => {
+    top += skGate(150, y, code, -55, 0);
+  });
+
+  /* ---- Situ Bagendit + Parigi Secondary Canal ---- */
+  out += skPipe('skSitu', [[318, MY], [318, 296]], W, false);
+  out += `<text x="302" y="300" text-anchor="end" class="sk-name">Situ Bagendit</text>`;
+  out += `<rect x="303" y="281" width="30" height="30" fill="${SK.light}" stroke="${SK.boxEdge}" stroke-width="2.4"/>
+    <rect x="311" y="289" width="14" height="14" fill="#fff"/>`;
+  out += skPipe('skParigi', [[330, 296], [605, 296]], W, false);
+  top += skBadge('skPoolCm', 354, 296, 26);
+  top += skGate(373, 296, 'BPG.0', 0, -28);
+  skJoint(373, 296, SKW.sec, false);
+  skJoint(487, 296, SKW.sec, false); skJoint(541, 296, SKW.sec, false);
+  skJoint(605, 296, SKW.sec, false); skJoint(767, 296, SKW.sec, false);
+  out += `<text x="552" y="318" class="sk-name">Parigi Secondary Canal</text>`;
+  out += skPipe('skPar0', [[373, 296], [373, 338]], W, false) + skEndBox(373, 351);
+  out += skPipe('skPar1', [[487, 296], [487, 338]], W, false) + skEndBox(487, 351);
+  out += skPipe('skRanca', [[541, 296], [541, 424]], W, false) + skEndBox(541, 437, 'skField0');
+  out += `<text transform="translate(521,462) rotate(-90)" class="sk-name">Ranca Ucing Secondary Canal</text>`;
+
+  /* ---- Cinanti + Cikananga ---- */
+  out += skPipe('skCinanti', [[605, 296], [605, 238], [1013, 238]], W, false) + skEndBox(1021, 238);
+  out += `<text x="782" y="224" class="sk-name">Cinanti Sec. Canal</text>`;
+  out += skPipe('skCikananga', [[605, 296], [928, 296]], W, false) + skEndBox(936, 296);
+  /* BPG.3 mengendalikan percabangan ke Ranca Ucing — label tepat di atas simpulnya */
+  top += skGate(541, 296, 'BPG.3', 0, -30);
+  out += `<text x="800" y="318" class="sk-name">Cikananga Secondary Canal</text>`;
+  out += skPipe('skSawahBera', [[767, 296], [767, 474]], W, false) + skEndBox(767, 487, 'skField1');
+  out += `<text transform="translate(747,498) rotate(-90)" class="sk-name">Sawah Bera Sec. Canal</text>`;
+
+  /* ---- Cikukuk ---- */
+  out += skPipe('skCikukuk', [[655, MY], [655, 182]], W, false) + skEndBox(655, 195);
+  top += skGate(655, 150, 'BC.1', 50, 0);
+  out += `<text transform="translate(632,206) rotate(-90)" class="sk-name">Cikukuk Sec. Canal</text>`;
+
+  /* ---- Ciduga → Ciseureuh / Kamung Luhuk / Leuwi Goong ---- */
+  out += skPipe('skCiduga', [[655, MY], [1332, MY], [1332, 238]], W, false);
+  skJoint(655, 97, SKW.sec, false); skJoint(1332, 238, SKW.sec, false);
+  skJoint(1243, 238, SKW.sec, false); skJoint(1243, 672, SKW.sec, false);
+  skJoint(318, 97, SKW.prim, true);
+  out += `<text x="840" y="128" class="sk-name">Ciduga Sec. Canal</text>`;
+  top += skGate(1280, MY, 'BCD.16', 0, -30);
+  top += `<text id="skSec2" x="1320" y="216" text-anchor="end" class="sk-cm">0 cm</text>`;
+
+  out += skPipe('skCiseureuh', [[1243, 238], [1415, 238], [1415, 352]], W, false);
+  out += `<text transform="translate(1394,370) rotate(-90)" class="sk-name">Ciseureuh Sec. Canal</text>`;
+  /* Kamung Luhuk bercabang dari simpul yang sama, turun diagonal lalu ke timur */
+  out += skPipe('skKamung', [[1243, 238], [1332, 428], [1443, 428]], W, false);
+  out += `<text x="1344" y="412" class="sk-name">Kamung Luhuk Sec.</text>`;
+
+  out += skPipe('skTurun', [[1243, 238], [1243, 672]], W, false);
+  out += skPipe('skLeuwi', [[1243, 672], [1023, 672]], W, false) + skEndBox(1015, 672, 'skField2');
+  top += skGate(1243, 672, 'BLG.12', 0, 36);
+  out += `<text x="1120" y="648" text-anchor="middle" class="sk-name">Leuwi Goong Sec. Canal</text>`;
+
+  top += `<text x="40" y="576" class="sk-t1" font-size="11">KELAS ALIRAN</text>
+    <text id="skFlowState" x="40" y="596" class="sk-read">Aliran induk: —</text>`;
+  Object.keys(FLOW_STATES).forEach((k, idx) => {
+    const y = 616 + idx * 20, f = FLOW_STATES[k];
+    top += `<rect x="40" y="${y - 8}" width="22" height="11" rx="2" fill="${f.color}"/>
+      <text x="70" y="${y + 1}" class="sk-read">${f.label}${f.dur ? '' : ' · tidak mengalir'}</text>`;
+  });
+
+  svg.innerHTML = SKB.l.join('') + SKB.d.join('') + out + top + SK_JOINTS;
+}
+
+/* Kecepatan & warna gelembung mengikuti kelas aliran (kering → genangan). */
+function skFlow(id, stateKey) {
+  const g = document.getElementById(id);
+  if (!g) return;
+  const f = FLOW_STATES[stateKey] || FLOW_STATES.normal;
+  g.style.animation = f.dur ? `sk-dots ${f.dur}s linear infinite` : 'none';
+  g.style.stroke = f.dur ? '#fff' : 'transparent';
+  g.style.strokeOpacity = stateKey === 'kurang' ? 0.4 : 0.68;
+}
+
+function updateSchematic() {
+  const cm = (a) => (a * 100).toFixed(0) + ' cm';
+  const set = (id, t) => { const e = el(id); if (e) e.textContent = t; };
+
+  const situ = (state.dummyNodes || {}).BAGENDIT;
+  set('skPoolCm', (situ ? situ.tmaHulu : state.pool.h * 100).toFixed(0) + ' cm');
+  const sc = state.primary.filter(p => p.role === 'scouring');
+  set('skPrimAll', cm(sc.reduce((s, p) => s + p.ctrl.a, 0) / Math.max(sc.length, 1)));
+
+  const N = state.dummyNodes || {};
+  const primState = N.AWLR_MAIN ? flowState(state.QgateTotal, N.AWLR_MAIN.kapasitas) : 'normal';
+  ['skMain', 'skKarian', 'skKiri', 'skCiduga'].forEach(id => skFlow(id, primState));
+  skFlow('skCikukuk', primState === 'kering' ? 'kering' : 'kurang');
+  set('skFlowState', 'Aliran induk: ' + (FLOW_STATES[primState] || FLOW_STATES.normal).label);
+
+  const pipes = [
+    ['skSitu', 'skParigi', 'skPar0', 'skPar1'],
+    ['skCikananga', 'skCinanti'],
+    ['skCiseureuh', 'skTurun'],
+  ];
+  const tertPipes = [['skRanca'], ['skSawahBera'], ['skLeuwi', 'skKamung']];
+
+  for (let i = 0; i < 3; i++) {
+    const sec = state.secondary[i], tert = state.tertiary[i];
+    if (i === 2) set('skSec2', cm(sec.gate.ctrl.a));
+    const rn = (window.WMS_DUMMY || { rantai: [] }).rantai[i] || {};
+    const sn = N[rn.sekunder], tn = N[rn.tersier];
+    const secState = sn ? flowState(state.Qsec[i], sn.kapasitas) : 'normal';
+    const tertState = tn ? flowState(state.Qfield[i], tn.kapasitas) : 'normal';
+    pipes[i].forEach(id => skFlow(id, secState));
+    tertPipes[i].forEach(id => skFlow(id, tertState));
+
+    const req = (state.duty * state.areas[i].ha) / 1000;
+    const st = irrigationStatus(state.Qfield[i], req);
+    const patch = el('skField' + i);
+    if (patch) patch.setAttribute('fill', FIELD_STATUS_COLOR[st.cls]);
+  }
+}
+
+
+/* =========================================================================
+   RENDER
+   ========================================================================= */
+const el = (id) => document.getElementById(id);
+
+function setWaterRect(id, h, hMax, yTop, hPx) {
+  const scale = hPx / hMax;
+  const hh = clamp(h * scale, 0, hPx);
+  const r = el(id);
+  if (!r) return;
+  r.setAttribute('y', yTop + hPx - hh);
+  r.setAttribute('height', hh);
+}
+function setFlowSpeed(id, V) {
+  const line = el(id);
+  if (!line) return;
+  const dur = clamp(2.6 / Math.max(V, 0.05), 0.35, 6);
+  line.style.animationDuration = dur.toFixed(2) + 's';
+  line.style.strokeOpacity = clamp(0.25 + V * 0.15, 0.25, 0.85);
+}
+
+/* Angka pada tampilan ini berasal dari data dummy Laravel (dummy-skema.js) dan
+   bersifat statis — mesin simulasi tidak dijalankan. */
+const NO_DATA = true;
+const DASH = '—';
+
+/* Tulis snapshot dummy ke state agar seluruh panel membaca nilai yang sama. */
+let dummyMinute = 0;
+
+/* Kelas aliran mengikuti klasifikasi controller: rasio debit terhadap kapasitas. */
+const FLOW_STATES = {
+  kering:   { label: 'Kering',   dur: 0,   color: '#8a7442' },
+  kurang:   { label: 'Kurang',   dur: 6.0, color: '#b08a3c' },
+  normal:   { label: 'Normal',   dur: 3.0, color: '#1f4fa6' },
+  deras:    { label: 'Deras',    dur: 1.3, color: '#d4761c' },
+  genangan: { label: 'Genangan', dur: 0.8, color: '#8e44ad' },
+};
+
+function flowState(debit, kapasitas) {
+  if (!(debit > 0)) return 'kering';
+  const pct = kapasitas > 0 ? (debit / kapasitas) * 100 : 0;
+  if (pct >= 135) return 'genangan';
+  if (pct > 100) return 'deras';
+  if (pct >= 50) return 'normal';
+  return 'kurang';
+}
+
+/* Faktor gelombang seeder: 1 + 0,20 · sin(menit · 12°). */
+function dummyWave(minute) {
+  const D = window.WMS_DUMMY;
+  return 1 + (D ? D.historyAmplitudo : 0) * Math.sin(minute * 12 * Math.PI / 180);
+}
+
+function applyDummySnapshot(minute) {
+  const D = window.WMS_DUMMY;
+  if (!D) return;
+  const w = dummyWave(minute || 0);
+  const N = {};
+  Object.keys(D.nodes).forEach(k => {
+    const n = D.nodes[k];
+    N[k] = { ...n, tmaHulu: n.tmaHulu * w, tmaHilir: n.tmaHilir * w, debit: n.debit * w };
+  });
+  state.dummyNodes = N;
+  const m = (cm) => cm / 100;
+  const aPintu = m(D.pintu.bukaanMaksCm * D.pintu.bukaanPersen / 100);
+
+  state.Qnat = N.WEIR_COPONG.debit;
+  state.QnatTarget = state.Qnat;
+  state.hUp = m(N.WEIR_COPONG.tmaHulu);
+  state.pool.h = m(N.WEIR_COPONG.tmaHilir);
+  state.targetPoolLevel = state.pool.h;
+  /* penampang sungai disetel agar Manning pada TMA 3,25 m menghasilkan ±15,5 m³/dtk */
+  state.river.B = 6.3;
+  state.river.Hmax = 4.5;
+  state.vUp = manningCalc(state.hUp, state.river.B, FIXED.nRiver, FIXED.S0River).V;
+  state.duty = 1.5; // l/dtk/ha — sama dengan kb_irigasi = luas × 1.5 pada controller
+
+  /* Bukaan pintu ikut menentukan debit: rasio terhadap bukaan acuan dummy (75 cm). */
+  const fr = (a) => clamp(a / aPintu, 0, 1 / (D.pintu.bukaanPersen / 100));
+  const scour = state.primary.filter(p => p.role === 'scouring');
+  const flood = state.primary.filter(p => p.role !== 'scouring');
+  /* scouring memasok saluran irigasi; floodway melimpas ke hilir sungai */
+  const primFactor = scour.reduce((acc, p) => acc + fr(p.ctrl.a), 0) / Math.max(scour.length, 1);
+  const floodFactor = flood.reduce((acc, p) => acc + fr(p.ctrl.a), 0) / Math.max(flood.length, 1);
+
+  state.QgateTotal = N.AWLR_MAIN.debit * primFactor;
+  state.Qflood = Math.max(0, N.WEIR_COPONG.debit - state.QgateTotal) * floodFactor;
+  state.Qprim = state.primary.map(p => (p.role === 'scouring'
+    ? N.AWLR_MAIN.debit * fr(p.ctrl.a)
+    : Math.max(0, N.WEIR_COPONG.debit - N.AWLR_MAIN.debit) * fr(p.ctrl.a) / Math.max(flood.length, 1)));
+  /* pintu ditutup → air tertahan di kolam bendung */
+  state.pool.h = clamp(m(N.WEIR_COPONG.tmaHilir) * (1 + 0.28 * (1 - primFactor)), 0.05, state.river.Hmax);
+  state.vPool = manningCalc(state.pool.h, state.river.B, FIXED.nRiver, FIXED.S0River).V;
+
+  D.rantai.forEach((r, i) => {
+    const s = N[r.sekunder], t = N[r.tersier];
+    const sec = state.secondary[i], tert = state.tertiary[i];
+    const fSec = primFactor * fr(sec.gate.ctrl.a);
+    const fTert = fSec * fr(tert.gate.ctrl.a);
+
+    sec.canal.Hmax = 2.5;
+    sec.gate.aMax = m(D.pintu.bukaanMaksCm);
+    sec.canal.h = clamp(m(s.tmaHulu) * Math.pow(Math.max(fSec, 0.02), 0.35), 0.02, sec.canal.Hmax * 1.05);
+    state.Qsec[i] = s.debit * fSec;
+
+    tert.canal.Hmax = 1.8;
+    tert.gate.aMax = m(D.pintu.bukaanMaksCm);
+    tert.canal.h = clamp(m(t.tmaHulu) * Math.pow(Math.max(fTert, 0.02), 0.35), 0.02, tert.canal.Hmax * 1.05);
+    state.Qtert[i] = t.debit * fTert;
+    state.Qfield[i] = t.debit * fTert;
+
+    state.areas[i] = { name: r.namaTersier, ha: t.luas };
+    state.vSec[i] = state.Qsec[i] / (sec.canal.B * Math.max(sec.canal.h, 0.05));
+    state.vTert[i] = state.Qfield[i] / (tert.canal.B * Math.max(tert.canal.h, 0.05));
+  });
+
+  state.totalDemand = state.areas.reduce((a, x) => a + (state.duty * x.ha) / 1000, 0);
+  state.totalDelivered = state.Qfield.reduce((a, q) => a + q, 0);
+  /* neraca: pintu scouring → irigasi, pintu floodway → hilir sungai */
+  state.Qhilir = state.Qflood + Math.max(0, state.QgateTotal - state.totalDelivered);
+  state.pool.S = state.pool.h * state.river.B * FIXED.poolL;
+  state.secondary.forEach(s => s.canal.S = s.canal.h * s.canal.B * FIXED.secL);
+  state.tertiary.forEach(t => t.canal.S = t.canal.h * t.canal.B * FIXED.tertL);
+  state._dStotalDt = 0;
+}
+
+/* Posisi awal pintu & target kendali (hanya sekali; setelah itu milik operator). */
+function initDummyGates() {
+  const D = window.WMS_DUMMY;
+  if (!D) return;
+  const m = (cm) => cm / 100;
+  const aMax = m(D.pintu.bukaanMaksCm), a0 = m(D.pintu.bukaanMaksCm * D.pintu.bukaanPersen / 100);
+  state.primary.forEach(p => { p.aMax = aMax; p.manualA = a0; p.ctrl.a = a0; p.mode = 'auto'; });
+  state.targetPoolLevel = m(D.nodes.WEIR_COPONG.tmaHilir);
+  D.rantai.forEach((r, i) => {
+    [state.secondary[i].gate, state.tertiary[i].gate].forEach(g => { g.aMax = aMax; g.manualA = a0; g.ctrl.a = a0; g.mode = 'auto'; });
+    state.secondary[i].targetLevel = m(D.nodes[r.sekunder].tmaHulu);
+  });
+}
+
+/* Pintu mode AUTO bergerak menuju kebutuhannya; MANUAL mengikuti slider operator. */
+function dummyGateStep() {
+  const step = (g, delta, lim) => {
+    if (g.mode === 'manual') { g.ctrl.a = clamp(g.manualA, 0, g.aMax); return; }
+    g.ctrl.a = clamp(g.ctrl.a + clamp(delta, -lim, lim), 0, g.aMax);
+  };
+  state.primary.forEach(p => step(p, (p.role === 'scouring' ? state.targetPoolLevel - state.pool.h : state.pool.h - state.targetPoolLevel) * 0.5, 0.04));
+  for (let i = 0; i < 3; i++) {
+    const sec = state.secondary[i], tert = state.tertiary[i];
+    step(sec.gate, (sec.targetLevel - sec.canal.h) * 0.6, 0.03);
+    const req = (state.duty * state.areas[i].ha) / 1000;
+    step(tert.gate, (req - state.Qfield[i]) / Math.max(req, 0.01) * 0.03, 0.02);
+  }
+}
+
+/* Hitung ulang seluruh panel dari posisi pintu saat ini (dipakai saat dijeda). */
+function dummyRefresh() {
+  dummyGateStep();
+  applyDummySnapshot(dummyMinute);
+  render();
+}
+
+/* Grafik tren memakai historis 60 menit dari seeder: TMA · (1 + 0,20·sin(menit·12°)). */
+function seedDummyCharts() {
+  const D = window.WMS_DUMMY;
+  if (!D || !chartLevelMain) return;
+  const wave = (base, min) => +(base * (1 + D.historyAmplitudo * Math.sin(min * 12 * Math.PI / 180))).toFixed(2);
+  const labels = [];
+  for (let min = D.historyMenit; min >= 0; min--) labels.push(fmtClock((D.historyMenit - min) * 60));
+
+  const fill = (chart, series) => {
+    chart.data.labels = labels.slice();
+    series.forEach((fn, k) => { chart.data.datasets[k].data = labels.map((_, idx) => fn(D.historyMenit - idx)); });
+    chart.update('none');
+  };
+
+  fill(chartLevelMain, [min => wave(state.hUp, min), min => wave(state.pool.h, min)]);
+  fill(chartLevelSub, [
+    ...state.secondary.map(s => (min) => wave(s.canal.h, min)),
+    ...state.tertiary.map(t => (min) => wave(t.canal.h, min)),
+  ]);
+  fill(chartDebitMain, [
+    () => +state.QgateTotal.toFixed(2),
+    () => +state.totalDelivered.toFixed(3),
+    () => +state.Qhilir.toFixed(2),
+  ]);
+  fill(chartDebitField, state.Qfield.map(q => () => +q.toFixed(3)));
+}
+
+function render() {
+  refreshCtrlLive();
+  updateSchematic();
+
+  // status pill
+  const pill = el('statusPill'), statusText = el('statusText');
+  statusText.textContent = state.status;
+  pill.className = 'status-pill ' + (state.status === 'AWAS' ? 'danger' : state.status === 'SIAGA' ? 'siaga' : state.status === 'WASPADA' ? 'warn' : '');
+  el('simClock').textContent = fmtClock(state.simTime);
+
+  // summary
+  el('sumQnat').textContent = state.Qnat.toFixed(1);
+  el('sumQgate').textContent = state.QgateTotal.toFixed(1);
+  el('sumQirigasi').textContent = state.totalDelivered.toFixed(2);
+  el('sumQhilir').textContent = state.Qhilir.toFixed(1);
+  const effs = state.areas.map((a, i) => {
+    const req = (state.duty * a.ha) / 1000;
+    return req > 0 ? clamp((state.Qfield[i] / req) * 100, 0, 999) : 100;
+  });
+  const avgEff = effs.reduce((a, b) => a + b, 0) / effs.length;
+  el('sumEfisiensi').textContent = avgEff.toFixed(0);
+
+  updateWeatherChip();
+  updateTsChips();
+  updateSawahCards();
+  updateGateStatus();
+  updateIsoLabels();
+  updateIsoWaterColors();
+  updateIsoLeaves();
+  renderPosPop();
+  updateFormulaTab();
+  updateCharts();
+}
+
+function updateWeatherChip() {
+  const icon = el('wIcon'), temp = el('wTemp'), desc = el('wDesc');
+  if (!icon) return;
+  if (NO_DATA) {
+    icon.textContent = '—'; temp.textContent = DASH; desc.textContent = 'Belum ada data';
+    return;
+  }
+  if (state.scenario === 'flood') { icon.textContent = '🌧️'; temp.textContent = '24'; desc.textContent = 'Hujan Lebat · Angin 22 km/h'; }
+  else if (state.scenario === 'drought') { icon.textContent = '☀️'; temp.textContent = '33'; desc.textContent = 'Cerah Terik · Angin 3.2 km/h'; }
+  else { icon.textContent = '⛅'; temp.textContent = '28'; desc.textContent = 'Cerah Berawan · Angin 5.9 km/h'; }
+}
+
+function updateSawahCards() {
+  for (let i = 0; i < 3; i++) {
+    const req = (state.duty * state.areas[i].ha) / 1000;
+    const st = irrigationStatus(state.Qfield[i], req);
+    const card = el('sawahCard' + i);
+    if (!card) continue;
+    el('scName' + i).textContent = state.areas[i].name;
+    el('scHa' + i).textContent = state.areas[i].ha + ' ha';
+    el('scReq' + i).textContent = req.toFixed(3);
+    el('scAct' + i).textContent = state.Qfield[i].toFixed(3);
+    const badge = el('scBadge' + i);
+    badge.textContent = st.label;
+    badge.className = 'status-badge ' + st.cls;
+    el('scBar' + i).style.width = clamp((st.r || 0) * 100, 0, 100) + '%';
+    el('scPct' + i).textContent = ((st.r || 0) * 100).toFixed(0) + '%';
+  }
+}
+
+/* =========================================================================
+   BUILD: kartu sawah (dashboard)
+   ========================================================================= */
+function buildSawahCards() {
+  const wrap = el('sawahCards');
+  wrap.innerHTML = '';
+  state.areas.forEach((a, i) => {
+    const card = document.createElement('div');
+    card.className = 'sawah-card';
+    card.id = 'sawahCard' + i;
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-family:var(--font-display);font-size:13px;" id="scName${i}">${a.name}</strong>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-2);" id="scHa${i}">${a.ha} ha</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--text-2);margin-bottom:5px;">
+        <span>Kebutuhan: <b id="scReq${i}" style="color:var(--text-1);">-</b> m³/dtk</span>
+        <span>Aktual: <b id="scAct${i}" style="color:var(--text-1);">-</b> m³/dtk</span>
+      </div>
+      <div style="height:6px;border-radius:0;background:var(--bg-input);overflow:hidden;margin-bottom:8px;">
+        <div id="scBar${i}" style="height:100%;width:0%;background:linear-gradient(90deg,var(--teal-dim),var(--teal));transition:width .3s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="status-badge ideal" id="scBadge${i}">-</span>
+        <span style="font-size:18px;font-weight:700;color:var(--teal-dim);" id="scPct${i}">-</span>
+      </div>`;
+    wrap.appendChild(card);
+  });
+}
+
+/* =========================================================================
+   BUILD: kartu status pintu (Beranda) — tampil saja, kendali ada di tab sendiri
+   ========================================================================= */
+function buildGateStatus() {
+  const wrap = el('gateStatusBody');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  wrap.style.display = 'grid';
+  wrap.style.gridTemplateColumns = 'repeat(auto-fit, minmax(320px, 1fr))';
+  wrap.style.gap = '12px';
+  for (let k = 0; k < state.primary.length; k++) {
+    const pg = state.primary[k];
+    const card = document.createElement('div');
+    card.className = 'ctrl-card';
+    card.innerHTML = `
+      <h3>${pg.name} <span class="status-badge lebih" id="dsMode${k}">AUTO</span></h3>
+      <div style="text-align:center;margin:-4px 0 10px;"><span class="maks-badge">Maks Bukaan : ${(pg.aMax * 100).toFixed(0)} cm</span></div>
+      <div class="elev-card">
+        <div class="cap">Elevasi Pintu</div>
+${gateElevSvg(`dsElev${k}`)}
+      </div>
+      <div class="lamp-row">
+        <div class="lamp"><div class="plate">R</div><div class="bulb"><span style="background:#d92d20;">ON</span></div></div>
+        <div class="lamp"><div class="plate">S</div><div class="bulb"><span style="background:#f0a020;">ON</span></div></div>
+        <div class="lamp"><div class="plate">T</div><div class="bulb"><span style="background:#17a34a;">ON</span></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid var(--line);">
+        <div>
+          <div style="font-size:12.5px;color:var(--teal);font-weight:600;">Bukaan aktual</div>
+          <div style="font-size:19px;font-weight:700;" id="dsAct${k}">-</div>
+        </div>
+        <div>
+          <div style="font-size:12.5px;color:var(--teal);font-weight:600;">Debit pintu</div>
+          <div style="font-size:19px;font-weight:700;" id="dsQ${k}">-</div>
+        </div>
+      </div>`;
+    wrap.appendChild(card);
+  }
+}
+
+function updateGateStatus() {
+  for (let k = 0; k < state.primary.length; k++) {
+    const pg = state.primary[k];
+    setGateElev('dsElev' + k, pg.ctrl.a, pg.aMax);
+    const badge = el('dsMode' + k);
+    if (badge) {
+      badge.textContent = pg.mode.toUpperCase();
+      badge.className = 'status-badge ' + (pg.mode === 'auto' ? 'lebih' : 'cukup');
+    }
+    const act = el('dsAct' + k);
+    if (act) act.textContent = pg.ctrl.a.toFixed(2) + ' m';
+    const q = el('dsQ' + k);
+    if (q) q.textContent = ((state.Qprim || [])[k] ?? 0).toFixed(2) + ' m³/dtk';
+  }
+}
+
+/* =========================================================================
+   BUILD: tab Konfigurasi Sistem
+   ========================================================================= */
+function numField(labelHtml, id, value, step, min, max, unit) {
+  return `<div class="field"><label>${labelHtml} <b>${value}${unit || ''}</b></label>
+    <input type="number" id="${id}" value="${value}" step="${step}" min="${min}" max="${max}">
+  </div>`;
+}
+
+function buildConfigTab() {
+  const wrap = el('configBody');
+  let html = `
+    <div class="cfg-section-title"><span class="n">1</span> Geometri Sungai Utama (Hulu &amp; Kolam Bendung)</div>
+    <div class="grid3">
+      <div class="cfg-card"><h4>Penampang Sungai</h4>
+        ${numField('Lebar sungai (B)', 'cfgRiverB', state.river.B, 1, 5, 100, ' m')}
+        ${numField('Tinggi tanggul (Hmax)', 'cfgRiverHmax', state.river.Hmax, 0.5, 2, 15, ' m')}
+        <div class="assumption-box">Luas penampang basah saat ini = B × TMA (dihitung otomatis tiap saat). Kekasaran Manning n=${FIXED.nRiver}, kemiringan dasar S₀=${FIXED.S0River} (asumsi tetap, sungai alami).</div>
+      </div>
+      <div class="cfg-card"><h4>Target Kolam Bendung</h4>
+        ${numField('Target TMA kolam (mode Auto)', 'cfgTargetPool', state.targetPoolLevel, 0.1, 0.5, state.river.Hmax, ' m')}
+        <div class="assumption-box">Panjang kolam diasumsikan tetap ${FIXED.poolL} m.</div>
+      </div>
+      <div class="cfg-card"><h4>Kondisi Awal</h4>
+        <p style="font-size:11.5px;color:var(--text-2);margin:0;">Perubahan geometri di atas tersimpan pada konfigurasi, tetapi angka pada tampilan tetap mengikuti data dummy statis. Gunakan tombol Reset di kanan atas bila ingin memulai ulang dari kondisi awal baru.</p>
+      </div>
+    </div>
+
+    <div class="cfg-section-title"><span class="n">2</span> Pintu Primer — Bendung Gerak (3 Floodway + 1 Scouring)</div>
+    <div id="cfgPrimaryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;"></div>
+
+    <div class="cfg-section-title"><span class="n">3</span> Pos Pintu Sekunder (3 unit — saluran &amp; pintu)</div>
+    <div class="grid3" id="cfgSecondaryGrid"></div>
+
+    <div class="cfg-section-title"><span class="n">4</span> Pos Pintu Tersier (1 per rantai sekunder — saluran &amp; pintu)</div>
+    <div class="grid3" id="cfgTertiaryGrid"></div>
+
+    <div class="cfg-section-title"><span class="n">5</span> Kebutuhan Air Petak Sawah</div>
+    <div class="grid3" id="cfgSawahGrid"></div>
+    <div class="cfg-card" style="margin-top:12px;">
+      <h4>Norma Kebutuhan Air (Duty)</h4>
+      ${numField('Kebutuhan air per hektar', 'cfgDuty', state.duty, 0.1, 0.3, 3.0, ' l/dtk/ha')}
+      <div class="assumption-box">Nilai 1.0 l/dtk/ha merupakan angka acuan umum untuk fase pertumbuhan padi pada praktik irigasi di Indonesia (kebutuhan riil bervariasi menurut fase tanam, jenis tanah, dan curah hujan efektif — pada fase penyiapan lahan angka ini bisa 1.5–2.0 l/dtk/ha).</div>
+    </div>
+
+    <div class="cfg-section-title"><span class="n">6</span> Ambang Batas Warna Status TMA (Peta Isometrik)</div>
+    <p style="font-size:12px;color:var(--text-2);margin:0 0 10px;">Menentukan warna aliran air di peta isometrik berdasarkan rasio TMA aktual terhadap tinggi tanggul (h/Hmax) pada tiap titik: <b style="color:#8a7442;">Kering</b> → <b style="color:#2b6cb0;">Normal</b> → <b style="color:#b8901c;">Waspada</b> → <b style="color:#c07520;">Siaga</b> → <b style="color:#c0392b;">Bahaya</b>. Nilai default mengikuti kriteria siaga banjir yang umum dipakai (waspada 60%, siaga 80%, bahaya 95%), ditambah ambang kering 15% untuk indikasi kekeringan.</p>
+    <table class="data-table" style="margin-bottom:10px;">
+      <thead><tr><th>Titik</th><th>Kering &lt;</th><th>Waspada ≥</th><th>Siaga ≥</th><th>Bahaya ≥</th></tr></thead>
+      <tbody id="thresholdTableBody"></tbody>
+    </table>
+  `;
+  wrap.innerHTML = html;
+
+  const pg = el('cfgPrimaryGrid'), sg = el('cfgSecondaryGrid'), tg = el('cfgTertiaryGrid'), swg = el('cfgSawahGrid');
+  for (let k = 0; k < state.primary.length; k++) {
+    const card = document.createElement('div'); card.className = 'cfg-card';
+    card.innerHTML = `<h4>${state.primary[k].name}</h4>
+      ${numField('Lebar pintu (b)', 'cfgPb' + k, state.primary[k].b, 0.5, 1, 20, ' m')}
+      ${numField('Tinggi pintu (bukaan maks.)', 'cfgPh' + k, state.primary[k].aMax, 0.1, 0.5, 6, ' m')}`;
+    pg.appendChild(card);
+  }
+  for (let i = 0; i < 3; i++) {
+    const card = document.createElement('div'); card.className = 'cfg-card';
+    card.innerHTML = `<h4>Intake ${i + 1} (Sekunder)</h4>
+      ${numField('Lebar saluran', 'cfgSecB' + i, state.secondary[i].canal.B, 0.5, 1, 20, ' m')}
+      ${numField('Tinggi tanggul saluran', 'cfgSecHmax' + i, state.secondary[i].canal.Hmax, 0.2, 0.5, 6, ' m')}
+      ${numField('Lebar pintu', 'cfgSecGb' + i, state.secondary[i].gate.b, 0.1, 0.3, 6, ' m')}
+      ${numField('Tinggi pintu (bukaan maks.)', 'cfgSecGh' + i, state.secondary[i].gate.aMax, 0.1, 0.2, 3, ' m')}`;
+    sg.appendChild(card);
+  }
+  for (let i = 0; i < 3; i++) {
+    const card = document.createElement('div'); card.className = 'cfg-card';
+    card.innerHTML = `<h4>Tersier ${i + 1}</h4>
+      ${numField('Lebar saluran', 'cfgTertB' + i, state.tertiary[i].canal.B, 0.2, 0.5, 10, ' m')}
+      ${numField('Tinggi tanggul saluran', 'cfgTertHmax' + i, state.tertiary[i].canal.Hmax, 0.1, 0.3, 4, ' m')}
+      ${numField('Lebar pintu', 'cfgTertGb' + i, state.tertiary[i].gate.b, 0.1, 0.2, 3, ' m')}
+      ${numField('Tinggi pintu (bukaan maks.)', 'cfgTertGh' + i, state.tertiary[i].gate.aMax, 0.05, 0.1, 2, ' m')}`;
+    tg.appendChild(card);
+  }
+  state.areas.forEach((a, i) => {
+    const card = document.createElement('div'); card.className = 'cfg-card';
+    card.innerHTML = `<h4>Sawah Blok ${i + 1}</h4>
+      <div class="field"><label>Nama blok</label><input type="text" id="cfgAreaName${i}" value="${a.name}" style="width:100%;background:var(--bg-input);border:1px solid var(--line);border-radius:0;color:var(--text-1);font-family:var(--font-mono);font-size:12px;padding:6px 8px;"></div>
+      ${numField('Luas area', 'cfgAreaHa' + i, a.ha, 5, 5, 2000, ' ha')}`;
+    swg.appendChild(card);
+  });
+
+  // ---- tabel ambang batas warna TMA ----
+  const thBody = el('thresholdTableBody');
+  function threshInput(prefix, th) {
+    return `<td><input type="number" id="th_${prefix}_kering" value="${(th.kering * 100).toFixed(0)}" min="0" max="100" step="1" style="width:64px;"></td>
+      <td><input type="number" id="th_${prefix}_waspada" value="${(th.waspada * 100).toFixed(0)}" min="0" max="100" step="1" style="width:64px;"></td>
+      <td><input type="number" id="th_${prefix}_siaga" value="${(th.siaga * 100).toFixed(0)}" min="0" max="100" step="1" style="width:64px;"></td>
+      <td><input type="number" id="th_${prefix}_bahaya" value="${(th.bahaya * 100).toFixed(0)}" min="0" max="100" step="1" style="width:64px;"></td>`;
+  }
+  let thRows = `<tr><td>Sungai Utama (Hulu &amp; Kolam)</td>${threshInput('river', state.thresholds.river)}</tr>`;
+  for (let i = 0; i < 3; i++) thRows += `<tr><td>Sekunder ${i + 1}</td>${threshInput('sec' + i, state.thresholds.sec[i])}</tr>`;
+  for (let i = 0; i < 3; i++) thRows += `<tr><td>Tersier ${i + 1}</td>${threshInput('tert' + i, state.thresholds.tert[i])}</tr>`;
+  thBody.innerHTML = thRows;
+
+  function wireThresh(prefix, thObj) {
+    ['kering', 'waspada', 'siaga', 'bahaya'].forEach(key => {
+      el(`th_${prefix}_${key}`).addEventListener('input', e => {
+        thObj[key] = clamp((parseFloat(e.target.value) || 0) / 100, 0, 1);
+      });
+    });
+  }
+  wireThresh('river', state.thresholds.river);
+  for (let i = 0; i < 3; i++) { wireThresh('sec' + i, state.thresholds.sec[i]); wireThresh('tert' + i, state.thresholds.tert[i]); }
+
+  // ---- wire live updates ----
+  el('cfgRiverB').addEventListener('input', e => state.river.B = clamp(parseFloat(e.target.value) || 1, 5, 100));
+  el('cfgRiverHmax').addEventListener('input', e => state.river.Hmax = clamp(parseFloat(e.target.value) || 1, 2, 15));
+  el('cfgTargetPool').addEventListener('input', e => state.targetPoolLevel = clamp(parseFloat(e.target.value) || 0.5, 0.5, state.river.Hmax));
+  el('cfgDuty').addEventListener('input', e => state.duty = clamp(parseFloat(e.target.value) || 0.1, 0.1, 5));
+
+  for (let k = 0; k < state.primary.length; k++) {
+    el('cfgPb' + k).addEventListener('input', e => state.primary[k].b = clamp(parseFloat(e.target.value) || 0.5, 0.5, 30));
+    el('cfgPh' + k).addEventListener('input', e => state.primary[k].aMax = clamp(parseFloat(e.target.value) || 0.5, 0.3, 8));
+  }
+  for (let i = 0; i < 3; i++) {
+    el('cfgSecB' + i).addEventListener('input', e => state.secondary[i].canal.B = clamp(parseFloat(e.target.value) || 0.5, 0.5, 30));
+    el('cfgSecHmax' + i).addEventListener('input', e => state.secondary[i].canal.Hmax = clamp(parseFloat(e.target.value) || 0.3, 0.3, 8));
+    el('cfgSecGb' + i).addEventListener('input', e => state.secondary[i].gate.b = clamp(parseFloat(e.target.value) || 0.2, 0.2, 8));
+    el('cfgSecGh' + i).addEventListener('input', e => state.secondary[i].gate.aMax = clamp(parseFloat(e.target.value) || 0.2, 0.2, 4));
+    el('cfgTertB' + i).addEventListener('input', e => state.tertiary[i].canal.B = clamp(parseFloat(e.target.value) || 0.3, 0.3, 15));
+    el('cfgTertHmax' + i).addEventListener('input', e => state.tertiary[i].canal.Hmax = clamp(parseFloat(e.target.value) || 0.2, 0.2, 6));
+    el('cfgTertGb' + i).addEventListener('input', e => state.tertiary[i].gate.b = clamp(parseFloat(e.target.value) || 0.1, 0.1, 5));
+    el('cfgTertGh' + i).addEventListener('input', e => state.tertiary[i].gate.aMax = clamp(parseFloat(e.target.value) || 0.1, 0.1, 3));
+    el('cfgAreaName' + i).addEventListener('input', e => { state.areas[i].name = e.target.value || ('Sawah Blok ' + (i + 1)); });
+    el('cfgAreaHa' + i).addEventListener('input', e => state.areas[i].ha = clamp(parseFloat(e.target.value) || 1, 1, 5000));
+  }
+}
+
+/* =========================================================================
+   BUILD: tab Kontrol Pintu
+   ========================================================================= */
+function modeToggleHtml(role, current) {
+  return `<span class="mode-toggle">
+      <button data-role="${role}" data-val="auto" class="${current === 'auto' ? 'on' : ''}">Auto</button>
+      <button data-role="${role}" data-val="manual" class="${current === 'manual' ? 'on' : ''}">Manual</button>
+    </span>`;
+}
+
+function buildControlTab() {
+  const wrap = el('controlBody');
+  let html = `<div class="cfg-section-title"><span class="n">P</span> Pintu Primer — 3 Floodway (ke hilir) + Scouring (ke saluran)</div>
+    <div class="field" style="max-width:420px;">
+      <label>Target TMA kolam (mode Auto) <b id="lblTargetPool">${state.targetPoolLevel.toFixed(2)} m</b></label>
+      <input type="range" id="sliderTargetPool" min="0.5" max="${state.river.Hmax}" step="0.05" value="${state.targetPoolLevel}">
+    </div>
+    <div class="grid3" id="ctrlPrimaryGrid"></div>
+    <div class="cfg-section-title"><span class="n">S</span> Pintu Sekunder (kendali TMA saluran sekunder)</div>
+    <div class="grid3" id="ctrlSecondaryGrid"></div>
+    <div class="cfg-section-title"><span class="n">T</span> Pintu Tersier (kendali debit ke sawah)</div>
+    <div class="grid3" id="ctrlTertiaryGrid"></div>`;
+  wrap.innerHTML = html;
+
+  el('sliderTargetPool').addEventListener('input', e => {
+    state.targetPoolLevel = parseFloat(e.target.value);
+    el('lblTargetPool').textContent = state.targetPoolLevel.toFixed(2) + ' m';
+  });
+
+  const pg = el('ctrlPrimaryGrid');
+  pg.style.display = 'grid';
+  pg.style.gridTemplateColumns = 'repeat(auto-fit, minmax(320px, 1fr))';
+  pg.style.gap = '12px';
+  for (let k = 0; k < state.primary.length; k++) {
+    const card = document.createElement('div'); card.className = 'ctrl-card'; card.id = 'ctrlCardP' + k;
+    card.innerHTML = `<h3>${state.primary[k].name} ${modeToggleHtml('modeP' + k, state.primary[k].mode)}</h3>
+      <div style="text-align:center;margin:-4px 0 10px;"><span class="maks-badge">Maks Bukaan : ${(state.primary[k].aMax * 100).toFixed(0)} cm</span></div>
+      <div class="elev-card">
+        <div class="cap">Elevasi Pintu</div>
+${gateElevSvg(`elev${k}`)}
+      </div>
+      <div class="lamp-row">
+        <div class="lamp"><div class="plate">R</div><div class="bulb"><span style="background:#d92d20;">ON</span></div></div>
+        <div class="lamp"><div class="plate">S</div><div class="bulb"><span style="background:#f0a020;">ON</span></div></div>
+        <div class="lamp"><div class="plate">T</div><div class="bulb"><span style="background:#17a34a;">ON</span></div></div>
+      </div>
+      <div class="field" style="margin-top:12px;"><label>Bukaan manual <b id="lblManualP${k}">${state.primary[k].manualA.toFixed(2)} m</b></label>
+        <input type="range" id="sliderManualP${k}" min="0" max="${state.primary[k].aMax}" step="0.05" value="${state.primary[k].manualA}"></div>
+      <p style="font-size:12.5px;color:var(--text-2);margin:4px 0 0;">Bukaan aktual: <b id="pShow${k}" style="color:var(--text-1);">-</b></p>`;
+    pg.appendChild(card);
+    document.querySelectorAll(`[data-role="modeP${k}"]`).forEach(btn => btn.addEventListener('click', () => {
+      state.primary[k].mode = btn.dataset.val;
+      document.querySelectorAll(`[data-role="modeP${k}"]`).forEach(b => b.classList.toggle('on', b === btn));
+      pushLog(`Mode pintu ${state.primary[k].name} diubah ke ${btn.dataset.val.toUpperCase()} (operator).`, 'info');
+    }));
+    el('sliderManualP' + k).addEventListener('input', e => { state.primary[k].manualA = parseFloat(e.target.value); el('lblManualP' + k).textContent = state.primary[k].manualA.toFixed(2) + ' m'; });
+  }
+
+  const sg = el('ctrlSecondaryGrid');
+  for (let i = 0; i < 3; i++) {
+    const card = document.createElement('div'); card.className = 'ctrl-card'; card.id = 'ctrlCardS' + i;
+    card.innerHTML = `<h3>Intake ${i + 1} ${modeToggleHtml('modeS' + i, state.secondary[i].gate.mode)}</h3>
+      <div class="ctrl-top">
+        ${miniElevHtml('elevS' + i)}
+        <div class="ctrl-readout">
+          <div><b id="roSecA${i}">-</b><span>Bukaan aktual</span></div>
+          <div><b id="roSecH${i}">-</b><span>TMA saluran</span></div>
+          <div><b id="roSecQ${i}">-</b><span>Debit lewat pintu</span></div>
+          <div><b id="roSecV${i}">-</b><span>Arus saluran</span></div>
+        </div>
+      </div>
+      <div class="ctrl-dev" id="devSec${i}">—</div>
+      <div class="field ctrl-field" id="fSecAuto${i}"><label>Target TMA saluran <span class="tagmode">AUTO</span> <b id="lblTargetSec${i}">${state.secondary[i].targetLevel.toFixed(2)} m</b></label>
+        <input type="range" id="sliderTargetSec${i}" min="0.2" max="${state.secondary[i].canal.Hmax}" step="0.05" value="${state.secondary[i].targetLevel}"></div>
+      <div class="field ctrl-field" id="fSecMan${i}"><label>Bukaan manual <span class="tagmode">MANUAL</span> <b id="lblManualS${i}">${state.secondary[i].gate.manualA.toFixed(3)} m</b></label>
+        <input type="range" id="sliderManualS${i}" min="0" max="${state.secondary[i].gate.aMax}" step="0.005" value="${state.secondary[i].gate.manualA}"></div>`;
+    sg.appendChild(card);
+    document.querySelectorAll(`[data-role="modeS${i}"]`).forEach(btn => btn.addEventListener('click', () => {
+      state.secondary[i].gate.mode = btn.dataset.val;
+      document.querySelectorAll(`[data-role="modeS${i}"]`).forEach(b => b.classList.toggle('on', b === btn));
+      pushLog(`Mode pintu sekunder ${i + 1} diubah ke ${btn.dataset.val.toUpperCase()} (operator).`, 'info');
+    }));
+    el('sliderTargetSec' + i).addEventListener('input', e => { state.secondary[i].targetLevel = parseFloat(e.target.value); el('lblTargetSec' + i).textContent = state.secondary[i].targetLevel.toFixed(2) + ' m'; });
+    el('sliderManualS' + i).addEventListener('input', e => { state.secondary[i].gate.manualA = parseFloat(e.target.value); el('lblManualS' + i).textContent = state.secondary[i].gate.manualA.toFixed(3) + ' m'; });
+  }
+
+  const tg = el('ctrlTertiaryGrid');
+  for (let i = 0; i < 3; i++) {
+    const req = (state.duty * state.areas[i].ha) / 1000;
+    const card = document.createElement('div'); card.className = 'ctrl-card'; card.id = 'ctrlCardT' + i;
+    card.innerHTML = `<h3>Tersier ${i + 1} ${modeToggleHtml('modeT' + i, state.tertiary[i].gate.mode)}</h3>
+      <div class="ctrl-top">
+        ${miniElevHtml('elevT' + i)}
+        <div class="ctrl-readout">
+          <div><b id="roTertA${i}">-</b><span>Bukaan aktual</span></div>
+          <div><b id="roTertH${i}">-</b><span>TMA saluran</span></div>
+          <div><b id="roTertQ${i}">-</b><span>Ke sawah m³/dtk</span></div>
+          <div><b id="roTertP${i}">-</b><span>Pemenuhan</span></div>
+        </div>
+      </div>
+      <div class="ctrl-dev" id="devTert${i}">—</div>
+      <p style="font-size:11.5px;color:var(--text-2);margin:0 0 8px;">Target debit <span class="tagmode">AUTO</span> mengikuti kebutuhan sawah: <b id="reqShow${i}" style="color:var(--text-1);">${req.toFixed(3)}</b> m³/dtk (atur luas dan duty di tab Konfigurasi).</p>
+      <div class="field ctrl-field" id="fTertMan${i}"><label>Bukaan manual <span class="tagmode">MANUAL</span> <b id="lblManualT${i}">${state.tertiary[i].gate.manualA.toFixed(3)} m</b></label>
+        <input type="range" id="sliderManualT${i}" min="0" max="${state.tertiary[i].gate.aMax}" step="0.005" value="${state.tertiary[i].gate.manualA}"></div>`;
+    tg.appendChild(card);
+    document.querySelectorAll(`[data-role="modeT${i}"]`).forEach(btn => btn.addEventListener('click', () => {
+      state.tertiary[i].gate.mode = btn.dataset.val;
+      document.querySelectorAll(`[data-role="modeT${i}"]`).forEach(b => b.classList.toggle('on', b === btn));
+      pushLog(`Mode pintu tersier ${i + 1} diubah ke ${btn.dataset.val.toUpperCase()} (operator).`, 'info');
+    }));
+    el('sliderManualT' + i).addEventListener('input', e => { state.tertiary[i].gate.manualA = parseFloat(e.target.value); el('lblManualT' + i).textContent = state.tertiary[i].gate.manualA.toFixed(3) + ' m'; });
+  }
+}
+
+/* Diagram elevasi pintu: rangka lengkap (assets/gate-frame-full.png) statis, dan
+   satu daun pintu (assets/gate-leaf.png) bertinggi TETAP yang bergeser naik-turun.
+   100% → tepi atas daun menempel balok; 0% → daun turun penuh ke ambang.
+   Koordinat = piksel 694×578. */
+const GEO = { bayX: 204, bayW: 300, top: 289, sill: 529, leafH: 180 };
+
+function gateElevSvg(id, fontPx) {
+  const G = GEO, fs = fontPx || 34;
+  return `<svg viewBox="0 0 694 578" preserveAspectRatio="xMidYMid meet">
+      <image href="assets/gate-frame-full.png" x="0" y="0" width="694" height="578"/>
+      <image id="${id}" href="assets/gate-leaf.png" x="${G.bayX}" y="${G.top}" width="${G.bayW}" height="${G.leafH}" preserveAspectRatio="none"/>
+      <text id="${id}Txt" x="354" y="${G.top + 104}" text-anchor="middle" font-size="${fs}" font-weight="700"
+        fill="#1f2430" style="paint-order:stroke;stroke:#fff;stroke-width:${(fs * 0.21).toFixed(1)}px;">0 cm</text>
+    </svg>`;
+}
+
+/* Daun pintu bergeser utuh: makin besar bukaan, makin terangkat ke balok. */
+function setGateElev(id, a, aMax) {
+  const leaf = el(id);
+  if (!leaf) return;
+  const G = GEO, travel = G.sill - G.top - G.leafH;
+  const frac = clamp(a / (aMax || 1), 0, 1);
+  const y = G.top + (1 - frac) * travel;
+  leaf.setAttribute('y', y.toFixed(1));
+  const txt = el(id + 'Txt');
+  if (txt) {
+    txt.setAttribute('y', (y + G.leafH / 2 + fontHalf(txt)).toFixed(1));
+    txt.textContent = `${(a * 100).toFixed(0)} cm (${(frac * 100).toFixed(0)}%)`;
+  }
+}
+
+function fontHalf(txt) {
+  const fs = parseFloat(txt.getAttribute('font-size')) || 34;
+  return fs * 0.36;
+}
+
+const setMiniElev = setGateElev;
+
+/* Diagram elevasi ringkas untuk kartu sekunder & tersier. */
+function miniElevHtml(id) {
+  return `<div class="mini-elev"><div class="cap">Elevasi Pintu</div>${gateElevSvg(id, 46)}</div>`;
+}
+
+/* Baris deviasi: memberi tahu operator apakah loop kendali sedang mengejar
+   target, sudah stabil, atau pintu mentok sementara target belum tercapai. */
+function setDeviation(id, mode, err, tol, saturated, textChase, textOk) {
+  const box = el(id);
+  if (!box) return;
+  box.className = 'ctrl-dev';
+  if (mode !== 'auto') { box.textContent = 'Mode manual — bukaan dikunci operator, loop otomatis tidak aktif.'; return; }
+  if (saturated && err > tol) {
+    box.classList.add('stuck');
+    box.textContent = 'Pintu mentok di bukaan maksimum — pasokan hulu belum mencukupi target.';
+    return;
+  }
+  if (Math.abs(err) > tol) { box.classList.add('chase'); box.textContent = textChase; return; }
+  box.textContent = textOk;
+}
+
+function refreshCtrlLive() {
+  for (let k = 0; k < state.primary.length; k++) {
+    const p = el('pShow' + k);
+    if (p) p.textContent = state.primary[k].ctrl.a.toFixed(2) + ' m';
+    // diagram elevasi pintu: daun pintu terangkat seiring bukaan
+    setGateElev('elev' + k, state.primary[k].ctrl.a, state.primary[k].aMax);
+  }
+  for (let i = 0; i < 3; i++) {
+    const s = state.secondary[i], sg = s.gate;
+    if (el('roSecA' + i)) {
+      el('roSecA' + i).textContent = (sg.ctrl.a * 100).toFixed(0) + ' cm';
+      el('roSecH' + i).textContent = s.canal.h.toFixed(2) + ' m';
+      el('roSecQ' + i).textContent = state.Qsec[i].toFixed(3);
+      el('roSecV' + i).textContent = state.vSec[i].toFixed(2) + ' m/s';
+      setMiniElev('elevS' + i, sg.ctrl.a, sg.aMax);
+      const err = s.targetLevel - s.canal.h;
+      setDeviation('devSec' + i, sg.mode, err, 0.03, sg.ctrl.a >= sg.aMax - 0.002,
+        `TMA ${s.canal.h.toFixed(2)} / target ${s.targetLevel.toFixed(2)} m — ${err > 0 ? 'di bawah' : 'di atas'} target.`,
+        `TMA ${s.canal.h.toFixed(2)} m — stabil pada target.`);
+      el('fSecAuto' + i).classList.toggle('off', sg.mode !== 'auto');
+      el('fSecMan' + i).classList.toggle('off', sg.mode === 'auto');
+    }
+
+    const t = state.tertiary[i], tg = t.gate;
+    const reqT = (state.duty * state.areas[i].ha) / 1000;
+    if (el('roTertA' + i)) {
+      const pct = reqT > 0 ? clamp((state.Qfield[i] / reqT) * 100, 0, 999) : 100;
+      el('roTertA' + i).textContent = (tg.ctrl.a * 100).toFixed(0) + ' cm';
+      el('roTertH' + i).textContent = t.canal.h.toFixed(2) + ' m';
+      el('roTertQ' + i).textContent = state.Qfield[i].toFixed(3);
+      el('roTertP' + i).textContent = pct.toFixed(0) + '%';
+      setMiniElev('elevT' + i, tg.ctrl.a, tg.aMax);
+      const errT = reqT - state.Qfield[i];
+      setDeviation('devTert' + i, tg.mode, errT, reqT * 0.05 || 0.005, tg.ctrl.a >= tg.aMax - 0.002,
+        `Debit ${state.Qfield[i].toFixed(3)} / butuh ${reqT.toFixed(3)} m³/dtk — ${errT > 0 ? 'di bawah' : 'di atas'} kebutuhan.`,
+        `Debit ${state.Qfield[i].toFixed(3)} m³/dtk — kebutuhan sawah terpenuhi.`);
+      el('fTertMan' + i).classList.toggle('off', tg.mode === 'auto');
+    }
+
+    const req = (state.duty * state.areas[i].ha) / 1000;
+    const r = el('reqShow' + i); if (r) r.textContent = req.toFixed(3);
+  }
+}
+
+/* =========================================================================
+   CHARTS
+   ========================================================================= */
+let chartLevelMain, chartLevelSub, chartDebitMain, chartDebitField;
+const HIST_LEN = 90;
+
+function commonOpts() {
+  return {
+    responsive: true, animation: false, maintainAspectRatio: true,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      x: { ticks: { color: '#5a6472', maxTicksLimit: 6, font: { family: 'Source Sans 3', size: 11 } }, grid: { color: '#e8ecf3' } },
+      y: { ticks: { color: '#5a6472', font: { family: 'Source Sans 3', size: 11 } }, grid: { color: '#e8ecf3' } },
+    },
+    plugins: { legend: { labels: { color: '#1f2430', font: { family: 'Source Sans 3', size: 11.5 }, boxWidth: 12 } } },
+    elements: { point: { radius: 0 }, line: { borderWidth: 2, tension: 0.25 } },
+  };
+}
+function mkChart(id, datasets) {
+  return new Chart(document.getElementById(id).getContext('2d'), { type: 'line', data: { labels: [], datasets }, options: commonOpts() });
+}
+function initCharts() {
+  chartLevelMain = mkChart('chartLevelMain', [
+    { label: 'TMA hulu', data: [], borderColor: '#8a93a1', borderDash: [4, 3] },
+    { label: 'TMA kolam', data: [], borderColor: '#1f4fa6' },
+  ]);
+  chartLevelSub = mkChart('chartLevelSub', [
+    { label: 'Sek. 1', data: [], borderColor: '#2b6cb0' }, { label: 'Sek. 2', data: [], borderColor: '#f0a020' }, { label: 'Sek. 3', data: [], borderColor: '#d92d20' },
+    { label: 'Ter. 1', data: [], borderColor: '#17a34a', borderDash: [4, 3] }, { label: 'Ter. 2', data: [], borderColor: '#1f4fa6', borderDash: [4, 3] }, { label: 'Ter. 3', data: [], borderColor: '#7f56d9', borderDash: [4, 3] },
+  ]);
+  chartDebitMain = mkChart('chartDebitMain', [
+    { label: 'Masuk (3 primer)', data: [], borderColor: '#1f4fa6' },
+    { label: 'Total ke sawah', data: [], borderColor: '#2b6cb0' },
+    { label: 'Ke hilir', data: [], borderColor: '#17a34a' },
+  ]);
+  chartDebitField = mkChart('chartDebitField', [
+    { label: 'Sawah 1', data: [], borderColor: '#2b6cb0' }, { label: 'Sawah 2', data: [], borderColor: '#f0a020' }, { label: 'Sawah 3', data: [], borderColor: '#d92d20' },
+  ]);
+}
+let chartTick = 0;
+function updateCharts() {
+  chartTick++;
+  if (chartTick % 2 !== 0) return;
+  const label = fmtClock(state.simTime);
+  const pushTrim = (arr, v) => { arr.push(v); if (arr.length > HIST_LEN) arr.shift(); };
+
+  pushTrim(chartLevelMain.data.labels, label);
+  pushTrim(chartLevelMain.data.datasets[0].data, +state.hUp.toFixed(2));
+  pushTrim(chartLevelMain.data.datasets[1].data, +state.pool.h.toFixed(2));
+  chartLevelMain.update('none');
+
+  pushTrim(chartLevelSub.data.labels, label);
+  for (let i = 0; i < 3; i++) pushTrim(chartLevelSub.data.datasets[i].data, +state.secondary[i].canal.h.toFixed(2));
+  for (let i = 0; i < 3; i++) pushTrim(chartLevelSub.data.datasets[i + 3].data, +state.tertiary[i].canal.h.toFixed(2));
+  chartLevelSub.update('none');
+
+  pushTrim(chartDebitMain.data.labels, label);
+  pushTrim(chartDebitMain.data.datasets[0].data, +state.QgateTotal.toFixed(2));
+  pushTrim(chartDebitMain.data.datasets[1].data, +state.totalDelivered.toFixed(3));
+  pushTrim(chartDebitMain.data.datasets[2].data, +state.Qhilir.toFixed(2));
+  chartDebitMain.update('none');
+
+  pushTrim(chartDebitField.data.labels, label);
+  for (let i = 0; i < 3; i++) pushTrim(chartDebitField.data.datasets[i].data, +state.Qfield[i].toFixed(3));
+  chartDebitField.update('none');
+}
+
+/* =========================================================================
+   RUMUS & ANALISIS
+   ========================================================================= */
+function buildFormulaTab() {
+  const wrap = el('rumusBody');
+  wrap.innerHTML = `
+  <div class="formula-grid">
+
+    <div class="formula-card">
+      <h3>1. Kontinuitas &amp; Tampungan (Reservoir Routing)</h3>
+      <p>Setiap segmen (kolam, saluran sekunder, saluran tersier) dimodelkan sebagai sel tampungan: perubahan volume = debit masuk − debit keluar.</p>
+      <div class="formula-box">dS/dt = Q<sub>in</sub> − Q<sub>out</sub> &nbsp; | &nbsp; h = S / (B·L)</div>
+      <div class="formula-live">Kolam: Q<sub>in</sub>=<b id="fContQin">-</b> m³/s, Q<sub>out</sub>=<b id="fContQout">-</b> m³/s → h=<b id="fContH">-</b> m</div>
+    </div>
+
+    <div class="formula-card">
+      <h3>2. Persamaan Manning (Sungai Utama)</h3>
+      <p>Menentukan kecepatan &amp; debit aliran sungai alami (hulu) dan kapasitas alir kolam menuju hilir.</p>
+      <div class="formula-box">V = (1/n)·R<sup>2/3</sup>·S₀<sup>1/2</sup> &nbsp; Q = V·A &nbsp; R = A/P</div>
+      <div class="formula-live">Hulu: A=<b id="fManA">-</b> m², R=<b id="fManR">-</b> m → V=<b id="fManV">-</b> m/s, Q=<b id="fManQ">-</b> m³/s</div>
+    </div>
+
+    <div class="formula-card">
+      <h3>3. Persamaan Pintu Air (Orifice Bawah)</h3>
+      <p>Debit lewat bawah daun pintu — dipakai pada seluruh 9 pintu (3 primer, 3 sekunder, 3 tersier), aliran bebas atau tenggelam tergantung muka air hulu-hilir.</p>
+      <div class="formula-box">Bebas: Q=C<sub>d</sub>b·a·√(2g(h<sub>hulu</sub>−a/2)) &nbsp;|&nbsp; Tenggelam: Q=C<sub>d</sub>b·a·√(2g(h<sub>hulu</sub>−h<sub>hilir</sub>))</div>
+      <div class="formula-live">Primer-1: a=<b id="fGateA">-</b> m, rejim <b id="fGateRegime">-</b> → Q=<b id="fGateQ">-</b> m³/s</div>
+    </div>
+
+    <div class="formula-card">
+      <h3>4. Ambang Lebar Menuju Petak Sawah</h3>
+      <p>Air dari saluran tersier masuk ke petak sawah melalui bangunan sadap bebas (tidak bermotor) — dimodelkan sebagai ambang lebar sederhana.</p>
+      <div class="formula-box">Q<sub>sawah</sub> = C<sub>w</sub>·b·h<sup>3/2</sup></div>
+      <div class="formula-live">Tersier-1: C<sub>w</sub>=${FIXED.fieldCw}, b=${FIXED.fieldB} m, h=<b id="fWeirH">-</b> m → Q=<b id="fWeirQ">-</b> m³/s</div>
+    </div>
+
+    <div class="formula-card" style="grid-column:1/-1;">
+      <h3>5. Neraca Air Total (Uji Konservasi Massa)</h3>
+      <p>Memastikan debit yang masuk lewat seluruh pintu primer (scouring + floodway) sama dengan jumlah yang tersalur ke 3 sawah, debit ke hilir, dan laju perubahan tampungan total seluruh jaringan (kolam + 3 saluran sekunder + 3 saluran tersier).</p>
+      <div class="formula-box">Q<sub>primer total</sub> = ΣQ<sub>sawah</sub> + Q<sub>hilir</sub> + dS<sub>total</sub>/dt</div>
+      <table class="data-table">
+        <tr><td>Debit masuk (scouring + 3 floodway)</td><td id="fBalIn">-</td></tr>
+        <tr><td>Σ Debit ke sawah</td><td id="fBalIrig">-</td></tr>
+        <tr><td>Debit ke hilir</td><td id="fBalHilir">-</td></tr>
+        <tr><td>dS<sub>total</sub>/dt</td><td id="fBalDs">-</td></tr>
+        <tr><td><b>Selisih neraca</b></td><td id="fBalErr">-</td></tr>
+      </table>
+    </div>
+
+    <div class="formula-card" style="grid-column:1/-1;">
+      <h3>6. Status Kebutuhan Irigasi — Ideal / Cukup / Kurang / Lebih</h3>
+      <p>Rasio r = Q<sub>aktual</sub> / Q<sub>kebutuhan</sub>. Klasifikasi: <b>Kurang</b> jika r&lt;0.85 · <b>Cukup</b> jika 0.85≤r&lt;0.97 · <b>Ideal</b> jika 0.97≤r≤1.10 · <b>Lebih</b> jika r&gt;1.10.</p>
+      <table class="data-table">
+        <thead><tr><th>Sawah</th><th>Luas (ha)</th><th>Kebutuhan (m³/dtk)</th><th>Aktual (m³/dtk)</th><th>Rasio</th><th>Status</th></tr></thead>
+        <tbody id="statusTableBody"></tbody>
+      </table>
+      <div class="formula-live" style="margin-top:8px;">Faktor alokasi adaptif (bila pasokan primer terbatas): <b id="fAllocFactor">100%</b> — <span id="fAllocNote">pasokan mencukupi.</span></div>
+    </div>
+
+  </div>`;
+
+  const tbody = document.getElementById('statusTableBody');
+  state.areas.forEach((a, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td id="stName${i}">${a.name}</td><td id="stHa${i}">${a.ha}</td><td id="stReq${i}">-</td><td id="stAct${i}">-</td><td id="stRatio${i}">-</td><td id="stStatus${i}">-</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateFormulaTab() {
+  el('fContQin').textContent = state.QgateTotal.toFixed(2);
+  el('fContQout').textContent = state.Qhilir.toFixed(2);
+  el('fContH').textContent = state.pool.h.toFixed(2);
+
+  const m0 = manningCalc(state.hUp, state.river.B, FIXED.nRiver, FIXED.S0River);
+  el('fManA').textContent = m0.A.toFixed(1);
+  el('fManR').textContent = m0.R.toFixed(2);
+  el('fManV').textContent = m0.V.toFixed(2);
+  el('fManQ').textContent = m0.Q.toFixed(2);
+
+  const gp = gateDischarge(state.hUp, state.pool.h, state.primary[0].ctrl.a, state.primary[0].b, FIXED.CdPrimary);
+  el('fGateA').textContent = state.primary[0].ctrl.a.toFixed(2);
+  el('fGateRegime').textContent = gp.regime;
+  el('fGateQ').textContent = ((state.Qprim || [])[3] ?? state.QgateTotal).toFixed(2);
+
+  el('fWeirH').textContent = state.tertiary[0].canal.h.toFixed(2);
+  el('fWeirQ').textContent = state.Qfield[0].toFixed(3);
+
+  const dStotalDt = state._dStotalDt || 0;
+  /* satu volume kendali: seluruh pintu primer (scouring + floodway) */
+  const Qin = state.QgateTotal + (state.Qflood || 0);
+  const err = Qin - (state.totalDelivered + state.Qhilir + dStotalDt);
+  el('fBalIn').textContent = Qin.toFixed(2) + ' m³/s';
+  el('fBalIrig').textContent = state.totalDelivered.toFixed(3) + ' m³/s';
+  el('fBalHilir').textContent = state.Qhilir.toFixed(2) + ' m³/s';
+  el('fBalDs').textContent = dStotalDt.toFixed(2) + ' m³/s';
+  const errEl = el('fBalErr');
+  errEl.textContent = err.toFixed(2) + ' m³/s';
+  errEl.className = Math.abs(err) < Math.max(1, Qin * 0.08) ? 'balance-ok' : 'balance-bad';
+
+  state.areas.forEach((a, i) => {
+    const req = (state.duty * a.ha) / 1000;
+    const st = irrigationStatus(state.Qfield[i], req);
+    el('stName' + i).textContent = a.name;
+    el('stHa' + i).textContent = a.ha;
+    el('stReq' + i).textContent = req.toFixed(3);
+    el('stAct' + i).textContent = state.Qfield[i].toFixed(3);
+    el('stRatio' + i).textContent = ((st.r || 0) * 100).toFixed(0) + '%';
+    const s = el('stStatus' + i); s.textContent = st.label;
+    s.className = st.cls === 'ideal' ? 'balance-ok' : (st.cls === 'kurang' ? 'balance-bad' : '');
+  });
+  el('fAllocFactor').textContent = (state.allocFactor * 100).toFixed(0) + '%';
+  el('fAllocNote').textContent = state.allocFactor >= 0.98 ? 'pasokan mencukupi seluruh kebutuhan.' : 'pasokan primer terbatas — semua sawah diturunkan proporsional (giliran air).';
+}
+
+/* =========================================================================
+   NAV TABS, SEARCH, DOWNLOAD, SKENARIO, PLAY/PAUSE/RESET
+   ========================================================================= */
+const PAGE_TITLE = { dashboard: 'Beranda', kontrol: 'Kontrol Pintu', konfigurasi: 'Konfigurasi Sistem', tren: 'Tren Data', rumus: 'Rumus & Analisis', log: 'Log Sistem' };
+/* Chart.js diinisialisasi saat tab Tren masih display:none, jadi ukurannya
+   harus dihitung ulang begitu layarnya tampil. */
+function resizeCharts() {
+  [chartLevelMain, chartLevelSub, chartDebitMain, chartDebitField].forEach(c => { if (c) c.resize(); });
+}
+function setPageTitle(view) {
+  const t = el('pageTitle');
+  if (t) t.textContent = PAGE_TITLE[view] || 'Beranda';
+}
+function initNav() {
+  document.querySelectorAll('.navtab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.navtab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      btn.classList.add('active');
+      el('view-' + btn.dataset.view).classList.add('active');
+      setPageTitle(btn.dataset.view);
+      requestAnimationFrame(resizeCharts);
+    });
+  });
+}
+
+function initSearch() {
+  const field = el('searchPos');
+  if (!field) return;
+  field.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const q = e.target.value.trim().toLowerCase();
+    if (!q) return;
+    const candidates = [];
+    document.querySelectorAll('.ctrl-card, .cfg-card, .sawah-card').forEach(card => candidates.push(card));
+    let target = null;
+    for (const c of candidates) { if (c.textContent.toLowerCase().includes(q)) { target = c; break; } }
+    if (target) {
+      const view = target.closest('.view');
+      if (view) {
+        document.querySelectorAll('.navtab').forEach(b => b.classList.toggle('active', b.dataset.view === view.id.replace('view-', '')));
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        view.classList.add('active');
+        setPageTitle(view.id.replace('view-', ''));
+        requestAnimationFrame(resizeCharts);
+      }
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.remove('highlight-flash'); void target.offsetWidth; target.classList.add('highlight-flash');
+    } else {
+      pushLog(`Pencarian "${q}" tidak menemukan pos yang cocok.`, 'warn');
+    }
+  });
+}
+
+function downloadSnapshot() {
+  const snapshot = {
+    waktu_simulasi_detik: state.simTime,
+    skenario: state.scenario,
+    sungai_utama: { lebar_m: state.river.B, tinggi_tanggul_m: state.river.Hmax, tma_hulu_m: +state.hUp.toFixed(3), arus_hulu_mps: +state.vUp.toFixed(3), debit_alami_m3s: +state.Qnat.toFixed(3) },
+    kolam_bendung: { target_tma_m: state.targetPoolLevel, tma_m: +state.pool.h.toFixed(3), arus_mps: +state.vPool.toFixed(3), debit_masuk_total_m3s: +state.QgateTotal.toFixed(3), debit_hilir_m3s: +state.Qhilir.toFixed(3) },
+    pintu_primer: state.primary.map((p, k) => ({ id: k + 1, nama: p.name, fungsi: p.role, lebar_m: p.b, tinggi_pintu_m: p.aMax, mode: p.mode, bukaan_aktual_m: +p.ctrl.a.toFixed(3) })),
+    sekunder: state.secondary.map((s, i) => ({ id: i + 1, saluran_lebar_m: s.canal.B, saluran_tinggi_tanggul_m: s.canal.Hmax, tma_m: +s.canal.h.toFixed(3), arus_mps: +state.vSec[i].toFixed(3), pintu_lebar_m: s.gate.b, pintu_tinggi_m: s.gate.aMax, mode: s.gate.mode, bukaan_aktual_m: +s.gate.ctrl.a.toFixed(3), target_tma_m: s.targetLevel })),
+    tersier: state.tertiary.map((tt, i) => ({ id: i + 1, saluran_lebar_m: tt.canal.B, saluran_tinggi_tanggul_m: tt.canal.Hmax, tma_m: +tt.canal.h.toFixed(3), arus_mps: +state.vTert[i].toFixed(3), pintu_lebar_m: tt.gate.b, pintu_tinggi_m: tt.gate.aMax, mode: tt.gate.mode, bukaan_aktual_m: +tt.gate.ctrl.a.toFixed(3), debit_ke_sawah_m3s: +state.Qfield[i].toFixed(3) })),
+    sawah: state.areas.map((a, i) => {
+      const req = (state.duty * a.ha) / 1000;
+      const st = irrigationStatus(state.Qfield[i], req);
+      return { nama: a.name, luas_ha: a.ha, kebutuhan_m3s: +req.toFixed(3), aktual_m3s: +state.Qfield[i].toFixed(3), status: st.label };
+    }),
+    duty_l_per_dtk_per_ha: state.duty,
+    alokasi_adaptif_persen: +(state.allocFactor * 100).toFixed(1),
+    status_sistem: state.status,
+  };
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `simhidro-snapshot-${fmtClock(state.simTime).replace(/[: ]/g, '-')}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  pushLog('Snapshot data sensor & konfigurasi diunduh.', 'info');
+}
+
+function setScenario(name, label) {
+  state.scenario = name;
+  ['scNormal', 'scFlood', 'scDrought'].forEach(id => el(id).classList.remove('on'));
+  const map = { normal: 'scNormal', flood: 'scFlood', drought: 'scDrought' };
+  el(map[name]).classList.add('on');
+  pushLog(`Skenario kondisi sumber hulu diubah ke: ${label}.`, 'info');
+}
+
+function resetSimulation() {
+  const fresh = freshState();
+  Object.keys(fresh).forEach(k => { state[k] = fresh[k]; });
+  state.pool.S = state.pool.h * state.river.B * FIXED.poolL;
+  state.secondary.forEach(s => s.canal.S = s.canal.h * s.canal.B * FIXED.secL);
+  state.tertiary.forEach(t => t.canal.S = t.canal.h * t.canal.B * FIXED.tertL);
+  lastStatus = 'NORMAL'; lastSatLog = -99999;
+  el('logList').innerHTML = '';
+  [chartLevelMain, chartLevelSub, chartDebitMain, chartDebitField].forEach(c => { c.data.labels = []; c.data.datasets.forEach(d => d.data = []); c.update('none'); });
+  buildConfigTab(); buildControlTab(); buildSawahCards(); buildGateStatus();
+  ['scNormal', 'scFlood', 'scDrought'].forEach(id => el(id).classList.remove('on'));
+  el('scNormal').classList.add('on');
+  if (NO_DATA) { dummyMinute = 0; initDummyGates(); applyDummySnapshot(0); }
+  pushLog(NO_DATA ? 'Pemutaran data dummy dikembalikan ke menit 0.' : 'Simulasi direset ke kondisi awal (parameter default).', 'info');
+  render();
+  seedDummyCharts();
+  markBlueprints();
+}
+
+/* =========================================================================
+   MAIN LOOP
+   ========================================================================= */
+function tick() {
+  if (!state.running) return;
+  if (NO_DATA) {
+    const D = window.WMS_DUMMY;
+    const span = D ? D.historyMenit : 60;
+    dummyMinute = (dummyMinute + Math.max(1, Math.round(state.speed / 4))) % (span + 1);
+    state.simTime += 60;
+    dummyGateStep();
+    applyDummySnapshot(dummyMinute);
+  } else {
+    for (let i = 0; i < state.speed; i++) stepSimulation();
+  }
+  render();
+}
+
+function boot() {
+  initDummyGates();
+  applyDummySnapshot(0);
+  buildSchematic();
+  buildIsoMap();
+  initIsoMapControls();
+  initIsoWater();
+  buildSawahCards();
+  buildGateStatus();
+  buildConfigTab();
+  buildControlTab();
+  buildFormulaTab();
+  initCharts();
+  initNav();
+  initSearch();
+
+  el('playPauseBtn').addEventListener('click', () => {
+    state.running = !state.running;
+    el('playPauseBtn').textContent = state.running ? '⏸ Jeda' : '▶ Jalankan';
+    pushLog(state.running ? 'Simulasi dilanjutkan.' : 'Simulasi dijeda.', 'info');
+  });
+  el('resetBtn').addEventListener('click', resetSimulation);
+  el('speedSelect').addEventListener('change', e => state.speed = parseInt(e.target.value, 10));
+  el('scNormal').addEventListener('click', () => setScenario('normal', 'Normal'));
+  el('scFlood').addEventListener('click', () => setScenario('flood', 'Hujan / Banjir'));
+  el('scDrought').addEventListener('click', () => setScenario('drought', 'Kering / Kemarau'));
+  el('downloadBtn').addEventListener('click', downloadSnapshot);
+  el('posClose').addEventListener('click', closePosPop);
+  el('posAnalisa').addEventListener('click', posToKontrol);
+  el('posLokasi').addEventListener('click', posToLokasi);
+  el('gotoKontrolBtn').addEventListener('click', () => {
+    document.querySelectorAll('.navtab').forEach(b => b.classList.toggle('active', b.dataset.view === 'kontrol'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    el('view-kontrol').classList.add('active');
+    setPageTitle('kontrol');
+  });
+
+  if (NO_DATA) {
+    ['scNormal', 'scFlood', 'scDrought'].forEach(id => {
+      const e = el(id);
+      if (e) { e.disabled = true; e.style.opacity = '0.45'; e.style.cursor = 'not-allowed'; }
+    });
+    pushLog('Data dummy Leuwigoong dimuat — tekan Jalankan untuk memutar historis 60 menit.', 'ok');
+  } else {
+    pushLog('Sistem SIMHIDRO v2 dimulai — 3 floodway + scouring, 3 intake sekunder, mode AUTO.', 'ok');
+  }
+  if (NO_DATA) {
+    /* slider bukaan / target dan tombol mode langsung mengubah debit */
+    /* menggeser slider bukaan manual otomatis memindahkan pintu itu ke mode MANUAL */
+    document.addEventListener('input', (e) => {
+      const id = e.target.id || '';
+      const mm = id.match(/^sliderManual([PST])(\d)$/);
+      if (mm) {
+        const [, kind, n] = mm, i = +n;
+        const gate = kind === 'P' ? state.primary[i] : (kind === 'S' ? state.secondary[i].gate : state.tertiary[i].gate);
+        gate.mode = 'manual';
+        document.querySelectorAll(`[data-role="mode${kind}${i}"]`)
+          .forEach(b => b.classList.toggle('on', b.dataset.val === 'manual'));
+      }
+    });
+    ['input', 'click'].forEach(ev => document.addEventListener(ev, (e) => {
+      if (e.target.closest('#view-kontrol, #view-konfigurasi')) requestAnimationFrame(dummyRefresh);
+    }));
+  }
+  setInterval(tick, 260);
+  render();
+  seedDummyCharts();
+  markBlueprints();
+}
+
+function markBlueprints() {}
+function updateTsChips() {}
+
+document.addEventListener('DOMContentLoaded', boot);
+
+/* =========================================================================
+   PETA ISOMETRIK — proyeksi 2:1, bangunan ekstrusi sederhana, pin sensor
+   ========================================================================= */
+const ISO = { TW: 64, TH: 32, ox: 640, oy: 72 };
+const ISO_LEAF = { p: [], s: [], t: [] };
+function isoPoint(gx, gy) { return { x: (gx - gy) * (ISO.TW / 2) + ISO.ox, y: (gx + gy) * (ISO.TH / 2) + ISO.oy }; }
+function pts(arr) { return arr.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '); }
+function isoRect(gx0, gy0, gx1, gy1, fill, extra) {
+  const A = isoPoint(gx0, gy0), B = isoPoint(gx1, gy0), C = isoPoint(gx1, gy1), D = isoPoint(gx0, gy1);
+  return `<polygon points="${pts([A, B, C, D])}" fill="${fill}" ${extra || ''}/>`;
+}
+function isoBox(gx0, gy0, gx1, gy1, height, topColor, southColor, eastColor) {
+  const A = isoPoint(gx0, gy0), B = isoPoint(gx1, gy0), C = isoPoint(gx1, gy1), D = isoPoint(gx0, gy1);
+  const shift = p => ({ x: p.x, y: p.y - height });
+  const At = shift(A), Bt = shift(B), Ct = shift(C), Dt = shift(D);
+  const top = pts([At, Bt, Ct, Dt]);
+  const south = pts([D, C, Ct, Dt]);
+  const east = pts([B, C, Ct, Bt]);
+  return `<polygon points="${south}" fill="${southColor}"/><polygon points="${east}" fill="${eastColor}"/><polygon points="${top}" fill="${topColor}" stroke="rgba(28,36,100,0.35)" stroke-width="0.6"/>`;
+}
+function isoBoxB(gx0, gy0, gx1, gy1, base, height, topColor, southColor, eastColor) {
+  const lift = (p, dy) => ({ x: p.x, y: p.y - dy });
+  const A = isoPoint(gx0, gy0), B = isoPoint(gx1, gy0), C = isoPoint(gx1, gy1), D = isoPoint(gx0, gy1);
+  const Ab = lift(A, base), Bb = lift(B, base), Cb = lift(C, base), Db = lift(D, base);
+  const At = lift(A, base + height), Bt = lift(B, base + height), Ct = lift(C, base + height), Dt = lift(D, base + height);
+  return `<polygon points="${pts([Db, Cb, Ct, Dt])}" fill="${southColor}"/><polygon points="${pts([Bb, Cb, Ct, Bt])}" fill="${eastColor}"/><polygon points="${pts([At, Bt, Ct, Dt])}" fill="${topColor}" stroke="rgba(28,36,100,0.35)" stroke-width="0.6"/>`;
+}
+function isoLineLift(gx0, gy0, gx1, gy1, lift, attrs) {
+  const a = isoPoint(gx0, gy0), b = isoPoint(gx1, gy1);
+  return `<line x1="${a.x.toFixed(1)}" y1="${(a.y - lift).toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${(b.y - lift).toFixed(1)}" ${attrs || ''}/>`;
+}
+function isoFaceEast(gx, gyA, gyB, base, hh, color, extra) {
+  const A = isoPoint(gx, gyA), B = isoPoint(gx, gyB);
+  return `<polygon points="${A.x.toFixed(1)},${(A.y - base).toFixed(1)} ${B.x.toFixed(1)},${(B.y - base).toFixed(1)} ${B.x.toFixed(1)},${(B.y - base - hh).toFixed(1)} ${A.x.toFixed(1)},${(A.y - base - hh).toFixed(1)}" fill="${color}" ${extra || ''}/>`;
+}
+function isoFaceSouth(gxA, gxB, gy, base, hh, color, extra) {
+  const A = isoPoint(gxA, gy), B = isoPoint(gxB, gy);
+  return `<polygon points="${A.x.toFixed(1)},${(A.y - base).toFixed(1)} ${B.x.toFixed(1)},${(B.y - base).toFixed(1)} ${B.x.toFixed(1)},${(B.y - base - hh).toFixed(1)} ${A.x.toFixed(1)},${(A.y - base - hh).toFixed(1)}" fill="${color}" ${extra || ''}/>`;
+}
+function isoRailRun(gx0, gy0, gx1, gy1, lift, hh, color, posts) {
+  let s = isoLineLift(gx0, gy0, gx1, gy1, lift + hh, `stroke="${color}" stroke-width="2.2"`)
+        + isoLineLift(gx0, gy0, gx1, gy1, lift + hh * 0.52, `stroke="${color}" stroke-width="1.5"`);
+  const n = posts || 6;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, p = isoPoint(gx0 + (gx1 - gx0) * t, gy0 + (gy1 - gy0) * t);
+    s += `<line x1="${p.x.toFixed(1)}" y1="${(p.y - lift).toFixed(1)}" x2="${p.x.toFixed(1)}" y2="${(p.y - lift - hh).toFixed(1)}" stroke="${color}" stroke-width="1.7"/>`;
+  }
+  return s;
+}
+function isoWheel(gx, gy, lift, r, color) {
+  const p = isoPoint(gx, gy), cy = p.y - lift;
+  let s = `<circle cx="${p.x.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="none" stroke="${color}" stroke-width="3"/>`;
+  s += `<circle cx="${p.x.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r * 0.3).toFixed(1)}" fill="${color}"/>`;
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI;
+    s += `<line x1="${(p.x - Math.cos(a) * r).toFixed(1)}" y1="${(cy - Math.sin(a) * r * 0.5).toFixed(1)}" x2="${(p.x + Math.cos(a) * r).toFixed(1)}" y2="${(cy + Math.sin(a) * r * 0.5).toFixed(1)}" stroke="${color}" stroke-width="1.6"/>`;
+  }
+  return s;
+}
+function isoLeafPoly(id, gxA, gyA, gxB, gyB, H, store) {
+  const A = isoPoint(gxA, gyA), B = isoPoint(gxB, gyB);
+  store.push({ id: id, ax: A.x, ay: A.y, bx: B.x, by: B.y, H: H });
+  return `<polygon id="${id}" points="" fill="#c1a878" stroke="#8f7c52" stroke-width="1"/>`;
+}
+function isoLine(gx0, gy0, gx1, gy1, attrs) {
+  const a = isoPoint(gx0, gy0), b = isoPoint(gx1, gy1);
+  return `<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" ${attrs || ''}/>`;
+}
+function treeBlob(gx, gy) {
+  const p = isoPoint(gx, gy);
+  return `<g>
+    <ellipse cx="${p.x}" cy="${p.y + 3}" rx="13" ry="6" fill="#1d1f20" opacity="0.1"/>
+    <circle cx="${p.x - 6}" cy="${p.y - 8}" r="9" fill="#5f8f52"/>
+    <circle cx="${p.x + 6}" cy="${p.y - 10}" r="10" fill="#6d9d5c"/>
+    <circle cx="${p.x}" cy="${p.y - 15}" r="9" fill="#7bab68"/>
+  </g>`;
+}
+const PIN_ICON = {
+  drop: '<path d="M0,-8 C4,-3 7.5,0.4 7.5,3.4 A7.5,7.5 0 0,1 -7.5,3.4 C-7.5,0.4 -4,-3 0,-8 Z" fill="#fff"/>',
+  gate: '<rect x="-7" y="-7" width="14" height="14" fill="none" stroke="#fff" stroke-width="2"/><rect x="-7" y="-1.2" width="14" height="4.6" fill="#fff"/>',
+  wave: '<path d="M-8,-2.5 q4,-4 8,0 t8,0" fill="none" stroke="#fff" stroke-width="2"/><path d="M-8,3 q4,-4 8,0 t8,0" fill="none" stroke="#fff" stroke-width="2"/>',
+  valve: '<circle cx="0" cy="0" r="6" fill="none" stroke="#fff" stroke-width="2"/><path d="M-6,0 H6 M0,-6 V6" stroke="#fff" stroke-width="2"/>',
+  outflow: '<path d="M-8,0 H3.5" stroke="#fff" stroke-width="2.2"/><path d="M-0.5,-5 L6,0 L-0.5,5 Z" fill="#fff"/>',
+};
+
+function pinMarker(id, gx, gy, hOff, icon, tooltip, leaderLen) {
+  const p = isoPoint(gx, gy);
+  const y = p.y - hOff;
+  const len = leaderLen || 58;
+  const lx = -len, ly = len * 0.5;
+  return `<g class="iso-pin" data-pin="${id}" transform="translate(${p.x.toFixed(1)},${y.toFixed(1)})" onclick="onPinClick('${id}')">
+    <title>${tooltip}</title>
+    <line class="pin-leader" x1="9" y1="9" x2="${(lx + 9).toFixed(1)}" y2="${(ly - 2).toFixed(1)}"/>
+    <circle class="pin-leader-dot" cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.5"/>
+    <ellipse cx="0" cy="4" rx="12" ry="4" fill="#000" opacity="0.22"/>
+    <circle class="pin-ring" cx="0" cy="0" r="15"/>
+    <circle cx="0" cy="0" r="15" fill="none" stroke="#fff" stroke-width="1.2" opacity="0.7"/>
+    ${PIN_ICON[icon] || PIN_ICON.drop}
+    <rect class="iso-label-bg" x="${(lx - 56).toFixed(1)}" y="${(ly - 9).toFixed(1)}" width="112" height="19" rx="0"/>
+    <text class="iso-label" id="pinLabel_${id}" x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}">-</text>
+  </g>`;
+}
+
+const LANE_GX = [8, 10.5, 13];
+
+/* Pin pada koordinat gambar (bukan grid isometrik). */
+function pinMarkerXY(id, x, y, icon, tooltip, len, up) {
+  const lx = -(len || 58), ly = (len || 58) * (up ? -0.42 : 0.5);
+  return `<g class="iso-pin" data-pin="${id}" transform="translate(${x},${y})" onclick="onPinClick('${id}')">
+    <title>${tooltip}</title>
+    <line class="pin-leader" x1="-9" y1="${up ? -9 : 9}" x2="${(lx + 9).toFixed(1)}" y2="${(ly + (up ? 4 : -2)).toFixed(1)}"/>
+    <circle class="pin-leader-dot" cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.5"/>
+    <ellipse cx="0" cy="4" rx="12" ry="4" fill="#000" opacity="0.22"/>
+    <circle class="pin-ring" cx="0" cy="0" r="15"/>
+    <circle cx="0" cy="0" r="15" fill="none" stroke="#fff" stroke-width="1.2" opacity="0.7"/>
+    ${PIN_ICON[icon] || PIN_ICON.drop}
+    <rect class="iso-label-bg" x="${(lx - 56).toFixed(1)}" y="${(ly - 9).toFixed(1)}" width="112" height="19" rx="0"/>
+    <text class="iso-label" id="pinLabel_${id}" x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}">-</text>
+  </g>`;
+}
+
+/* Posisi pos telemetri di atas ilustrasi (satuan viewBox 1300×731). */
+const ISO_POS = {
+  hulu:   [1190, 245, 'drop',    'Pos AWLR Hulu — TMA & Arus Sungai Alami'],
+  primer: [1075, 358, 'gate',    'Pos AWGC Intake — Bendung Gerak'],
+  kolam:  [ 770, 340, 'wave',    'Pos AWLR Kolam Bendung / Kantong Lumpur'],
+  hilir:  [ 940, 620, 'outflow', 'Pos AWLR Hilir — Debit Keluar'],
+  sek:    [ 393, 232, 'gate',    'Pos AWGC Sekunder — Intake 1 s.d. 3'],
+  ter0:   [ 330, 262, 'valve',   'Pos AWGC Tersier 1', 1],
+  ter1:   [ 343, 420, 'valve',   'Pos AWGC Tersier 2'],
+  ter2:   [ 226, 200, 'valve',   'Pos AWGC Tersier 3', 1],
+};
+
+/* ---- geser titik pos secara manual (mode edit) ---- */
+const ISO_POS_DEFAULT = JSON.parse(JSON.stringify(ISO_POS));
+const PIN_POS_KEY = 'wmsIsoPinPos';
+let pinEdit = false, pinDrag = null;
+
+function loadPinPos() {
+  try {
+    const s = JSON.parse(localStorage.getItem(PIN_POS_KEY) || '{}');
+    Object.keys(s).forEach(k => {
+      if (ISO_POS[k] && Array.isArray(s[k])) { ISO_POS[k][0] = s[k][0]; ISO_POS[k][1] = s[k][1]; }
+    });
+  } catch (e) {}
+}
+function savePinPos() {
+  const o = {};
+  Object.keys(ISO_POS).forEach(k => { o[k] = [Math.round(ISO_POS[k][0]), Math.round(ISO_POS[k][1])]; });
+  try { localStorage.setItem(PIN_POS_KEY, JSON.stringify(o)); } catch (e) {}
+}
+function resetPinPos() {
+  Object.keys(ISO_POS_DEFAULT).forEach(k => { ISO_POS[k][0] = ISO_POS_DEFAULT[k][0]; ISO_POS[k][1] = ISO_POS_DEFAULT[k][1]; });
+  try { localStorage.removeItem(PIN_POS_KEY); } catch (e) {}
+  buildIsoMap(); updateIsoLabels(); updateIsoWaterColors();
+}
+
+/* koordinat layar -> koordinat viewBox (memperhitungkan zoom CSS & preserveAspectRatio meet) */
+function isoClientToVB(cx, cy) {
+  const svg = el('isoSvg'), r = svg.getBoundingClientRect();
+  const f = Math.min(r.width / 1300, r.height / 731);
+  return { x: (cx - (r.left + (r.width - 1300 * f) / 2)) / f, y: (cy - (r.top + (r.height - 731 * f) / 2)) / f };
+}
+
+function initPinDrag() {
+  const svg = el('isoSvg');
+  svg.addEventListener('pointerdown', (e) => {
+    if (!pinEdit) return;
+    const g = e.target.closest('.iso-pin');
+    if (!g) return;
+    e.stopPropagation(); e.preventDefault();
+    const id = g.dataset.pin, p = isoClientToVB(e.clientX, e.clientY);
+    pinDrag = { id, g, dx: ISO_POS[id][0] - p.x, dy: ISO_POS[id][1] - p.y, moved: false };
+    g.classList.add('dragging');
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!pinDrag) return;
+    const p = isoClientToVB(e.clientX, e.clientY);
+    const x = clamp(p.x + pinDrag.dx, 8, 1292), y = clamp(p.y + pinDrag.dy, 8, 723);
+    ISO_POS[pinDrag.id][0] = x; ISO_POS[pinDrag.id][1] = y;
+    pinDrag.g.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+    pinDrag.moved = true;
+  });
+  window.addEventListener('pointerup', () => {
+    if (!pinDrag) return;
+    pinDrag.g.classList.remove('dragging');
+    if (pinDrag.moved) savePinPos();
+    pinDrag = null;
+  });
+}
+
+function setPinEdit(on) {
+  pinEdit = on;
+  const scroll = el('isoScroll'), wrap = el('isoMapPanel'), btn = el('mapEditPins');
+  scroll.classList.toggle('pin-edit', on);
+  wrap.classList.toggle('pin-edit-on', on);
+  btn.classList.toggle('on', on);
+  el('mapPinsReset').style.display = on ? '' : 'none';
+  el('mapPinsCopy').style.display = on ? '' : 'none';
+  if (on) closePosPop();
+}
+
+function copyPinCoords() {
+  const txt = Object.keys(ISO_POS).map(k =>
+    `  ${k}: [${Math.round(ISO_POS[k][0])}, ${Math.round(ISO_POS[k][1])}],`).join('\n');
+  const out = 'const ISO_POS = {\n' + txt + '\n};';
+  const btn = el('mapPinsCopy'), old = btn.textContent;
+  const done = () => { btn.textContent = '✓ Tersalin'; setTimeout(() => { btn.textContent = old; }, 1400); };
+  if (navigator.clipboard) navigator.clipboard.writeText(out).then(done, () => console.log(out));
+  else { console.log(out); done(); }
+}
+
+function buildIsoMap() {
+  const svg = el('isoSvg');
+  loadPinPos();
+  let out = '';
+  Object.keys(ISO_POS).forEach(id => {
+    const [x, y, icon, tip, up] = ISO_POS[id];
+    out += pinMarkerXY(id, x, y, icon, tip, 62, up || y < 140);
+  });
+  svg.innerHTML = out;
+}
+
+const LEVEL_DOT = { kering: '#8a7442', normal: '#1f4fa6', waspada: '#c9971a', siaga: '#d4761c', bahaya: '#c0392b' };
+
+/* Warna cincin pin = status pos, terlihat tanpa harus menyalakan label. */
+function updateIsoWaterColors() {
+  const ring = (id, color) => {
+    const e = document.querySelector(`.iso-pin[data-pin="${id}"] .pin-ring`);
+    if (e && posOpen !== id) e.style.fill = color;
+  };
+  const lvl = (s) => LEVEL_DOT[s] || LEVEL_DOT.normal;
+
+  ring('hulu', lvl(levelStatus(state.hUp, state.river.Hmax, state.thresholds.river)));
+  const poolSt = lvl(levelStatus(state.pool.h, state.river.Hmax, state.thresholds.river));
+  ring('primer', poolSt); ring('kolam', poolSt); ring('hilir', poolSt);
+
+  /* satu pin sekunder mewakili tiga intake: warna mengikuti status terparah */
+  const SEV = ['kering', 'normal', 'waspada', 'siaga', 'bahaya'];
+  let worst = 'normal';
+  for (let i = 0; i < 3; i++) {
+    const s = levelStatus(state.secondary[i].canal.h, state.secondary[i].canal.Hmax, state.thresholds.sec[i]);
+    if (SEV.indexOf(s) > SEV.indexOf(worst)) worst = s;
+  }
+  ring('sek', lvl(worst));
+
+  for (let i = 0; i < 3; i++) {
+    const req = (state.duty * state.areas[i].ha) / 1000;
+    ring('ter' + i, FIELD_STATUS_COLOR[irrigationStatus(state.Qfield[i], req).cls]);
+  }
+}
+
+function updateIsoLeaves() {}
+
+
+function updateIsoLabels() {
+  const set = (id, txt) => { const e = document.getElementById('pinLabel_' + id); if (e) e.textContent = txt; };
+  set('hulu', `TMA ${state.hUp.toFixed(2)}m · Q ${state.Qnat.toFixed(1)}`);
+  set('primer', `Q masuk ${state.QgateTotal.toFixed(1)} m³/s`);
+  set('kolam', `TMA ${state.pool.h.toFixed(2)} m`);
+  set('kantong', `Kantong lumpur · TMA ${state.pool.h.toFixed(2)} m`);
+  const avgSek = state.secondary.reduce((a, s) => a + s.canal.h, 0) / 3;
+  set('sek', `Intake 1-3 · TMA ${avgSek.toFixed(2)} m`);
+  for (let i = 0; i < 3; i++) {
+    set('ter' + i, `TMA ${state.tertiary[i].canal.h.toFixed(2)}m · Q ${state.Qfield[i].toFixed(3)}`);
+  }
+  set('hilir', `Q ${state.Qhilir.toFixed(1)} m³/s`);
+}
+
+let posOpen = null;
+
+/* Data yang ditampilkan kartu pos untuk tiap titik telemetri. */
+function posData(id) {
+  const cm = (m) => (m * 100).toFixed(0) + ' cm';
+  if (id === 'primer') {
+    return {
+      title: 'Pos AWGC Pintu Bendung',
+      tiles: state.primary.map((p) => ({ v: cm(p.ctrl.a), l: p.name })),
+    };
+  }
+  if (id === 'hulu') {
+    return {
+      title: 'Pos AWLR Hulu',
+      tiles: [
+        { v: state.hUp.toFixed(2) + ' m', l: 'Tinggi muka air' },
+        { v: state.vUp.toFixed(2) + ' m/s', l: 'Arus' },
+        { v: state.Qnat.toFixed(1), l: 'Debit alami m³/dtk' },
+      ],
+    };
+  }
+  if (id === 'kolam') {
+    return {
+      title: 'Pos AWLR Kolam Bendung',
+      tiles: [
+        { v: state.pool.h.toFixed(2) + ' m', l: 'Tinggi muka air' },
+        { v: state.vPool.toFixed(2) + ' m/s', l: 'Arus' },
+        { v: state.QgateTotal.toFixed(1), l: 'Debit masuk m³/dtk' },
+      ],
+    };
+  }
+  if (id === 'hilir') {
+    return {
+      title: 'Pos AWLR Hilir',
+      tiles: [
+        { v: state.Qhilir.toFixed(1), l: 'Debit keluar m³/dtk' },
+        { v: state.pool.h.toFixed(2) + ' m', l: 'Tinggi muka air' },
+      ],
+    };
+  }
+  if (id === 'sek') {
+    return {
+      title: 'Pos AWGC Pintu Sekunder',
+      tiles: state.secondary.map((s, i) => ({ v: cm(s.gate.ctrl.a), l: 'Intake ' + (i + 1) })),
+    };
+  }
+  const i = +id.replace('ter', ''), t = state.tertiary[i];
+  return {
+    title: 'Pos AWGC Tersier ' + (i + 1),
+    tiles: [
+      { v: cm(t.gate.ctrl.a), l: 'Bukaan pintu' },
+      { v: t.canal.h.toFixed(2) + ' m', l: 'Tinggi muka air' },
+      { v: state.Qfield[i].toFixed(3), l: 'Ke sawah m³/dtk' },
+      { v: t.gate.mode.toUpperCase(), l: 'Mode kendali' },
+    ],
+  };
+}
+
+function renderPosPop() {
+  if (!posOpen) return;
+  const d = posData(posOpen);
+  el('posTitle').textContent = d.title;
+  el('posTiles').innerHTML = d.tiles
+    .map(t => `<div class="pos-tile"><b>${t.v}</b><span>${t.l}</span></div>`).join('');
+  const now = new Date(), pad = (x) => String(x).padStart(2, '0');
+  el('posTime').textContent = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) +
+    ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+}
+
+function onPinClick(id) {
+  if (pinEdit) return;
+  posOpen = id;
+  const pop = el('posPop'), wrap = el('isoMapPanel');
+  const pin = document.querySelector(`.iso-pin[data-pin="${id}"]`);
+  if (!pop || !wrap || !pin) return;
+  renderPosPop();
+  pop.classList.add('on');
+  const pr = pin.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+  let left = pr.left - wr.left + pr.width / 2 - pop.offsetWidth / 2;
+  let top = pr.top - wr.top - pop.offsetHeight - 14;
+  if (top < 8) top = pr.bottom - wr.top + 14;
+  pop.style.left = clamp(left, 8, wrap.clientWidth - pop.offsetWidth - 8) + 'px';
+  pop.style.top = clamp(top, 8, wrap.clientHeight - pop.offsetHeight - 8) + 'px';
+}
+
+function closePosPop() {
+  posOpen = null;
+  const pop = el('posPop');
+  if (pop) pop.classList.remove('on');
+}
+
+/* Analisa: lompat ke layar Kontrol Pintu dan sorot kartu pintu terkait. */
+function posToKontrol() {
+  const id = posOpen;
+  closePosPop();
+  document.querySelectorAll('.navtab').forEach(b => b.classList.toggle('active', b.dataset.view === 'kontrol'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  el('view-kontrol').classList.add('active');
+  setPageTitle('kontrol');
+  let targets = [];
+  if (!id || id === 'hulu' || id === 'kolam' || id === 'hilir' || id === 'primer') targets = ['ctrlCardP0', 'ctrlCardP1', 'ctrlCardP2'];
+  else if (id === 'sek') targets = ['ctrlCardS0', 'ctrlCardS1', 'ctrlCardS2'];
+  else if (id.startsWith('sek')) targets = ['ctrlCardS' + id.replace('sek', '')];
+  else if (id.startsWith('ter')) targets = ['ctrlCardT' + id.replace('ter', '')];
+  targets.forEach((tid) => {
+    const c = el(tid);
+    if (!c) return;
+    c.classList.remove('highlight-flash'); void c.offsetWidth; c.classList.add('highlight-flash');
+  });
+}
+
+/* Lokasi: nyalakan label peta dan kedipkan pin terpilih. */
+function posToLokasi() {
+  const svg = el('isoSvg');
+  if (svg) svg.classList.add('labels-on');
+  const tog = el('mapLabelToggle');
+  if (tog) tog.classList.add('on');
+  const pin = document.querySelector(`.iso-pin[data-pin="${posOpen}"] .pin-ring`);
+  if (!pin) return;
+  pin.style.fill = '#f0a020';
+  setTimeout(() => { pin.style.fill = ''; }, 1200);
+}
+
+/* ---- zoom & pan peta isometrik ---- */
+/* Tampilan awal: sedekat mungkin ke jaringan pos telemetri tanpa memotongnya,
+   dihitung dari panel sebenarnya sehingga ruang kosong ilustrasi tidak ikut tampil. */
+const ISO_VB = { w: 1300, h: 731 };
+const isoZoom = { scale: 1, tx: 0, ty: 0 };
+
+function isoDefaultView() {
+  const box = el('isoScroll');
+  const pw = box ? box.clientWidth : 900, ph = box ? box.clientHeight : 560;
+  const xs = Object.values(ISO_POS).map(p => p[0]), ys = Object.values(ISO_POS).map(p => p[1]);
+  /* label pos digambar di kiri jangkarnya, jadi sisi kiri butuh margin lebih lebar */
+  const padL = 130, padR = 60, padY = 56;
+  const x0 = Math.min(...xs) - padL, x1 = Math.max(...xs) + padR;
+  const y0 = Math.min(...ys) - padY, y1 = Math.max(...ys) + padY;
+
+  const f = Math.min(pw / ISO_VB.w, ph / ISO_VB.h);          // svg dipasang meet
+  const ox = (pw - ISO_VB.w * f) / 2, oy = (ph - ISO_VB.h * f) / 2;
+  const fit = Math.min(pw / ((x1 - x0) * f), ph / ((y1 - y0) * f));
+  const scale = clamp(Math.max(fit, isoCoverScale()), 1, 2.8);  const cx = ox + ((x0 + x1) / 2) * f, cy = oy + ((y0 + y1) / 2) * f;
+  const v = { scale, tx: (pw / 2 - cx) * scale, ty: (ph / 2 - cy) * scale };
+  clampIsoPan(v);
+  return v;
+}
+
+/* Skala minimum: ilustrasi menutup penuh panel, jadi tidak pernah ada tepi kosong. */
+function isoCoverScale() {
+  const box = el('isoScroll');
+  const pw = box ? box.clientWidth : 900, ph = box ? box.clientHeight : 560;
+  const f = Math.min(pw / ISO_VB.w, ph / ISO_VB.h);
+  return Math.max(pw / (ISO_VB.w * f), ph / (ISO_VB.h * f));
+}
+
+/* Geser dibatasi tepi ilustrasi. */
+function clampIsoPan(v) {
+  const box = el('isoScroll');
+  if (!box) return v;
+  const pw = box.clientWidth, ph = box.clientHeight, s = v.scale;
+  const f = Math.min(pw / ISO_VB.w, ph / ISO_VB.h);
+  const ox = (pw - ISO_VB.w * f) / 2, oy = (ph - ISO_VB.h * f) / 2;
+  const lim = (o, len, size) => {
+    const lo = size / 2 - (o + len - size / 2) * s;
+    const hi = -size / 2 - (o - size / 2) * s;
+    return lo > hi ? [(lo + hi) / 2, (lo + hi) / 2] : [lo, hi];
+  };
+  const [xlo, xhi] = lim(ox, ISO_VB.w * f, pw), [ylo, yhi] = lim(oy, ISO_VB.h * f, ph);
+  v.tx = clamp(v.tx, xlo, xhi);
+  v.ty = clamp(v.ty, ylo, yhi);
+  return v;
+}
+
+function resetIsoView() {
+  Object.assign(isoZoom, isoDefaultView());
+  applyIsoZoom();
+}
+function applyIsoZoom() {
+  const stage = el('isoStage');
+  isoZoom.scale = clamp(isoZoom.scale, isoCoverScale(), 5);
+  clampIsoPan(isoZoom);
+  stage.style.transform = `translate(${isoZoom.tx}px, ${isoZoom.ty}px) scale(${isoZoom.scale})`;
+}
+/* =========================================================================
+   AIR BERANIMASI — mask diambil dari render hitam (assets/iso-water-mask.png)
+   Tiap badan air jadi region sendiri: warna = status TMA, kecepatan = arus.
+   ========================================================================= */
+const WATER_SEED = {   /* titik acuan dalam koordinat ternormalisasi gambar */
+  hulu: [.849, .262], hilir: [.760, .755],
+  kolam: [.633, .479], kolam2: [.624, .493], kolam3: [.660, .470],
+  sek: [.260, .293], sek2: [.496, .445],
+  ter0: [.385, .126], ter1: [.189, .085], ter1b: [.102, .112], ter2: [.100, .498],
+};
+const WATER_ALIAS = { kolam2: 'kolam', kolam3: 'kolam', sek2: 'sek', ter1b: 'ter1' };
+const WATER_ANGLE = { hulu: 1.95, hilir: 2.08, kolam: 0.16, intake: -0.10, connect: -1.57, sek: -0.25, ter0: 0.82, ter1: 0.19, ter2: -0.60 };
+/* saluran intake dan sambungannya menyatu dengan sungai pada mask, padahal
+   statusnya mengikuti kolam bendung — dipisah lewat kotak (urut, kecil dulu) */
+const WATER_SPLIT = [
+  { from: 'hulu', to: 'connect', rect: [0.695, 0.450, 0.726, 0.497] },
+  { from: 'hulu', to: 'intake',  rect: [0.688, 0.420, 0.848, 0.487] },
+];
+
+const water = { ready: false, regions: [], phase: {}, last: 0, ripple: null, tmp: null };
+const WATER_COLOR = { kering: '#c9b98a', normal: '#7ecdee', waspada: '#efd264', siaga: '#f0a95e', bahaya: '#e0705e' };
+/* air tetap biru; status hanya menyeret rona — bukan mengecatnya penuh */
+const WATER_BASE = '#8ed6f2';
+const WATER_TINT = { kering: 0.6, normal: 0, waspada: 0.35, siaga: 0.5, bahaya: 0.6 };
+
+function makeRipplePattern(size, freq, contrast) {
+  const s = size, c = document.createElement('canvas');
+  c.width = s; c.height = s;
+  const x = c.getContext('2d'), img = x.createImageData(s, s);
+  const T = Math.PI * 2;
+  for (let y = 0; y < s; y++) {
+    for (let px = 0; px < s; px++) {
+      const u = px / s, v = y / s;
+      /* gelombang panjang + riak pendek yang melengkung, bukan garis lurus */
+      const w1 = Math.sin(u * T * freq + Math.sin(v * T) * 0.9);
+      const w2 = Math.sin(u * T * freq * 2.7 - v * T * 1.6) * 0.45;
+      const w3 = Math.sin(u * T * freq * 5.3 + v * T * 3.1) * 0.22;
+      const n = (w1 + w2 + w3) / 1.67;
+      const i = (y * s + px) * 4;
+      const up = Math.max(0, n) ** 1.7, dn = Math.max(0, -n) ** 2;
+      /* puncak = kilau putih, lembah = biru sedikit lebih tua (bukan hitam) */
+      if (up > dn) { img.data[i] = 255; img.data[i + 1] = 255; img.data[i + 2] = 255; img.data[i + 3] = up * 130 * contrast; }
+      else { img.data[i] = 40; img.data[i + 1] = 110; img.data[i + 2] = 152; img.data[i + 3] = dn * 90 * contrast; }
+    }
+  }
+  x.putImageData(img, 0, 0);
+  return c;
+}
+
+/* Label komponen tersambung pada mask, lalu tiap komponen dipetakan ke perannya.
+   Label dihitung di resolusi kerja rendah (cepat), tetapi tepi tiap region diambil
+   dari mask resolusi penuh supaya tetap tajam saat peta di-zoom. */
+function buildWaterRegions(mask, MW, MH, srcImg, SW, SH, shadeImg) {
+  const lab = new Int32Array(MW * MH).fill(-1), stack = new Int32Array(MW * MH), comps = [];
+  for (let k = 0; k < MW * MH; k++) {
+    if (!mask[k] || lab[k] >= 0) continue;
+    const id = comps.length; let sp = 0, n = 0;
+    let minx = MW, maxx = 0, miny = MH, maxy = 0;
+    stack[sp++] = k; lab[k] = id;
+    while (sp) {
+      const q = stack[--sp], qx = q % MW, qy = (q / MW) | 0; n++;
+      if (qx < minx) minx = qx; if (qx > maxx) maxx = qx;
+      if (qy < miny) miny = qy; if (qy > maxy) maxy = qy;
+      if (qx > 0 && mask[q - 1] && lab[q - 1] < 0) { lab[q - 1] = id; stack[sp++] = q - 1; }
+      if (qx < MW - 1 && mask[q + 1] && lab[q + 1] < 0) { lab[q + 1] = id; stack[sp++] = q + 1; }
+      if (qy > 0 && mask[q - MW] && lab[q - MW] < 0) { lab[q - MW] = id; stack[sp++] = q - MW; }
+      if (qy < MH - 1 && mask[q + MW] && lab[q + MW] < 0) { lab[q + MW] = id; stack[sp++] = q + MW; }
+    }
+    comps.push({ id, n, minx, maxx, miny, maxy, cx: (minx + maxx) / 2, cy: (miny + maxy) / 2, role: null });
+  }
+  /* peran dari titik acuan; komponen tanpa acuan ikut komponen berlabel terdekat */
+  Object.keys(WATER_SEED).forEach(key => {
+    const [nx, ny] = WATER_SEED[key];
+    const sx = clamp(Math.round(nx * MW), 0, MW - 1), sy = clamp(Math.round(ny * MH), 0, MH - 1);
+    let best = -1, bd = 1e9;
+    comps.forEach(c => {
+      if (c.n < 40) return;
+      const d = (c.cx - sx) ** 2 + (c.cy - sy) ** 2;
+      const inside = sx >= c.minx && sx <= c.maxx && sy >= c.miny && sy <= c.maxy;
+      const score = inside ? d * 0.01 : d;
+      if (score < bd) { bd = score; best = c.id; }
+    });
+    if (best >= 0 && !comps[best].role) comps[best].role = WATER_ALIAS[key] || key;
+  });
+  comps.forEach(c => {
+    if (c.role || c.n < 4) return;
+    let best = null, bd = 1e9;
+    comps.forEach(o => { if (!o.role) return; const d = (o.cx - c.cx) ** 2 + (o.cy - c.cy) ** 2; if (d < bd) { bd = d; best = o; } });
+    if (best) c.role = best.role;
+  });
+
+  /* satu canvas mask per komponen (dipangkas ke bounding box; resolusi dibatasi
+     agar biaya menggambar tiap frame tetap kecil) */
+  const k = SW / MW, CAP = 1300;
+  const out = [];
+  comps.filter(c => c.role && c.n >= 4).forEach(c => {
+    const w = c.maxx - c.minx + 1, h = c.maxy - c.miny + 1;
+    /* label komponen di resolusi kerja */
+    const lc = document.createElement('canvas'); lc.width = w; lc.height = h;
+    const lx = lc.getContext('2d'), lid = lx.createImageData(w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (lab[(y + c.miny) * MW + (x + c.minx)] === c.id) {
+        const i = (y * w + x) * 4;
+        lid.data[i] = lid.data[i + 1] = lid.data[i + 2] = 255; lid.data[i + 3] = 255;
+      }
+    }
+    lx.putImageData(lid, 0, 0);
+
+    /* sebagian komponen menyatu dengan sungai padahal perannya beda
+       (mis. saluran intake di sisi utara kolam) — dipisah lewat kotak */
+    const parts = [];
+    let baseLab = lc;
+    WATER_SPLIT.filter(s => s.from === c.role).forEach(sp => {
+      const box = {
+        x: Math.round(sp.rect[0] * MW) - c.minx, y: Math.round(sp.rect[1] * MH) - c.miny,
+        w: Math.round((sp.rect[2] - sp.rect[0]) * MW), h: Math.round((sp.rect[3] - sp.rect[1]) * MH),
+      };
+      if (box.x >= w || box.y >= h || box.x + box.w <= 0 || box.y + box.h <= 0) return;
+      const inside = document.createElement('canvas'); inside.width = w; inside.height = h;
+      const ix = inside.getContext('2d');
+      ix.drawImage(baseLab, 0, 0);
+      ix.globalCompositeOperation = 'destination-in';
+      ix.fillStyle = '#fff'; ix.fillRect(box.x, box.y, box.w, box.h);
+      const rest = document.createElement('canvas'); rest.width = w; rest.height = h;
+      const rxc = rest.getContext('2d');
+      rxc.drawImage(baseLab, 0, 0);
+      rxc.clearRect(box.x, box.y, box.w, box.h);
+      parts.push({ lab: inside, role: sp.to });
+      baseLab = rest;
+    });
+    parts.push({ lab: baseLab, role: c.role });
+
+    parts.forEach(part => {
+      /* potong mask resolusi penuh, lalu batasi ke wilayah label komponen */
+      const kk = Math.min(k, CAP / Math.max(w, h));
+      const HW = Math.max(2, Math.round(w * kk)), HH = Math.max(2, Math.round(h * kk));
+      const cv = document.createElement('canvas'); cv.width = HW; cv.height = HH;
+      const cx2 = cv.getContext('2d');
+      cx2.drawImage(srcImg, c.minx * k, c.miny * k, w * k, h * k, 0, 0, HW, HH);
+      cx2.globalCompositeOperation = 'destination-in';
+      cx2.imageSmoothingEnabled = true;
+      /* label resolusi kerja dilebarkan ~1 piksel agar tidak memotong tepi halus mask */
+      const e = Math.max(1, HW / w);
+      const dil = document.createElement('canvas'); dil.width = HW; dil.height = HH;
+      const dx2 = dil.getContext('2d');
+      dx2.imageSmoothingEnabled = true;
+      [[0, 0], [-e, 0], [e, 0], [0, -e], [0, e]].forEach(([ex, ey]) => {
+        dx2.drawImage(part.lab, ex, ey, HW, HH);
+      });
+      cx2.drawImage(dil, 0, 0);
+
+      /* rim: bayangan tepi yang memudar ke tengah — bikin air terlihat cekung, bukan pelat rata */
+      const blurPx = clamp(Math.min(HW, HH) * 0.05, 2, 7);
+      const bl = document.createElement('canvas'); bl.width = HW; bl.height = HH;
+      const bx = bl.getContext('2d');
+      bx.filter = 'blur(' + blurPx.toFixed(1) + 'px)';
+      bx.drawImage(cv, 0, 0);
+      bx.filter = 'none';
+      const rim = document.createElement('canvas'); rim.width = HW; rim.height = HH;
+      const rx2 = rim.getContext('2d');
+      rx2.fillStyle = '#2b6f96'; rx2.fillRect(0, 0, HW, HH);
+      rx2.globalCompositeOperation = 'destination-out';
+      rx2.drawImage(bl, 0, 0);
+      rx2.globalCompositeOperation = 'destination-in';
+      rx2.drawImage(cv, 0, 0);
+
+      /* bayangan pohon & tanggul dari render asli, dipangkas ke komponen ini */
+      let shade = null;
+      if (shadeImg) {
+        shade = document.createElement('canvas'); shade.width = HW; shade.height = HH;
+        const sx2 = shade.getContext('2d');
+        sx2.drawImage(shadeImg, c.minx * k, c.miny * k, w * k, h * k, 0, 0, HW, HH);
+        sx2.globalCompositeOperation = 'destination-in';
+        sx2.drawImage(cv, 0, 0);
+      }
+
+      out.push({ role: part.role, canvas: cv, rim, shade, bx: c.minx / MW, by: c.miny / MH, bw: w / MW, bh: h / MH });
+    });
+  });
+  return out;
+}
+
+function initIsoWater() {
+  const load = (src) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+  Promise.all([load('assets/iso-water-mask.png'), load('assets/iso-water-shade.png')]).then(([img, shadeImg]) => {
+    if (!img) return;
+    const MW = 650, MH = Math.round(MW * img.height / img.width);
+    const c = document.createElement('canvas'); c.width = MW; c.height = MH;
+    const x = c.getContext('2d');
+    x.drawImage(img, 0, 0, MW, MH);
+    const d = x.getImageData(0, 0, MW, MH).data, mask = new Uint8Array(MW * MH);
+    for (let k = 0; k < MW * MH; k++) if (d[k * 4 + 3] > 110) mask[k] = 1;
+    water.regions = buildWaterRegions(mask, MW, MH, img, img.width, img.height, shadeImg);
+    water.rippleA = makeRipplePattern(220, 1, 1);      /* gelombang panjang */
+    water.rippleB = makeRipplePattern(104, 1.6, 0.75); /* riak pendek */
+    water.tmp = document.createElement('canvas');
+    water.tmp.width = water.tmp.height = 16;
+    const tctx = water.tmp.getContext('2d');
+    water.patA = tctx.createPattern(water.rippleA, 'repeat');   /* dibuat sekali */
+    water.patB = tctx.createPattern(water.rippleB, 'repeat');
+    water.ready = true;
+    requestAnimationFrame(drawIsoWater);
+  });
+}
+
+/* Warna & kecepatan tiap badan air diambil langsung dari state simulasi. */
+function waterParams() {
+  const col = (s) => mixColor(WATER_BASE, WATER_COLOR[s] || WATER_COLOR.normal, WATER_TINT[s] || 0);
+  const riv = col(levelStatus(state.hUp, state.river.Hmax, state.thresholds.river));
+  const pool = col(levelStatus(state.pool.h, state.river.Hmax, state.thresholds.river));
+  const SEV = ['kering', 'normal', 'waspada', 'siaga', 'bahaya'];
+  let worst = 'normal', vsec = 0;
+  for (let i = 0; i < 3; i++) {
+    const s = levelStatus(state.secondary[i].canal.h, state.secondary[i].canal.Hmax, state.thresholds.sec[i]);
+    if (SEV.indexOf(s) > SEV.indexOf(worst)) worst = s;
+    vsec += state.vSec[i] / 3;
+  }
+  const P = {
+    hulu:  { color: riv,  speed: state.vUp },
+    hilir: { color: pool, speed: state.vPool },
+    kolam: { color: pool, speed: state.vPool * 0.45 },
+    sek:   { color: col(worst), speed: vsec },
+  };
+  P.intake = P.hilir;   /* saluran intake mengikuti status & arus sisi hilir */
+  P.connect = P.kolam;
+  for (let i = 0; i < 3; i++) {
+    P['ter' + i] = {
+      color: col(levelStatus(state.tertiary[i].canal.h, state.tertiary[i].canal.Hmax, state.thresholds.sec[i])),
+      speed: state.vTert[i],
+    };
+  }
+  return P;
+}
+
+function drawIsoWater(ts) {
+  requestAnimationFrame(drawIsoWater);
+  const cv = el('isoWater'), stage = el('isoStage');
+  if (!water.ready || !cv || !stage || !stage.offsetParent) return;
+  if (ts - (water.last || 0) < 33) return;   /* dibatasi ~30 fps */
+
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const dt = Math.min(0.06, ((ts - water.last) || 16) / 1000); water.last = ts;
+  const f = Math.min(W / 1300, H / 731), rw = 1300 * f, rh = 731 * f;
+  const rx = (W - rw) / 2, ry = (H - rh) / 2;
+  const P = waterParams(), tmp = water.tmp, tx = tmp.getContext('2d');
+  /* fase dimajukan sekali per peran, bukan per komponen mask */
+  Object.keys(P).forEach(role => {
+    const spd = Math.max(clamp(P[role].speed || 0, 0, 3), 0.45);
+    water.phase[role] = (water.phase[role] || 0) + dt * (14 + spd * 66);
+    water.phase[role + 'B'] = (water.phase[role + 'B'] || 0) + dt * (22 + spd * 108);
+  });
+
+  /* satu ukuran gelombang per peran supaya pecahan mask yang bersebelahan seragam */
+  const roleDim = {};
+  water.regions.forEach(r => {
+    const d0 = Math.min(r.bw * rw, r.bh * rh);
+    roleDim[r.role] = Math.max(roleDim[r.role] || 0, d0);
+  });
+  /* transform panggung (zoom + geser) dipakai untuk membuang region di luar layar */
+  const zs = isoZoom.scale, ztx = isoZoom.tx, zty = isoZoom.ty;
+  const toScreenX = (px) => W / 2 + (px - W / 2) * zs + ztx;
+  const toScreenY = (py) => H / 2 + (py - H / 2) * zs + zty;
+
+  water.regions.forEach(r => {
+    const dw = Math.max(2, Math.round(r.bw * rw)), dh = Math.max(2, Math.round(r.bh * rh));
+    const dx0 = rx + r.bx * rw, dy0 = ry + r.by * rh;
+    const sx0 = toScreenX(dx0), sy0 = toScreenY(dy0);
+    const sx1 = toScreenX(dx0 + dw), sy1 = toScreenY(dy0 + dh);
+    if (sx1 < -40 || sy1 < -40 || sx0 > W + 40 || sy0 > H + 40) return;   /* di luar pandangan */
+
+    const p = P[r.role] || P.hulu;
+
+    /* ukuran kerja = ukuran tampil di layar, tidak pernah melebihi mask */
+    const need = Math.min(2.2, Math.max(1, zs)) * dpr;
+    const tw = Math.max(2, Math.min(Math.round(dw * need), r.canvas.width));
+    const th = Math.max(2, Math.min(Math.round(dh * need), r.canvas.height));
+    if (tmp.width < tw || tmp.height < th) { tmp.width = Math.max(tmp.width, tw); tmp.height = Math.max(tmp.height, th); }
+    tx.setTransform(1, 0, 0, 1, 0, 0);
+    tx.globalCompositeOperation = 'source-over';
+    tx.globalAlpha = 1;
+    tx.clearRect(0, 0, tw, th);
+
+    /* dasar rata: gradasi per pecahan bikin sambungan terlihat belang */
+    tx.fillStyle = p.color;
+    tx.fillRect(0, 0, tw, th);
+
+    const band = (pat, tile, phase, angle, alpha, mode) => {
+      const co = Math.cos(angle), si = Math.sin(angle);
+      const hx = (tw * Math.abs(co) + th * Math.abs(si)) / 2;
+      const hy = (tw * Math.abs(si) + th * Math.abs(co)) / 2;
+      const ws = clamp((roleDim[r.role] || Math.min(tw, th)) / 190, 0.3, 1);
+      /* gelombang dijangkar ke posisi peta, bukan ke tiap pecahan,
+         sehingga polanya menyambung antar pecahan mask */
+      const sxp = tw / dw, syp = th / dh;
+      const proj = ((dx0 + dw / 2) * sxp) * co + ((dy0 + dh / 2) * syp) * si;
+      tx.save();
+      tx.globalCompositeOperation = mode;
+      tx.globalAlpha = alpha;
+      tx.translate(tw / 2, th / 2);
+      tx.rotate(angle);
+      tx.scale(ws, ws);
+      tx.translate(-(((phase + proj) / ws) % tile.width), 0);
+      tx.fillStyle = pat;
+      tx.fillRect(-hx / ws, -hy / ws, (hx * 2) / ws + tile.width, (hy * 2) / ws);
+      tx.restore();
+    };
+    const ang = WATER_ANGLE[r.role] || 0;
+    band(water.patA, water.rippleA, water.phase[r.role], ang, 0.58, 'source-over');
+    band(water.patB, water.rippleB, water.phase[r.role + 'B'], ang + 0.16, 0.4, 'source-over');
+
+    /* bayangan pohon/tanggul dari render asli */
+    if (r.shade) {
+      tx.globalCompositeOperation = 'multiply';
+      tx.globalAlpha = 0.85;
+      tx.drawImage(r.shade, 0, 0, tw, th);
+    }
+
+    /* bayangan tepi (air lebih dangkal di pinggir) */
+    tx.globalCompositeOperation = 'source-over';
+    tx.globalAlpha = 0.3;
+    tx.drawImage(r.rim, 0, 0, tw, th);
+
+    tx.globalAlpha = 1;
+    tx.globalCompositeOperation = 'destination-in';
+    tx.imageSmoothingEnabled = true;
+    tx.drawImage(r.canvas, 0, 0, tw, th);
+
+    ctx.drawImage(tmp, 0, 0, tw, th, dx0, dy0, dw, dh);
+  });
+}
+
+/* Mencampur dua warna hex (t: 0 = a, 1 = b). */
+function mixColor(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const c = (sh) => Math.round((((pa >> sh) & 255) * (1 - t)) + (((pb >> sh) & 255) * t));
+  return '#' + [c(16), c(8), c(0)].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+/* Menggelapkan / menerangkan warna hex (f: -1..1). */function shadeColor(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const mix = (c) => Math.round(f < 0 ? c * (1 + f) : c + (255 - c) * f);
+  return '#' + [mix((n >> 16) & 255), mix((n >> 8) & 255), mix(n & 255)]
+    .map(v => clamp(v, 0, 255).toString(16).padStart(2, '0')).join('');
+}
+
+function initIsoMapControls() {
+  const scrollEl = el('isoScroll');
+  resetIsoView();
+  requestAnimationFrame(resetIsoView);
+  el('mapZoomIn').addEventListener('click', () => { isoZoom.scale *= 1.18; applyIsoZoom(); });
+  el('mapZoomOut').addEventListener('click', () => { isoZoom.scale /= 1.18; applyIsoZoom(); });
+  el('mapReset').addEventListener('click', resetIsoView);
+  el('mapEditPins').addEventListener('click', () => setPinEdit(!pinEdit));
+  el('mapPinsReset').addEventListener('click', resetPinPos);
+  el('mapPinsCopy').addEventListener('click', copyPinCoords);
+  initPinDrag();
+  el('mapLabelToggle').addEventListener('click', (e) => {
+    const svg = el('isoSvg');
+    svg.classList.toggle('labels-on');
+    e.currentTarget.classList.toggle('on', svg.classList.contains('labels-on'));
+  });
+  scrollEl.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const dir = e.deltaY > 0 ? -1 : 1;
+    isoZoom.scale *= 1 + dir * 0.08;
+    applyIsoZoom();
+  }, { passive: false });
+
+  let dragging = false, lastX = 0, lastY = 0;
+  scrollEl.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; scrollEl.classList.add('grabbing'); });
+  window.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    isoZoom.tx += e.clientX - lastX; isoZoom.ty += e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    applyIsoZoom();
+  });
+  window.addEventListener('pointerup', () => { dragging = false; scrollEl.classList.remove('grabbing'); });
+
+  window.setMapView = function (name) {
+    const panels = { iso: 'isoMapPanel', schematic: 'schematicPanel' };
+    const btns = { iso: 'viewIsoBtn', schematic: 'viewSchematicBtn' };
+    Object.keys(panels).forEach(k => {
+      const p = el(panels[k]); if (p) p.style.display = (k === name ? '' : 'none');
+      const b = el(btns[k]); if (b) b.classList.toggle('on', k === name);
+    });
+  };
+  el('viewIsoBtn').addEventListener('click', () => setMapView('iso'));
+  el('viewSchematicBtn').addEventListener('click', () => setMapView('schematic'));
+  setMapView('iso');
+}
+
+</script>
+</body>
+</html>
