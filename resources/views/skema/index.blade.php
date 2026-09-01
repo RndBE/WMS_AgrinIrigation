@@ -43,6 +43,15 @@
        plus tab yang sedang aktif. Dipakai simhidro.js untuk menyetel alamat saat
        tab ditukar, jadi slug rute cukup diubah di routes/web.php saja. --}}
   <script>window.WMS_VIEW = @json(['active' => $activeView, 'views' => $viewRoutes]);</script>
+  {{-- Letak pin pos & batas petak sawah yang sudah dirapikan, dari
+       storage/app/tata-letak-peta.json. Dikirim bersama halaman (bukan diambil
+       lewat permintaan kedua) supaya petanya langsung tergambar pada letak yang
+       benar — kalau diambil belakangan, pin sempat berkedip di letak bawaannya.
+       Alamat penyimpannya ikut supaya slug rutenya cukup diubah di web.php. --}}
+  <script>
+    window.WMS_TATA_LETAK = @json($tataLetak);
+    window.WMS_TATA_LETAK_URL = "{{ route('skema.tataLetak') }}";
+  </script>
   <script src="@aset('js/simhidro.js')"></script>
 
   {{-- Peta Lokasi. Alamat datanya dari SkemaIrigasiController::petaRoutes(), pola

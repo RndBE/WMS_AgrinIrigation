@@ -361,6 +361,18 @@
   .petak-tip-status.lebih{background:#eaf2fb; color:#1f4fa6;}
   .petak-tip-baris{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:1.5px 0;}
   .petak-tip-baris b{font-weight:600; color:var(--text-1); font-variant-numeric:tabular-nums;}
+
+  /* Penanda simpan tata letak. Di sudut kiri-BAWAH: sudut kanan-bawah ditempati
+     tombol peta, kiri-atas oleh petunjuk mode ubah. */
+  .tata-letak-status{
+    position:absolute; left:12px; bottom:12px; z-index:6; display:none; max-width:min(320px, 60%);
+    padding:5px 10px; font-size:11px; font-weight:600; line-height:1.35;
+    background:rgba(242,242,243,.94); backdrop-filter:blur(2px);
+    border:1px solid var(--line); border-radius:var(--radius); color:var(--text-2);
+  }
+  .tata-letak-status.on{display:block;}
+  .tata-letak-status.ok{border-color:#b3e2c5; background:#e7f7ed; color:#12793a;}
+  .tata-letak-status.gagal{border-color:#f5c2be; background:#fdeceb; color:#a81d13;}
   .flow-line{stroke-dasharray:9 7; animation:flow-move linear infinite;}
   .iso-flow{stroke:#eaf6ff; stroke-width:2.4; stroke-dasharray:11 9; opacity:.8; animation:flow-move 3s linear infinite;}
   .iso-flow.slow{animation-duration:4.6s;}

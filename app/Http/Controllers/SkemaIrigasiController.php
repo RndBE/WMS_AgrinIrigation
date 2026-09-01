@@ -185,6 +185,111 @@ class SkemaIrigasiController extends Controller
         ];
     }
 
+    /**
+     * Letak pin pos & batas petak sawah pada peta isometrik.
+     *
+     * Dulu keduanya hanya disimpan di localStorage peramban yang dipakai
+     * menggeser. Akibatnya letak yang sudah dirapikan hilang begitu halaman
+     * dibuka dari komputer lain, dari ponsel, atau dari peramban lain di mesin
+     * yang sama — tiap alat harus menata ulang sendiri, dan tidak ada satu pun
+     * versi yang bisa disebut "yang benar".
+     *
+     * Sekarang letaknya disimpan di berkas ini, jadi satu kali ditata berlaku
+     * untuk semua yang membuka halamannya. localStorage tetap dipakai, tetapi
+     * turun perannya jadi cadangan saat simpanan ke server gagal.
+     *
+     * Berkas, bukan tabel: isinya satu dokumen kecil (belasan pasang koordinat)
+     * yang ditulis sesekali dan dibaca tiap halaman dibuka. Tabel beserta
+     * migrasinya tidak memberi apa pun untuk itu.
+     */
+    public const TATA_LETAK_BERKAS = 'tata-letak-peta.json';
+
+    /** Batas viewBox #isoSvg di simhidro.js — koordinat di luar ini pasti salah. */
+    public const TATA_LETAK_W = 1300;
+    public const TATA_LETAK_H = 731;
+
+    public static function tataLetak(): array
+    {
+        $berkas = storage_path('app/' . self::TATA_LETAK_BERKAS);
+
+        if (! is_file($berkas)) {
+            return ['pin' => (object) [], 'petak' => (object) []];
+        }
+
+        $isi = json_decode((string) file_get_contents($berkas), true);
+
+        return [
+            'pin'   => (object) (is_array($isi['pin'] ?? null) ? $isi['pin'] : []),
+            'petak' => (object) (is_array($isi['petak'] ?? null) ? $isi['petak'] : []),
+        ];
+    }
+
+    /**
+     * Simpan letak pin & batas petak.
+     *
+     * Isinya divalidasi ketat, bukan ditulis apa adanya: berkas ini dibaca
+     * kembali oleh setiap halaman yang dibuka, jadi satu kiriman ngawur akan
+     * merusak peta untuk semua orang sampai berkasnya dihapus tangan. Yang
+     * diterima hanya angka di dalam bidang gambar, dengan jumlah titik yang
+     * masuk akal untuk sebuah petak.
+     */
+    public function simpanTataLetak(Request $request)
+    {
+        $data = $request->validate([
+            'pin'          => ['array', 'max:60'],
+            'pin.*'        => ['array', 'size:2'],
+            'pin.*.*'      => ['numeric'],
+            'petak'        => ['array', 'max:20'],
+            'petak.*'      => ['array', 'min:3', 'max:60'],
+            'petak.*.*'    => ['array', 'size:2'],
+            'petak.*.*.*'  => ['numeric'],
+        ]);
+
+        $dalamBidang = static function (array $titik): bool {
+            return $titik[0] >= 0 && $titik[0] <= self::TATA_LETAK_W
+                && $titik[1] >= 0 && $titik[1] <= self::TATA_LETAK_H;
+        };
+        $bulat = static fn (array $t): array => [round((float) $t[0], 1), round((float) $t[1], 1)];
+
+        $pin = [];
+        foreach ($data['pin'] ?? [] as $id => $titik) {
+            $titik = array_values($titik);
+            if (! $dalamBidang($titik)) {
+                return response()->json(['ok' => false, 'pesan' => "Letak pin {$id} di luar bidang gambar."], 422);
+            }
+            $pin[(string) $id] = $bulat($titik);
+        }
+
+        $petak = [];
+        foreach ($data['petak'] ?? [] as $id => $sudut) {
+            $bersih = [];
+            foreach ($sudut as $titik) {
+                $titik = array_values($titik);
+                if (! $dalamBidang($titik)) {
+                    return response()->json(['ok' => false, 'pesan' => "Sudut petak {$id} di luar bidang gambar."], 422);
+                }
+                $bersih[] = $bulat($titik);
+            }
+            $petak[(string) $id] = $bersih;
+        }
+
+        $berkas = storage_path('app/' . self::TATA_LETAK_BERKAS);
+        if (! is_dir(dirname($berkas))) {
+            mkdir(dirname($berkas), 0775, true);
+        }
+
+        $tulis = file_put_contents(
+            $berkas,
+            json_encode(['pin' => $pin, 'petak' => $petak], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
+
+        if ($tulis === false) {
+            return response()->json(['ok' => false, 'pesan' => 'Berkas tata letak tidak bisa ditulis di server.'], 500);
+        }
+
+        return response()->json(['ok' => true, 'pin' => count($pin), 'petak' => count($petak)]);
+    }
+
     public function index(?string $view = null)
     {
         $active = isset(self::VIEWS[$view]) ? $view : 'dashboard';
@@ -199,6 +304,7 @@ class SkemaIrigasiController extends Controller
             'cctv'       => self::cctvPos(),
             'petaLokasi' => self::petaLokasi(),
             'petaRoutes' => self::petaRoutes(),
+            'tataLetak'  => self::tataLetak(),
         ]);
     }
 

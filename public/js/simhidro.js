@@ -3996,22 +3996,130 @@ const ISO_POS_DEFAULT = JSON.parse(JSON.stringify(ISO_POS));
 const PIN_POS_KEY = 'wmsIsoPinPos';
 let pinEdit = false, pinDrag = null;
 
-function loadPinPos() {
+/* =========================================================================
+   TATA LETAK PETA (letak pin + batas petak) — DISIMPAN DI SERVER
+   -------------------------------------------------------------------------
+   Dulu keduanya hanya masuk localStorage. Itu berarti letak yang sudah
+   dirapikan cuma berlaku di peramban yang dipakai merapikan: dibuka dari
+   komputer lain, dari ponsel, atau dari peramban lain di mesin yang sama, semua
+   kembali ke letak bawaan dan harus ditata ulang.
+
+   Sekarang sumber kebenarannya berkas di server (storage/app/tata-letak-peta.json,
+   lihat SkemaIrigasiController::tataLetak). Halaman membawanya di
+   window.WMS_TATA_LETAK, dan tiap geseran dikirim balik ke sana.
+
+   localStorage TETAP ditulis, tapi turun perannya jadi cadangan: ia hanya
+   dibaca kalau server belum punya apa-apa untuk kunci itu. Jadi kalau kiriman
+   ke server gagal (jaringan putus, berkas tidak bisa ditulis), hasil kerja
+   tidak hilang di alat yang sedang dipakai — dan kegagalannya dikatakan
+   terang-terangan lewat penanda di sudut peta, bukan didiamkan seolah
+   tersimpan.
+   ========================================================================= */
+const TATA_LETAK = (typeof window !== 'undefined' && window.WMS_TATA_LETAK) || {};
+const TATA_LETAK_URL = (typeof window !== 'undefined' && window.WMS_TATA_LETAK_URL) || '';
+let tataLetakJadwal = 0;
+/* Bagian yang sedang "pakai bawaan" dikirim sebagai objek KOSONG, bukan sebagai
+   salinan angka bawaannya.
+   Bedanya kelihatan nanti: kalau tombol Posisi Awal mengirim angka bawaan hari
+   ini, angka itu membeku di server. Begitu ISO_POS/ISO_PETAK di simhidro.js
+   diperbaiki, seluruh alat tetap memakai bawaan lama yang terlanjur tersimpan,
+   dan tidak ada yang mengerti kenapa perbaikannya tidak muncul. Yang kosong
+   berarti "ikut apa pun yang ada di kode". */
+const tataLetakBawaan = { pin: false, petak: false };
+
+const tataLetakServer = (bagian) => {
+  const v = TATA_LETAK[bagian];
+  return v && typeof v === 'object' ? v : {};
+};
+function bacaLokal(kunci) {
   try {
-    const s = JSON.parse(localStorage.getItem(PIN_POS_KEY) || '{}');
-    Object.keys(s).forEach(k => {
-      if (ISO_POS[k] && Array.isArray(s[k])) { ISO_POS[k][0] = s[k][0]; ISO_POS[k][1] = s[k][1]; }
-    });
-  } catch (e) {}
+    const v = JSON.parse(localStorage.getItem(kunci) || '{}');
+    return v && typeof v === 'object' ? v : {};
+  } catch (e) { return {}; }
+}
+function tulisLokal(kunci, nilai) {
+  try { localStorage.setItem(kunci, JSON.stringify(nilai)); } catch (e) {}
+}
+
+/* Penanda kecil di sudut peta: menyimpan / tersimpan / gagal. */
+function statusTataLetak(teks, kelas) {
+  const s = el('tataLetakStatus');
+  if (!s) return;
+  s.textContent = teks;
+  s.className = 'tata-letak-status on ' + (kelas || '');
+  clearTimeout(statusTataLetak.jam);
+  if (kelas !== 'gagal') statusTataLetak.jam = setTimeout(() => { s.className = 'tata-letak-status'; }, 2200);
+}
+
+/* Kiriman ditunda sebentar dan digabung: satu tarikan pin menghasilkan puluhan
+   pointermove, dan tiap satunya memanggil savePinPos(). Tanpa penundaan itu jadi
+   puluhan permintaan POST untuk satu geseran yang sama. */
+function kirimTataLetak() {
+  if (!TATA_LETAK_URL || typeof fetch !== 'function') return;
+  clearTimeout(tataLetakJadwal);
+  tataLetakJadwal = setTimeout(() => {
+    const muatan = {
+      pin: tataLetakBawaan.pin ? {} : (() => {
+        const o = {};
+        Object.keys(ISO_POS).forEach(k => { o[k] = [Math.round(ISO_POS[k][0]), Math.round(ISO_POS[k][1])]; });
+        return o;
+      })(),
+      petak: tataLetakBawaan.petak ? {} : (() => {
+        const o = {};
+        Object.keys(ISO_PETAK).forEach(k => { o[k] = ISO_PETAK[k].map(p => [Math.round(p[0]), Math.round(p[1])]); });
+        return o;
+      })(),
+    };
+    const tok = document.querySelector('meta[name="csrf-token"]');
+    statusTataLetak('Menyimpan…', 'kirim');
+    fetch(TATA_LETAK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': tok ? tok.getAttribute('content') : '',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify(muatan),
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+      .then(() => {
+        /* Salinan di memori ikut diperbarui supaya penataan berikutnya dalam
+           sesi yang sama tidak membaca nilai server yang sudah basi. */
+        TATA_LETAK.pin = muatan.pin;
+        TATA_LETAK.petak = muatan.petak;
+        statusTataLetak('Tersimpan untuk semua alat', 'ok');
+      })
+      .catch((e) => {
+        console.warn('Tata letak peta gagal disimpan ke server:', e);
+        statusTataLetak('Gagal simpan ke server — tersimpan di peramban ini saja', 'gagal');
+      });
+  }, 700);
+}
+
+/* Server lebih dulu; localStorage hanya dipakai kalau server belum punya apa-apa.
+   Kalau keduanya dibaca sekaligus, alat yang pernah menata sendiri akan selamanya
+   melihat versinya sendiri dan tidak pernah ikut versi bersama. */
+function loadPinPos() {
+  const server = tataLetakServer('pin');
+  const s = Object.keys(server).length ? server : bacaLokal(PIN_POS_KEY);
+  Object.keys(s).forEach(k => {
+    if (ISO_POS[k] && Array.isArray(s[k]) && s[k].length === 2) { ISO_POS[k][0] = +s[k][0]; ISO_POS[k][1] = +s[k][1]; }
+  });
 }
 function savePinPos() {
   const o = {};
   Object.keys(ISO_POS).forEach(k => { o[k] = [Math.round(ISO_POS[k][0]), Math.round(ISO_POS[k][1])]; });
-  try { localStorage.setItem(PIN_POS_KEY, JSON.stringify(o)); } catch (e) {}
+  tulisLokal(PIN_POS_KEY, o);
+  tataLetakBawaan.pin = false;
+  kirimTataLetak();
 }
 function resetPinPos() {
   Object.keys(ISO_POS_DEFAULT).forEach(k => { ISO_POS[k][0] = ISO_POS_DEFAULT[k][0]; ISO_POS[k][1] = ISO_POS_DEFAULT[k][1]; });
   try { localStorage.removeItem(PIN_POS_KEY); } catch (e) {}
+  TATA_LETAK.pin = {};
+  tataLetakBawaan.pin = true;          /* kosong di server = ikut letak bawaan di kode */
+  kirimTataLetak();
   buildIsoMap(); updateIsoLabels(); updateIsoWaterColors(); layoutIsoLabels(true);
 }
 
@@ -4116,24 +4224,30 @@ let petakTip = null;
 
 const petakIndex = (id) => Math.max(0, Math.min(2, parseInt(String(id).slice(3), 10) || 0));
 
+/* Sama seperti letak pin: server yang menentukan, localStorage cadangan.
+   Lihat blok TATA LETAK PETA di atas. */
 function loadPetakPos() {
-  try {
-    const s = JSON.parse(localStorage.getItem(PETAK_POS_KEY) || '{}');
-    Object.keys(s).forEach(k => {
-      if (ISO_PETAK[k] && Array.isArray(s[k]) && s[k].length >= 3) {
-        ISO_PETAK[k] = s[k].map(p => [+p[0], +p[1]]);
-      }
-    });
-  } catch (e) {}
+  const server = tataLetakServer('petak');
+  const s = Object.keys(server).length ? server : bacaLokal(PETAK_POS_KEY);
+  Object.keys(s).forEach(k => {
+    if (ISO_PETAK[k] && Array.isArray(s[k]) && s[k].length >= 3) {
+      ISO_PETAK[k] = s[k].map(p => [+p[0], +p[1]]);
+    }
+  });
 }
 function savePetakPos() {
   const o = {};
   Object.keys(ISO_PETAK).forEach(k => { o[k] = ISO_PETAK[k].map(p => [Math.round(p[0]), Math.round(p[1])]); });
-  try { localStorage.setItem(PETAK_POS_KEY, JSON.stringify(o)); } catch (e) {}
+  tulisLokal(PETAK_POS_KEY, o);
+  tataLetakBawaan.petak = false;
+  kirimTataLetak();
 }
 function resetPetakPos() {
   Object.keys(ISO_PETAK_DEFAULT).forEach(k => { ISO_PETAK[k] = ISO_PETAK_DEFAULT[k].map(p => p.slice()); });
   try { localStorage.removeItem(PETAK_POS_KEY); } catch (e) {}
+  TATA_LETAK.petak = {};
+  tataLetakBawaan.petak = true;        /* kosong di server = ikut batas bawaan di kode */
+  kirimTataLetak();
   buildIsoMap(); updateIsoLabels(); updateIsoWaterColors(); layoutIsoLabels(true);
 }
 function copyPetakCoords() {

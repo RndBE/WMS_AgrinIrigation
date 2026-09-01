@@ -35,6 +35,17 @@ Route::controller(SkemaIrigasiController::class)->group(function () {
 
     // Endpoint data untuk tampilan (dipanggil dari JS)
     Route::get('/api/skema/data', 'getData')->name('skema.data');
+
+    /*
+    | Letak pin pos & batas petak sawah di peta isometrik. Disimpan di server
+    | supaya berlaku untuk semua alat yang membuka halaman, bukan hanya peramban
+    | yang dipakai menggeser — lihat SkemaIrigasiController::tataLetak().
+    |
+    | Rute web (bukan api) karena dipanggil dari halaman yang sama: token CSRF
+    | dari <meta name="csrf-token"> ikut dikirim, jadi kiriman dari luar halaman
+    | ini ditolak.
+    */
+    Route::post('/api/skema/tata-letak', 'simpanTataLetak')->name('skema.tataLetak');
     Route::get('/api/skema/node/{nodeId}/history', 'getNodeHistory')->name('skema.node.history');
 });
 

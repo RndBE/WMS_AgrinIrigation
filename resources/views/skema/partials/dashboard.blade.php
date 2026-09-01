@@ -54,6 +54,12 @@
              zoom, dan kotak bacaan harus tetap seukuran tulisan antarmuka.
              Isinya dibangun petakTipIsi() tiap kali disorot & tiap tick. --}}
         <div class="petak-tip" id="petakTip"></div>
+        {{-- Penanda hasil simpan letak pin & batas petak ke server. Diisi
+             statusTataLetak() di simhidro.js. Kegagalan sengaja dibiarkan
+             tampil sampai geseran berikutnya: kalau hilang sendiri, orang
+             mengira letaknya sudah tersimpan untuk semua alat padahal baru
+             tersimpan di peramban yang dipakai. --}}
+        <div class="tata-letak-status" id="tataLetakStatus"></div>
         <div class="pos-pop" id="posPop">
           <button class="pos-close" id="posClose" title="Tutup">×</button>
           <div class="pos-title" id="posTitle">Pos</div>
