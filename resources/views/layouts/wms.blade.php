@@ -39,8 +39,19 @@
       </div>
       <div>
         <div class="t">Monitoring Water Management System</div>
-        <div class="r">ADMIN · Pengamat Pengairan</div>
+        {{-- Nama pengguna yang sedang masuk; akun admin menampilkan "ADMIN" seperti
+             teks tetap sebelum ada halaman masuk. --}}
+        <div class="r">{{ \Illuminate\Support\Str::upper(auth()->user()?->username ?? 'tamu') }} · Pengamat Pengairan</div>
       </div>
+      @auth
+        <form method="POST" action="{{ route('logout') }}" class="gov-logout">
+          @csrf
+          <button type="submit" title="Keluar dari dasbor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M15 16l4-4-4-4"/><path d="M19 12H9"/></svg>
+            Keluar
+          </button>
+        </form>
+      @endauth
     </div>
   </header>
 

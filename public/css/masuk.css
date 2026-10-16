@@ -1,0 +1,91 @@
+/*
+ * Halaman masuk (/masuk). Dimuat SESUDAH wms.css: token warna, huruf, dan kop
+ * .gov-head diambil dari sana supaya halaman ini serupa dengan dasbor. Berkas
+ * ini hanya menambah tata letak kartu masuk.
+ */
+.masuk-body{background:var(--bg-deep);}
+.masuk{min-height:100vh; display:flex; flex-direction:column;}
+
+.masuk-main{flex:1; display:flex; align-items:center; justify-content:center; padding:40px var(--gutter);}
+
+/* Dua kolom: panel biru identitas aplikasi di kiri, formulir di kanan. */
+.masuk-card{
+  width:100%; max-width:880px; display:grid; grid-template-columns:1fr 1fr;
+  background:var(--bg-panel); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:0 10px 30px rgba(31,36,48,.08); overflow:hidden;
+}
+
+.masuk-intro{
+  position:relative; padding:40px 36px; color:#dfe3f5;
+  background:var(--navy);
+  border-top:3px solid var(--gold);
+}
+.masuk-eyebrow{font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--gold);}
+.masuk-intro h1{margin:10px 0 12px; font-size:26px; line-height:1.2; font-weight:700; color:#fff; text-wrap:balance;}
+.masuk-intro p{margin:0; font-size:14.5px; line-height:1.55; max-width:34ch;}
+.masuk-modul{list-style:none; margin:28px 0 0; padding:0; display:grid; gap:9px; font-size:13.5px;}
+.masuk-modul li{display:flex; align-items:center; gap:10px;}
+.masuk-modul li::before{content:''; width:6px; height:6px; flex-shrink:0; background:var(--gold);}
+
+.masuk-form{padding:40px 36px; display:flex; flex-direction:column;}
+.masuk-form h2{margin:0; font-size:22px; font-weight:700; color:var(--text-1);}
+.masuk-sub{margin:4px 0 22px; font-size:13.5px; color:var(--text-2);}
+
+.masuk-alert{
+  margin:0 0 16px; padding:10px 12px; font-size:13.5px; line-height:1.4;
+  color:var(--danger); background:color-mix(in srgb, var(--danger) 7%, #fff);
+  border:1px solid color-mix(in srgb, var(--danger) 30%, #fff); border-left-width:3px; border-radius:var(--radius);
+}
+
+.masuk-label{font-size:12.5px; font-weight:600; color:var(--text-2); margin:0 0 6px;}
+.masuk-input{
+  width:100%; height:42px; padding:0 12px; margin:0 0 16px;
+  font:400 15px var(--font-body); color:var(--text-1);
+  background:var(--bg-input); border:1px solid #cfd5df; border-radius:var(--radius);
+  transition:border-color .15s, box-shadow .15s;
+}
+.masuk-input:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px color-mix(in srgb, var(--teal) 18%, transparent);}
+.masuk-input.is-invalid{border-color:var(--danger);}
+
+/* Tombol mata duduk di dalam kotak sandi; padding kanan input memberi ruangnya. */
+.masuk-pw{position:relative;}
+.masuk-pw .masuk-input{padding-right:44px;}
+.masuk-pw-toggle{
+  position:absolute; top:0; right:0; width:42px; height:42px;
+  display:flex; align-items:center; justify-content:center;
+  background:none; border:none; color:var(--text-3); cursor:pointer; border-radius:var(--radius);
+}
+.masuk-pw-toggle svg{width:18px; height:18px;}
+.masuk-pw-toggle:hover, .masuk-pw-toggle[aria-pressed="true"]{color:var(--navy);}
+.masuk-pw-toggle:focus-visible{outline:2px solid var(--teal); outline-offset:-2px;}
+
+.masuk-remember{display:flex; align-items:center; gap:8px; margin:2px 0 22px; font-size:13.5px; color:var(--text-2); cursor:pointer;}
+.masuk-remember input{width:16px; height:16px; margin:0; accent-color:var(--navy);}
+
+/* display/justify ditulis ulang karena aturan button umum di wms.css membuat
+   isinya rata kiri. */
+.masuk-submit{
+  display:flex; align-items:center; justify-content:center;
+  height:44px; border:none; border-radius:var(--radius); cursor:pointer;
+  background:var(--navy); color:#fff; font:700 15px var(--font-body); letter-spacing:.02em;
+  transition:background .15s;
+}
+.masuk-submit:hover{background:var(--navy-dark);}
+.masuk-submit:focus-visible{outline:3px solid var(--gold); outline-offset:2px;}
+
+.masuk-foot{padding:0 var(--gutter) 22px; text-align:center; font-size:12px; color:var(--text-3);}
+
+/* Layar sempit: panel identitas dipadatkan di atas formulir. */
+@media (max-width:760px){
+  .masuk-main{align-items:flex-start; padding:24px var(--gutter);}
+  .masuk-card{grid-template-columns:1fr;}
+  .masuk-intro{padding:24px 22px;}
+  .masuk-intro h1{font-size:21px; margin:8px 0 8px;}
+  .masuk-intro p{font-size:13.5px;}
+  .masuk-modul{display:none;}
+  .masuk-form{padding:26px 22px 28px;}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .masuk-input, .masuk-submit{transition:none;}
+}

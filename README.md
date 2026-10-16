@@ -56,6 +56,11 @@ php artisan migrate --seed
 php artisan serve              # http://127.0.0.1:8000
 ```
 
+Seluruh dasbor perlu masuk lebih dulu di `/masuk`. Akun bawaannya **admin / password**,
+dibuat `AdminUserSeeder` (ikut `migrate --seed`). Basis data yang sudah ada cukup
+menjalankan `php artisan migrate` lalu `php artisan db:seed --class=AdminUserSeeder`.
+Ganti sandinya sebelum dasbor dibuka di luar jaringan lokal.
+
 Tab **Peta Lokasi** perlu berkas bekunya lebih dulu (sekali saja, atau tiap kali
 notebook di `note/` dijalankan ulang):
 

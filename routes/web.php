@@ -1,10 +1,26 @@
 <?php
 
+use App\Http\Controllers\LoginController;
 use App\Http\Controllers\PetaLokasiController;
 use App\Http\Controllers\SkemaIrigasiController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/beranda');
+
+/*
+|--------------------------------------------------------------------------
+| Masuk & keluar
+|--------------------------------------------------------------------------
+| Seluruh dasbor di bawah ini bermiddleware auth: yang belum masuk dilempar ke
+| /masuk. Nama rutenya harus 'login' karena itu yang dicari middleware auth
+| Laravel. Akun bawaan admin / password dari AdminUserSeeder. Batas percobaan
+| masuk ada di LoginController::store().
+*/
+Route::controller(LoginController::class)->group(function () {
+    Route::get('/masuk', 'create')->middleware('guest')->name('login');
+    Route::post('/masuk', 'store')->middleware('guest')->name('login.store');
+    Route::post('/keluar', 'destroy')->middleware('auth')->name('logout');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -19,7 +35,7 @@ Route::redirect('/', '/beranda');
 | ->defaults('view', ...) yang menentukan tab mana yang aktif saat halaman
 | dibuka langsung dari alamatnya atau di-reload.
 */
-Route::controller(SkemaIrigasiController::class)->group(function () {
+Route::controller(SkemaIrigasiController::class)->middleware('auth')->group(function () {
     Route::get('/beranda', 'index')->defaults('view', 'dashboard')->name('view.dashboard');
     Route::get('/kontrol-pintu', 'index')->defaults('view', 'kontrol')->name('view.kontrol');
     Route::get('/konfigurasi-sistem', 'index')->defaults('view', 'konfigurasi')->name('view.konfigurasi');
@@ -77,6 +93,7 @@ Route::get('/data/peta-ubin/{tema}/{z}/{x}/{y}.{ext}', [PetaLokasiController::cl
     ->whereIn('tema', ['satelit', 'rupabumi'])
     ->whereNumber(['z', 'x', 'y'])
     ->whereIn('ext', ['jpg', 'png'])
+    ->middleware('auth')
     ->name('peta.ubin');
 
 /*
