@@ -1,91 +1,202 @@
 /*
- * Halaman masuk (/masuk). Dimuat SESUDAH wms.css: token warna, huruf, dan kop
- * .gov-head diambil dari sana supaya halaman ini serupa dengan dasbor. Berkas
- * ini hanya menambah tata letak kartu masuk.
+ * Halaman masuk (/masuk). Dimuat SESUDAH wms.css: token warna & huruf diambil
+ * dari sana supaya serupa dengan dasbor. Beberapa aturan umum wms.css (button,
+ * input:focus-visible) ditimpa di sini dengan selektor yang lebih khusus.
+ *
+ * Tata letak: dua kolom selayar penuh — ilustrasi bendung di kiri, panel
+ * formulir di kanan. Di bawah 900px keduanya ditumpuk: ilustrasi jadi pita atas.
  */
-.masuk-body{background:var(--bg-deep);}
-.masuk{min-height:100vh; display:flex; flex-direction:column;}
-
-.masuk-main{flex:1; display:flex; align-items:center; justify-content:center; padding:40px var(--gutter);}
-
-/* Dua kolom: panel biru identitas aplikasi di kiri, formulir di kanan. */
-.masuk-card{
-  width:100%; max-width:880px; display:grid; grid-template-columns:1fr 1fr;
-  background:var(--bg-panel); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:0 10px 30px rgba(31,36,48,.08); overflow:hidden;
+.masuk-body{background:#fff;}
+.masuk{
+  min-height:100vh; min-height:100dvh;
+  display:grid; grid-template-columns:minmax(0, 1fr) minmax(400px, 500px);
 }
 
-.masuk-intro{
-  position:relative; padding:40px 36px; color:#dfe3f5;
-  background:var(--navy);
-  border-top:3px solid var(--gold);
+/* ---------- KIRI: ILUSTRASI ---------- */
+.masuk-hero{position:relative; overflow:hidden; background:var(--navy-dark); isolation:isolate;}
+.masuk-hero-img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:62% 50%;
+  z-index:-2; transform-origin:70% 55%;
+  animation:masuk-geser 36s ease-in-out infinite alternate;
 }
-.masuk-eyebrow{font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--gold);}
-.masuk-intro h1{margin:10px 0 12px; font-size:26px; line-height:1.2; font-weight:700; color:#fff; text-wrap:balance;}
-.masuk-intro p{margin:0; font-size:14.5px; line-height:1.55; max-width:34ch;}
-.masuk-modul{list-style:none; margin:28px 0 0; padding:0; display:grid; gap:9px; font-size:13.5px;}
-.masuk-modul li{display:flex; align-items:center; gap:10px;}
-.masuk-modul li::before{content:''; width:6px; height:6px; flex-shrink:0; background:var(--gold);}
+/* Gelap di bawah & kiri tempat tulisan duduk, ilustrasinya tetap terlihat di
+   kanan atas (bendung & kantong lumpur). */
+.masuk-hero-shade{
+  position:absolute; inset:0; z-index:-1;
+  background:
+    linear-gradient(to top, rgba(22,28,82,.96) 0%, rgba(28,36,100,.82) 34%, rgba(28,36,100,.30) 64%, rgba(28,36,100,.10) 100%),
+    linear-gradient(to right, rgba(22,28,82,.55) 0%, rgba(22,28,82,0) 55%);
+}
+@keyframes masuk-geser{
+  from{transform:scale(1.02);}
+  to{transform:scale(1.10) translate(-1.5%, -1%);}
+}
 
-.masuk-form{padding:40px 36px; display:flex; flex-direction:column;}
-.masuk-form h2{margin:0; font-size:22px; font-weight:700; color:var(--text-1);}
-.masuk-sub{margin:4px 0 22px; font-size:13.5px; color:var(--text-2);}
+.masuk-hero-body{
+  position:relative; height:100%;
+  display:flex; flex-direction:column; justify-content:flex-end;
+  padding:56px clamp(32px, 5vw, 72px);
+  color:#e4e8f7;
+}
+.masuk-eyebrow{
+  display:flex; align-items:center; gap:10px;
+  font-size:12.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--gold);
+}
+.masuk-eyebrow-bar{width:28px; height:3px; background:var(--gold);}
+.masuk-hero h1{
+  margin:14px 0 14px; color:#fff;
+  font-size:clamp(34px, 3.4vw, 50px); line-height:1.08; font-weight:700; letter-spacing:-.01em;
+  text-shadow:0 2px 18px rgba(10,14,50,.35);
+}
+.masuk-lead{margin:0; max-width:46ch; font-size:16.5px; line-height:1.55; color:#d5dbf1;}
+
+.masuk-fitur{
+  list-style:none; margin:34px 0 0; padding:0;
+  display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; max-width:860px;
+}
+.masuk-fitur li{
+  display:flex; align-items:flex-start; gap:11px; padding:13px 14px;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); border-radius:6px;
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+}
+.masuk-fitur svg{width:20px; height:20px; flex-shrink:0; margin-top:1px; fill:none; stroke:var(--gold); stroke-width:1.7;}
+.masuk-fitur span{display:flex; flex-direction:column; font-size:12.5px; line-height:1.35; color:#c4cbe6;}
+.masuk-fitur b{font-size:13.5px; font-weight:700; color:#fff;}
+
+/* ---------- KANAN: PANEL FORMULIR ---------- */
+/* Garis emas tegak = penerus garis emas di bawah kop dasbor. */
+.masuk-panel{
+  position:relative; display:flex; flex-direction:column;
+  background:#fff; border-left:4px solid var(--gold);
+}
+.masuk-panel-inner{
+  flex:1; display:flex; flex-direction:column; justify-content:center;
+  width:100%; max-width:380px; margin:0 auto; padding:48px 0 24px;
+}
+
+.masuk-brand{display:flex; align-items:center; gap:14px; margin:0 0 44px;}
+.masuk-brand img{height:32px; width:auto; display:block;}
+.masuk-brand-app{display:flex; flex-direction:column; line-height:1.1; padding-left:14px; border-left:1px solid var(--line);}
+.masuk-brand-app b{font-size:19px; font-weight:700; letter-spacing:.05em; color:var(--text-1);}
+.masuk-brand-app span{font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--text-2);}
+
+.masuk-panel h2{margin:0; font-size:28px; font-weight:700; letter-spacing:-.01em; color:var(--text-1);}
+.masuk-sub{margin:6px 0 28px; font-size:14.5px; color:var(--text-2);}
 
 .masuk-alert{
-  margin:0 0 16px; padding:10px 12px; font-size:13.5px; line-height:1.4;
-  color:var(--danger); background:color-mix(in srgb, var(--danger) 7%, #fff);
-  border:1px solid color-mix(in srgb, var(--danger) 30%, #fff); border-left-width:3px; border-radius:var(--radius);
+  display:flex; align-items:flex-start; gap:10px;
+  margin:-8px 0 22px; padding:11px 13px; font-size:13.5px; line-height:1.4;
+  color:var(--danger); background:#fdf3f2;
+  border:1px solid #f1cfcb; border-left:3px solid var(--danger); border-radius:6px;
 }
+.masuk-alert svg{width:18px; height:18px; flex-shrink:0; margin-top:.5px;}
 
-.masuk-label{font-size:12.5px; font-weight:600; color:var(--text-2); margin:0 0 6px;}
+.masuk-form{display:flex; flex-direction:column;}
+.masuk-field{margin:0 0 18px;}
+.masuk-field label{display:block; margin:0 0 7px; font-size:13px; font-weight:600; color:var(--text-1);}
+
+.masuk-control{position:relative;}
+.masuk-ikon{
+  position:absolute; left:14px; top:50%; width:18px; height:18px; transform:translateY(-50%);
+  color:var(--text-3); pointer-events:none; transition:color .15s;
+}
 .masuk-input{
-  width:100%; height:42px; padding:0 12px; margin:0 0 16px;
-  font:400 15px var(--font-body); color:var(--text-1);
-  background:var(--bg-input); border:1px solid #cfd5df; border-radius:var(--radius);
-  transition:border-color .15s, box-shadow .15s;
+  display:block; width:100%; height:48px; padding:0 14px 0 44px;
+  font:400 15.5px var(--font-body); color:var(--text-1);
+  background:#f7f8fb; border:1px solid #d5dbe5; border-radius:6px;
+  transition:border-color .15s, box-shadow .15s, background .15s;
 }
-.masuk-input:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px color-mix(in srgb, var(--teal) 18%, transparent);}
-.masuk-input.is-invalid{border-color:var(--danger);}
+.masuk-input::placeholder{color:#a3abb8;}
+.masuk-input:hover{border-color:#b9c2d0;}
+.masuk-input:focus, .masuk-input:focus-visible{
+  outline:none; background:#fff; border-color:var(--navy);
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--navy) 14%, transparent);
+}
+.masuk-control:focus-within .masuk-ikon{color:var(--navy);}
+.masuk-input.is-invalid{border-color:var(--danger); background:#fff;}
+.masuk-input.is-invalid:focus{box-shadow:0 0 0 4px color-mix(in srgb, var(--danger) 14%, transparent);}
+.masuk-input--pw{padding-right:48px;}
 
-/* Tombol mata duduk di dalam kotak sandi; padding kanan input memberi ruangnya. */
-.masuk-pw{position:relative;}
-.masuk-pw .masuk-input{padding-right:44px;}
-.masuk-pw-toggle{
-  position:absolute; top:0; right:0; width:42px; height:42px;
+/* Tombol mata. Selektor diawali .masuk-control supaya menang atas aturan
+   button umum di wms.css (bingkai, padding, latar putih). */
+.masuk-control .masuk-pw-toggle{
+  position:absolute; top:4px; right:4px; width:40px; height:40px; padding:0;
   display:flex; align-items:center; justify-content:center;
-  background:none; border:none; color:var(--text-3); cursor:pointer; border-radius:var(--radius);
+  background:none; border:none; border-radius:4px; color:var(--text-3);
 }
-.masuk-pw-toggle svg{width:18px; height:18px;}
-.masuk-pw-toggle:hover, .masuk-pw-toggle[aria-pressed="true"]{color:var(--navy);}
-.masuk-pw-toggle:focus-visible{outline:2px solid var(--teal); outline-offset:-2px;}
+.masuk-control .masuk-pw-toggle:hover{color:var(--navy); background:#eef0f7;}
+.masuk-control .masuk-pw-toggle:focus-visible{outline:2px solid var(--navy); outline-offset:0;}
+.masuk-pw-toggle svg{width:19px; height:19px;}
+.masuk-pw-toggle .mata-tutup{display:none;}
+.masuk-pw-toggle[aria-pressed="true"] .mata-buka{display:none;}
+.masuk-pw-toggle[aria-pressed="true"] .mata-tutup{display:block;}
 
-.masuk-remember{display:flex; align-items:center; gap:8px; margin:2px 0 22px; font-size:13.5px; color:var(--text-2); cursor:pointer;}
-.masuk-remember input{width:16px; height:16px; margin:0; accent-color:var(--navy);}
-
-/* display/justify ditulis ulang karena aturan button umum di wms.css membuat
-   isinya rata kiri. */
-.masuk-submit{
-  display:flex; align-items:center; justify-content:center;
-  height:44px; border:none; border-radius:var(--radius); cursor:pointer;
-  background:var(--navy); color:#fff; font:700 15px var(--font-body); letter-spacing:.02em;
-  transition:background .15s;
+.masuk-caps{
+  display:flex; align-items:center; gap:6px; margin:8px 0 0;
+  font-size:12.5px; font-weight:600; color:var(--warn);
 }
-.masuk-submit:hover{background:var(--navy-dark);}
-.masuk-submit:focus-visible{outline:3px solid var(--gold); outline-offset:2px;}
+.masuk-caps[hidden]{display:none;}
+.masuk-caps svg{width:14px; height:14px;}
 
-.masuk-foot{padding:0 var(--gutter) 22px; text-align:center; font-size:12px; color:var(--text-3);}
+.masuk-remember{
+  display:flex; align-items:center; gap:9px; margin:2px 0 26px; width:max-content;
+  font-size:14px; color:var(--text-2); cursor:pointer; user-select:none;
+}
+.masuk-remember input{width:17px; height:17px; margin:0; accent-color:var(--navy); cursor:pointer;}
 
-/* Layar sempit: panel identitas dipadatkan di atas formulir. */
-@media (max-width:760px){
-  .masuk-main{align-items:flex-start; padding:24px var(--gutter);}
-  .masuk-card{grid-template-columns:1fr;}
-  .masuk-intro{padding:24px 22px;}
-  .masuk-intro h1{font-size:21px; margin:8px 0 8px;}
-  .masuk-intro p{font-size:13.5px;}
-  .masuk-modul{display:none;}
-  .masuk-form{padding:26px 22px 28px;}
+.masuk-form .masuk-submit{
+  position:relative; display:flex; align-items:center; justify-content:center; gap:10px;
+  height:50px; padding:0 20px; border:none; border-radius:6px;
+  background:var(--navy); color:#fff; font:700 15.5px var(--font-body); letter-spacing:.01em;
+  box-shadow:0 1px 0 rgba(255,255,255,.12) inset, 0 6px 16px -6px rgba(38,47,127,.55);
+  transition:background .15s, transform .15s, box-shadow .15s;
+}
+.masuk-form .masuk-submit:hover{background:var(--navy-dark); color:#fff; box-shadow:0 1px 0 rgba(255,255,255,.12) inset, 0 10px 22px -8px rgba(38,47,127,.6);}
+.masuk-form .masuk-submit:active{transform:translateY(1px);}
+.masuk-form .masuk-submit:focus-visible{outline:3px solid var(--gold); outline-offset:2px;}
+.masuk-submit-panah{width:18px; height:18px; transition:transform .2s;}
+.masuk-submit:hover .masuk-submit-panah{transform:translateX(3px);}
+
+.masuk-spinner{
+  display:none; width:18px; height:18px; border-radius:50%;
+  border:2px solid rgba(255,255,255,.35); border-top-color:#fff;
+  animation:masuk-putar .7s linear infinite;
+}
+.masuk-submit.is-loading{cursor:progress;}
+.masuk-submit.is-loading .masuk-submit-panah{display:none;}
+.masuk-submit.is-loading .masuk-spinner{display:block;}
+@keyframes masuk-putar{to{transform:rotate(360deg);}}
+
+.masuk-foot{padding:18px 24px 22px; text-align:center; font-size:12.5px; color:var(--text-3);}
+
+/* ---------- LAYAR SEDANG ---------- */
+@media (max-width:1280px){
+  .masuk-fitur{grid-template-columns:repeat(2, minmax(0, 1fr)); max-width:520px;}
+}
+
+/* ---------- TABLET & PONSEL: DITUMPUK ---------- */
+@media (max-width:900px){
+  .masuk{grid-template-columns:1fr; grid-template-rows:auto 1fr;}
+  .masuk-hero{min-height:260px;}
+  .masuk-hero-body{padding:72px 24px 26px;}
+  .masuk-hero h1{font-size:28px; margin:10px 0 8px;}
+  .masuk-lead{font-size:14.5px;}
+  .masuk-fitur{display:none;}
+  .masuk-panel{border-left:none; border-top:4px solid var(--gold);}
+  .masuk-panel-inner{max-width:440px; padding:30px 24px 8px; justify-content:flex-start;}
+  .masuk-brand{margin-bottom:28px;}
+  .masuk-panel h2{font-size:24px;}
+}
+@media (max-width:480px){
+  .masuk-hero{min-height:220px;}
+  .masuk-hero-body{padding:56px 20px 22px;}
+  .masuk-lead{display:none;}
+  .masuk-panel-inner{padding:26px 20px 8px;}
+  .masuk-brand img{height:28px;}
 }
 
 @media (prefers-reduced-motion: reduce){
-  .masuk-input, .masuk-submit{transition:none;}
+  .masuk-hero-img{animation:none; transform:none;}
+  .masuk-input, .masuk-form .masuk-submit, .masuk-submit-panah, .masuk-ikon{transition:none;}
+  .masuk-spinner{animation-duration:1.6s;}
 }
